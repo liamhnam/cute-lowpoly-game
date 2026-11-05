@@ -52,7 +52,7 @@ class Game {
       powerPreference: 'high-performance',
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -69,19 +69,20 @@ class Game {
     this.sunLight.position.set(42, 54, 32);
     this.sunLight.castShadow = true;
 
-    this.sunLight.shadow.mapSize.width = 2048;
-    this.sunLight.shadow.mapSize.height = 2048;
+    // Tối ưu hóa bộ nhớ shadow map (1024x1024) & bán kính lọc mềm nhẹ mượt
+    this.sunLight.shadow.mapSize.width = 1024;
+    this.sunLight.shadow.mapSize.height = 1024;
     this.sunLight.shadow.camera.near = 5;
     this.sunLight.shadow.camera.far = 170;
 
-    const d = 48;
+    const d = 40;
     this.sunLight.shadow.camera.left = -d;
     this.sunLight.shadow.camera.right = d;
     this.sunLight.shadow.camera.top = d;
     this.sunLight.shadow.camera.bottom = -d;
     this.sunLight.shadow.bias = -0.0003;
     this.sunLight.shadow.normalBias = 0.024;
-    this.sunLight.shadow.radius = 2.0; // Làm mềm rìa bóng đổ PCFSoftShadowMap
+    this.sunLight.shadow.radius = 1.0;
 
     this.scene.add(this.sunLight);
 
@@ -351,6 +352,8 @@ class Game {
     this.stateBadge = document.getElementById('hud-state');
     this.killBadge = document.getElementById('hud-kills');
     this.realmBadge = document.getElementById('hud-realm');
+    this.fpsBadge = document.getElementById('hud-fps');
+    this.fps = 60;
 
     this.barHp = document.getElementById('bar-hp');
     this.textHp = document.getElementById('text-hp');
@@ -433,7 +436,13 @@ class Game {
     this.world.update(delta, elapsedTime);
     this.particles.update(delta, this.character.position);
 
-    // 7. Cập nhật HUD
+    // 7. Cập nhật HUD & Giám sát FPS thời gian thực
+    if (this.fpsBadge) {
+      this.fps = THREE.MathUtils.lerp(this.fps, 1 / Math.max(delta, 0.001), 0.06);
+      const rounded = Math.round(this.fps);
+      this.fpsBadge.textContent = `⚡ ${rounded} FPS`;
+      this.fpsBadge.style.color = rounded >= 55 ? '#2ed573' : (rounded >= 35 ? '#ffa502' : '#ff4757');
+    }
     if (this.speedBadge) {
       const spdKmh = (this.character.speed * 2.2).toFixed(1);
       this.speedBadge.textContent = `${spdKmh} km/h`;

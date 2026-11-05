@@ -103,7 +103,7 @@ export class World {
   // --- 1. MẶT SÀN KINH THÀNH RỘNG LỚN (IMPERIAL GROUND 300m x 300m) ---
   createImperialGround() {
     const size = 300;
-    const segments = 150;
+    const segments = 80; // Tối ưu hóa đa giác địa hình xuống 80x80 (nhẹ hơn 65% vertex processing)
     this.terrainGeometry = new THREE.PlaneGeometry(size, size, segments, segments);
     this.terrainGeometry.rotateX(-Math.PI / 2);
 
@@ -164,7 +164,7 @@ export class World {
 
   // --- 2. KÊNH ĐÀO MỞ RỘNG (270m) & 3 CÂY CẦU ĐÁ NGUYỆT NHA ---
   createCanalAndBridges() {
-    this.waterGeometry = new THREE.PlaneGeometry(270, 8.4, 120, 16);
+    this.waterGeometry = new THREE.PlaneGeometry(270, 8.4, 32, 4); // Tối ưu vertex nước xuống 32x4
     this.waterGeometry.rotateX(-Math.PI / 2);
 
     const waterMat = new THREE.MeshStandardMaterial({
@@ -429,40 +429,39 @@ export class World {
         this.registerBuildingPart(bRoof, 110, 'eave', 'tile', `corner_${cc.x}_${cc.z}_${t}`);
       }
 
-      const cLight = new THREE.PointLight(0xff5522, 1.8, 22, 1.8);
-      cLight.position.set(0, wallH + 6.0, 0);
-      bastionGroup.add(cLight);
-      this.lanternLights.push(cLight);
-
       this.perimeterWallGroup.add(bastionGroup);
     }
 
-    // 6. ĐAO XỈ TƯỜNG (CRENELLATIONS / MERLONS)
+    // 6. ĐAO XỈ TƯỜNG (CRENELLATIONS / MERLONS) DÙNG INSTANCED MESH (1 DRAW CALL THAY VÌ 180 MESHES!)
     const merlonGeo = new THREE.BoxGeometry(2.2, 1.2, 0.7);
+    const merlonTransforms = [];
+
+    // Tường Nam & Bắc
     for (let mx = -120; mx <= 120; mx += 4.8) {
       if (Math.abs(mx) < 16) continue;
-
-      const mSouth = new THREE.Mesh(merlonGeo, wallMat);
-      mSouth.position.set(mx, wallH + 0.6, -W - wallThick / 2 + 0.35);
-      this.perimeterWallGroup.add(mSouth);
-
-      const mNorth = new THREE.Mesh(merlonGeo, wallMat);
-      mNorth.position.set(mx, wallH + 0.6, W + wallThick / 2 - 0.35);
-      this.perimeterWallGroup.add(mNorth);
+      const mSouth = new THREE.Matrix4().setPosition(mx, wallH + 0.6, -W - wallThick / 2 + 0.35);
+      merlonTransforms.push(mSouth);
+      const mNorth = new THREE.Matrix4().setPosition(mx, wallH + 0.6, W + wallThick / 2 - 0.35);
+      merlonTransforms.push(mNorth);
     }
 
-    const merlonGeoSide = new THREE.BoxGeometry(0.7, 1.2, 2.2);
+    // Tường Tây & Đông
+    const rotY90 = new THREE.Matrix4().makeRotationY(Math.PI / 2);
     for (let mz = -120; mz <= 120; mz += 4.8) {
       if (Math.abs(mz - (-16)) < 12) continue;
-
-      const mWest = new THREE.Mesh(merlonGeoSide, wallMat);
-      mWest.position.set(-W - wallThick / 2 + 0.35, wallH + 0.6, mz);
-      this.perimeterWallGroup.add(mWest);
-
-      const mEast = new THREE.Mesh(merlonGeoSide, wallMat);
-      mEast.position.set(W + wallThick / 2 - 0.35, wallH + 0.6, mz);
-      this.perimeterWallGroup.add(mEast);
+      const mWest = new THREE.Matrix4().setPosition(-W - wallThick / 2 + 0.35, wallH + 0.6, mz).multiply(rotY90);
+      merlonTransforms.push(mWest);
+      const mEast = new THREE.Matrix4().setPosition(W + wallThick / 2 - 0.35, wallH + 0.6, mz).multiply(rotY90);
+      merlonTransforms.push(mEast);
     }
+
+    const instancedMerlons = new THREE.InstancedMesh(merlonGeo, wallMat, merlonTransforms.length);
+    for (let i = 0; i < merlonTransforms.length; i++) {
+      instancedMerlons.setMatrixAt(i, merlonTransforms[i]);
+    }
+    instancedMerlons.instanceMatrix.needsUpdate = true;
+    instancedMerlons.castShadow = true;
+    this.perimeterWallGroup.add(instancedMerlons);
 
     // 7. THÁP CANH TRUNG ĐOẠN (8 INTERMEDIATE BASTION TOWERS)
     const midTowerSpots = [
@@ -676,8 +675,9 @@ export class World {
 
   // --- HỆ THỐNG ĐĂNG KÝ BỘ PHẬN NHÀ CÓ THỂ BỊ BẮN BỂ TỪNG PHẦN ---
   registerBuildingPart(mesh, hp = 80, partType = 'wall', debrisType = 'masonry', buildingId = 'building') {
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    // Tối ưu hóa shadow pass: Chỉ mái hiên chính (eave) và cổng lớn (gate) mới đổ bóng
+    mesh.castShadow = (partType === 'eave' || partType === 'gate');
+    mesh.receiveShadow = (partType === 'wall' || partType === 'eave');
 
     mesh.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(mesh);
@@ -1499,8 +1499,8 @@ export class World {
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true });
     const lanternMat = new THREE.MeshStandardMaterial({
       color: 0xff3838,
-      emissive: 0xff4757,
-      emissiveIntensity: 0.75,
+      emissive: 0xff3838,
+      emissiveIntensity: 1.6, // Tỏa sáng đỏ rực rỡ không tốn GPU per-pixel lighting
       flatShading: true,
       roughness: 0.4,
     });
@@ -1517,7 +1517,6 @@ export class World {
 
         const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 3.8, 6), woodMat);
         pole.position.y = 1.9;
-        pole.castShadow = true;
         poleGroup.add(pole);
 
         const arm = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 0.1), woodMat);
@@ -1544,9 +1543,9 @@ export class World {
         poleGroup.add(lanternPivot);
         this.hangingLanterns.push({ pivot: lanternPivot, phase: (i + side) * 0.8 });
 
-        // Nguồn sáng động chiếu sáng đại lộ (mỗi 2 cột có 1 đèn phát sáng để tối ưu FPS)
-        if (i % 2 === 0) {
-          const pLight = new THREE.PointLight(0xff7722, 1.6, 13, 1.8);
+        // Chỉ tạo 2 nguồn sáng điểm đại diện ở trung tâm cầu kênh đào để giữ mượt tuyệt đối 60 FPS
+        if (i === 7 && side > 0) {
+          const pLight = new THREE.PointLight(0xff7722, 1.8, 18, 1.8);
           pLight.position.set(armDir * 0.75, 2.9, 0);
           poleGroup.add(pLight);
           this.lanternLights.push(pLight);
@@ -1591,7 +1590,6 @@ export class World {
 
       const table = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.85, 1.5), woodMat);
       table.position.y = 0.42;
-      table.castShadow = true;
       stall.add(table);
 
       for (const cx of [-1.3, 1.3]) {
@@ -1609,14 +1607,13 @@ export class World {
       );
       canopy.position.y = 2.2;
       canopy.rotation.x = -0.15;
-      canopy.castShadow = true;
+      canopy.castShadow = true; // Chỉ mái bạt sạp chợ mới đổ bóng
       stall.add(canopy);
 
       // Thùng hàng gỗ đặt cạnh sạp
       for (let c = 0; c < 2; c++) {
         const crate = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), crateMat);
         crate.position.set(1.8, 0.4 + c * 0.75, 0.2 * (c === 0 ? 1 : -1));
-        crate.castShadow = true;
         stall.add(crate);
       }
 
@@ -1718,7 +1715,6 @@ export class World {
         const belly = new THREE.Mesh(new THREE.DodecahedronGeometry(0.38, 1), ceramicMat);
         belly.scale.set(1.0, 1.15, 1.0);
         belly.position.y = 0.42;
-        belly.castShadow = true;
         urn.add(belly);
 
         const mouth = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.18, 8), ceramicMat);
@@ -1989,7 +1985,15 @@ export class World {
   }
 
   // --- VẬT LÝ MẢNH VỠ BAY TỨ TUNG (DEBRIS PHYSICS CÓ ĐỘ NẢY RESTITUTION & MA SÁT) ---
-  addDebris(mesh, impulseDir, speed, gravity = 20, life = 3.6, restitution = 0.52) {
+  addDebris(mesh, impulseDir, speed, gravity = 20, life = 3.2, restitution = 0.52) {
+    mesh.castShadow = false; // Tắt shadow cho mảnh vỡ để bảo vệ FPS tối đa
+
+    // Giới hạn mảnh vỡ tối đa 45 mảnh
+    while (this.debris.length >= 45) {
+      const old = this.debris.shift();
+      this.scene.remove(old.mesh);
+    }
+
     this.scene.add(mesh);
     const vel = impulseDir.clone().normalize().multiplyScalar(speed);
     vel.y += speed * (0.35 + Math.random() * 0.45);
@@ -2368,18 +2372,16 @@ export class World {
       if (cloud.position.x > 140) cloud.position.x = -140;
     }
 
-    // 2. Gợn sóng nước kênh đào động
+    // 2. Gợn sóng nước kênh đào động (tối ưu hóa GPU flatShading không tính lại normals trên CPU)
     if (this.waterGeometry) {
       const wpos = this.waterGeometry.attributes.position;
       for (let i = 0; i < wpos.count; i++) {
         const vx = wpos.getX(i);
         const vy = wpos.getY(i);
-        const wave1 = Math.sin(time * 2.6 + vx * 0.35 + vy * 0.5) * 0.08;
-        const wave2 = Math.cos(time * 1.8 + vx * 0.5 - vy * 0.3) * 0.04;
-        wpos.setZ(i, wave1 + wave2);
+        const wave1 = Math.sin(time * 2.4 + vx * 0.35 + vy * 0.5) * 0.07;
+        wpos.setZ(i, wave1);
       }
       wpos.needsUpdate = true;
-      this.waterGeometry.computeVertexNormals();
     }
 
     // 3. Đèn lồng đỏ đung đưa trong gió
