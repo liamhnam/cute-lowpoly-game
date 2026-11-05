@@ -7,6 +7,7 @@ import { ProjectileSystem } from './projectiles.js';
 import { Monster } from './monsters.js';
 import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
+import { MobileControlsManager } from './mobileControls.js';
 
 class Game {
   constructor() {
@@ -302,6 +303,28 @@ class Game {
         } else {
           document.exitFullscreen().catch(() => {});
         }
+      });
+    }
+
+    // Khởi tạo Hệ thống Điều Khiển Cảm Ứng Di Động (Mobile Controls)
+    this.mobileControls = new MobileControlsManager(
+      this,
+      this.controller,
+      this.character,
+      this.pixelFX
+    );
+    this.controller.isMobileActive = this.mobileControls.isEnabled;
+
+    // Nút Bật/Tắt Phím Ảo Mobile trên thanh công cụ
+    const mobileToggleBtn = document.getElementById('btn-mobile-toggle');
+    if (mobileToggleBtn) {
+      mobileToggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const newState = this.mobileControls.toggle();
+        this.controller.isMobileActive = newState;
+        this.showNotification(
+          newState ? '📱 Đã kích hoạt [Giao Diện Mobile Ảo]!' : '💻 Đã chuyển sang [Chế Độ Bàn Phím/Chuột]'
+        );
       });
     }
 

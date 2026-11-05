@@ -39,10 +39,31 @@ export class ThirdPersonController {
     this.currentCameraTarget = new THREE.Vector3();
     this.currentCameraPosition = new THREE.Vector3();
 
+    // Dữ liệu điều khiển cảm ứng di động (Mobile Joystick & Touch)
+    this.joystickInput = new THREE.Vector2(0, 0);
+    this.joystickSprint = false;
+    this.isMobileActive = false;
+
     this.isTouchDragging = false;
     this.prevTouchPos = { x: 0, y: 0 };
 
     this.initListeners();
+  }
+
+  setJoystickInput(x, y, isSprinting = false) {
+    this.joystickInput.set(x, y);
+    this.joystickSprint = isSprinting;
+  }
+
+  rotateCamera(deltaYaw, deltaPitch) {
+    this.yaw += deltaYaw;
+    this.pitch += deltaPitch;
+    this.pitch = THREE.MathUtils.clamp(this.pitch, this.minPitch, this.maxPitch);
+  }
+
+  zoomCamera(deltaDist) {
+    this.cameraDistance += deltaDist;
+    this.cameraDistance = THREE.MathUtils.clamp(this.cameraDistance, this.minDistance, this.maxDistance);
   }
 
   addTrauma(amount) {
@@ -92,6 +113,7 @@ export class ThirdPersonController {
     document.addEventListener('webkitpointerlockchange', onPointerLockChange);
 
     this.domElement.addEventListener('click', (e) => {
+      if (this.isMobileActive) return;
       if (!this.isLocked) {
         this.requestLock();
       } else {
@@ -102,6 +124,7 @@ export class ThirdPersonController {
     });
 
     this.domElement.addEventListener('mousedown', (e) => {
+      if (this.isMobileActive) return;
       if (this.isLocked && e.button === 0) {
         this.triggerShoot();
       }
@@ -135,9 +158,10 @@ export class ThirdPersonController {
       this.handleKey(e.code, false);
     });
 
-    // Touch support
+    // Touch support (dự phòng khi không bật MobileControls)
     let touchStartDist = 0;
     this.domElement.addEventListener('touchstart', (e) => {
+      if (this.isMobileActive) return;
       if (e.touches.length === 1) {
         this.isTouchDragging = true;
         this.prevTouchPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -150,6 +174,7 @@ export class ThirdPersonController {
     });
 
     this.domElement.addEventListener('touchmove', (e) => {
+      if (this.isMobileActive) return;
       if (e.touches.length === 1 && this.isTouchDragging) {
         const deltaX = e.touches[0].clientX - this.prevTouchPos.x;
         const deltaY = e.touches[0].clientY - this.prevTouchPos.y;
@@ -170,6 +195,7 @@ export class ThirdPersonController {
     });
 
     this.domElement.addEventListener('touchend', () => {
+      if (this.isMobileActive) return;
       this.isTouchDragging = false;
     });
 
@@ -282,10 +308,18 @@ export class ThirdPersonController {
     if (this.keys.left) moveInput.x -= 1;
     if (this.keys.right) moveInput.x += 1;
 
+    // Tích hợp vector di chuyển từ Cần gạt ảo Mobile (Analog Joystick)
+    if (this.joystickInput.lengthSq() > 0) {
+      moveInput.x += this.joystickInput.x;
+      moveInput.y += this.joystickInput.y;
+    }
+
     let worldMoveVector = new THREE.Vector3(0, 0, 0);
 
     if (moveInput.lengthSq() > 0) {
-      moveInput.normalize();
+      if (moveInput.length() > 1) {
+        moveInput.normalize();
+      }
 
       const forward = new THREE.Vector3(
         -Math.sin(this.yaw),
@@ -301,11 +335,15 @@ export class ThirdPersonController {
 
       worldMoveVector
         .addScaledVector(forward, moveInput.y)
-        .addScaledVector(right, moveInput.x)
-        .normalize();
+        .addScaledVector(right, moveInput.x);
+      
+      if (worldMoveVector.length() > 1) {
+        worldMoveVector.normalize();
+      }
     }
 
-    this.character.update(delta, worldMoveVector, this.keys.sprint);
+    const isSprinting = this.keys.sprint || this.joystickSprint;
+    this.character.update(delta, worldMoveVector, isSprinting);
 
     const targetLookAt = this.character.position.clone();
     targetLookAt.y += 1.45;

@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Trường An Cổ Đô - Bé Gấu Tu Tiên PixelFX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -649,29 +649,598 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    @media (max-width: 768px) {
+    /* ========================================================
+       GIAO DIỆN ĐIỀU KHIỂN CẢM ỨNG DI ĐỘNG (MOBILE CONTROLS)
+       ======================================================== */
+    .mobile-controls-root {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 70;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* VÙNG CHẠM CẢM ỨNG (TOUCH ZONES) */
+    .mobile-touchzone {
+      position: absolute;
+      bottom: 0;
+      pointer-events: auto;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Vùng nửa trái: Cần gạt di chuyển */
+    .joystick-touchzone {
+      left: 0;
+      width: 48vw;
+      height: 70vh;
+      z-index: 71;
+    }
+
+    /* Vùng nửa phải: Vuốt xoay Camera 3D */
+    .camera-touchzone {
+      right: 0;
+      width: 52vw;
+      height: 80vh;
+      z-index: 68;
+    }
+
+    .camera-hint-badge {
+      position: absolute;
+      top: 32%;
+      right: 20px;
+      background: rgba(30, 39, 46, 0.78);
+      color: #f1c40f;
+      padding: 5px 12px;
+      font-size: 0.95rem;
+      font-family: 'VT323', monospace;
+      letter-spacing: 0.5px;
+      border: 1px dashed rgba(241, 196, 15, 0.5);
+      border-radius: 4px;
+      pointer-events: none;
+      opacity: 0.75;
+      animation: fadeOutHint 6s forwards;
+      animation-delay: 3s;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes fadeOutHint {
+      0% { opacity: 0.75; }
+      80% { opacity: 0.75; }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+
+    /* CẦN GẠT ẢO BÁT QUÁI (TAIJI / BAGUA JOYSTICK) */
+    .joystick-base {
+      position: absolute;
+      bottom: 45px;
+      left: 45px;
+      width: 126px;
+      height: 126px;
+      transform: translate(-50%, 50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(30, 39, 46, 0.72) 0%, rgba(16, 172, 132, 0.28) 85%, rgba(241, 196, 15, 0.15) 100%);
+      border: 2px solid rgba(241, 196, 15, 0.65);
+      box-shadow:
+        0 0 16px rgba(0, 0, 0, 0.5),
+        inset 0 0 14px rgba(241, 196, 15, 0.25);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      pointer-events: none;
+      transition: opacity 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      opacity: 0.82;
+    }
+
+    .joystick-base.active {
+      opacity: 0.98;
+      border-color: #f1c40f;
+      box-shadow:
+        0 0 24px rgba(241, 196, 15, 0.6),
+        inset 0 0 18px rgba(16, 172, 132, 0.45);
+    }
+
+    .joystick-base.sprinting {
+      border-color: #00d2d3;
+      box-shadow:
+        0 0 30px rgba(0, 210, 211, 0.85),
+        inset 0 0 22px rgba(0, 210, 211, 0.5);
+    }
+
+    .joystick-bagua-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 90px;
+      height: 90px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px dashed rgba(255, 235, 59, 0.45);
+      pointer-events: none;
+      animation: spinBagua 40s linear infinite;
+    }
+
+    @keyframes spinBagua {
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .joystick-notch {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background: rgba(241, 196, 15, 0.8);
+      border-radius: 50%;
+      box-shadow: 0 0 4px #f1c40f;
+      transform: translate(-50%, -50%);
+    }
+
+    .notch-n  { top: 7px; left: 50%; }
+    .notch-s  { bottom: 1px; left: 50%; }
+    .notch-e  { top: 50%; right: 1px; }
+    .notch-w  { top: 50%; left: 7px; }
+    .notch-ne { top: 19px; right: 19px; }
+    .notch-nw { top: 19px; left: 19px; }
+    .notch-se { bottom: 13px; right: 19px; }
+    .notch-sw { bottom: 13px; left: 19px; }
+
+    .joystick-thumb {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 52px;
+      height: 52px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff9db 0%, #f1c40f 65%, #d35400 100%);
+      border: 2px solid #1e272e;
+      box-shadow:
+        0 4px 10px rgba(0, 0, 0, 0.55),
+        0 0 14px rgba(241, 196, 15, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      transition: transform 0.03s linear;
+    }
+
+    .thumb-core {
+      font-size: 1.45rem;
+      color: #1e272e;
+      line-height: 1;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.9);
+      user-select: none;
+    }
+
+    .sprint-tag {
+      position: absolute;
+      top: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #00d2d3;
+      color: #1e272e;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid #1e272e;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      box-shadow: 0 0 12px rgba(0, 210, 211, 0.85);
+      pointer-events: none;
+    }
+
+    .joystick-base.sprinting .sprint-tag {
+      opacity: 1;
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    /* CỤM NÚT CHIẾN ĐẤU MOBILE (RIGHT ACTION CLUSTER) */
+    .mobile-action-cluster {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: grid;
+      grid-template-columns: repeat(2, auto);
+      grid-template-rows: repeat(2, auto);
+      gap: 12px 16px;
+      align-items: center;
+      justify-items: center;
+      pointer-events: auto;
+      z-index: 75;
+    }
+
+    .m-btn {
+      border: none;
+      outline: none;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      box-shadow:
+        0 4px 0 0 #1e272e,
+        0 6px 14px rgba(0, 0, 0, 0.4);
+      transition: transform 0.08s ease, filter 0.08s ease;
+      position: relative;
+    }
+
+    .m-btn:active, .m-btn.pressed {
+      transform: translateY(3px) scale(0.93);
+      box-shadow: 0 1px 0 0 #1e272e;
+      filter: brightness(1.22);
+    }
+
+    .m-btn .m-icon {
+      line-height: 1;
+    }
+
+    .m-btn .m-label {
+      font-family: 'VT323', monospace;
+      font-size: 0.92rem;
+      font-weight: 700;
+      line-height: 1;
+      margin-top: 2px;
+      text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.6);
+    }
+
+    /* Nút Pháp Kích Chính (Shoot) */
+    .btn-shoot {
+      width: 78px;
+      height: 78px;
+      grid-column: 2;
+      grid-row: 2;
+      background: radial-gradient(circle, #ff6b81 0%, #ff4757 60%, #c0392b 100%);
+      border: 3px solid #f1c40f;
+      color: #ffffff;
+      box-shadow:
+        0 4px 0 0 #1e272e,
+        0 0 20px rgba(255, 71, 87, 0.65);
+    }
+
+    .btn-shoot .m-icon {
+      font-size: 1.95rem;
+    }
+
+    .btn-shoot .m-label {
+      font-size: 1.05rem;
+      color: #ffeaa7;
+    }
+
+    /* Nút Đạp Vân (Jump) */
+    .btn-jump {
+      width: 60px;
+      height: 60px;
+      grid-column: 1;
+      grid-row: 2;
+      background: radial-gradient(circle, #55efc4 0%, #10ac84 70%, #1b8a6b 100%);
+      border: 2px solid #1e272e;
+      color: #ffffff;
+    }
+
+    .btn-jump .m-icon {
+      font-size: 1.55rem;
+    }
+
+    /* Nút Súc Địa (Sprint) */
+    .btn-sprint {
+      width: 52px;
+      height: 52px;
+      grid-column: 2;
+      grid-row: 1;
+      background: radial-gradient(circle, #74b9ff 0%, #0984e3 70%, #0652dd 100%);
+      border: 2px solid #1e272e;
+      color: #ffffff;
+    }
+
+    .btn-sprint.active {
+      background: radial-gradient(circle, #00d2d3 0%, #10ac84 70%, #1b8a6b 100%);
+      box-shadow: 0 0 16px #00d2d3;
+      border-color: #f1c40f;
+    }
+
+    .btn-sprint .m-icon {
+      font-size: 1.35rem;
+    }
+
+    /* Nút Hoán Y (Outfit) */
+    .btn-outfit {
+      width: 48px;
+      height: 48px;
+      grid-column: 1;
+      grid-row: 1;
+      background: radial-gradient(circle, #fd79a8 0%, #e84393 70%, #6c5ce7 100%);
+      border: 2px solid #1e272e;
+      color: #ffffff;
+    }
+
+    .btn-outfit .m-icon {
+      font-size: 1.25rem;
+    }
+
+    /* BANNER GỢI Ý XOAY MÀN HÌNH (ORIENTATION BANNER) */
+    .mobile-orientation-banner {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 39, 46, 0.95);
+      color: #f1c40f;
+      border: 2px solid #f1c40f;
+      padding: 8px 16px;
+      font-size: 1rem;
+      font-family: 'VT323', monospace;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+      display: none;
+      z-index: 95;
+      pointer-events: auto;
+      border-radius: 4px;
+      max-width: 92vw;
+    }
+
+    .mobile-orientation-banner.visible {
+      display: block;
+      animation: bounceBanner 0.4s ease;
+    }
+
+    @keyframes bounceBanner {
+      0% { opacity: 0; transform: translate(-50%, -20px); }
+      100% { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    .orientation-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .rotate-icon {
+      font-size: 1.4rem;
+      animation: rotateIconAnim 3s infinite linear;
+    }
+
+    @keyframes rotateIconAnim {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .btn-close-banner {
+      background: none;
+      border: none;
+      color: #ff7675;
+      font-weight: bold;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0 4px;
+      margin-left: 6px;
+    }
+
+    /* HIỆU ỨNG CHẠM CẢM ỨNG TRÊN Ô KỸ NĂNG */
+    .skill-slot.touch-active {
+      transform: scale(0.92) !important;
+      filter: brightness(1.25) drop-shadow(0 0 10px #f1c40f) !important;
+    }
+
+    /* KHI CHẾ ĐỘ MOBILE HOẠT ĐỘNG */
+    body.mobile-ui-active .controls-help {
+      display: none !important;
+    }
+
+    body.mobile-ui-active .bottom-bar .action-cluster {
+      display: none !important;
+    }
+
+    body.mobile-ui-active #lock-hint {
+      display: none !important;
+    }
+
+    /* ĐIỀU CHỈNH GIAO DIỆN THEO KÍCH THƯỚC MÀN HÌNH */
+    @media (max-width: 900px) {
       .title-card {
-        padding: 8px 12px;
-        max-width: 260px;
+        padding: 6px 10px;
+        max-width: 250px;
+      }
+      .title-card h1 {
+        font-size: 0.65rem;
       }
       .title-card p {
         display: none;
       }
+      .top-actions {
+        flex-wrap: wrap;
+        gap: 4px;
+        justify-content: flex-end;
+      }
+      .action-btn {
+        padding: 4px 8px;
+        font-size: 0.92rem;
+      }
+    }
+
+    /* MÀN HÌNH NGANG (LANDSCAPE - CHUẨN MOBILE GAMING) */
+    @media (orientation: landscape) and (max-height: 600px) {
+      .hud-layer {
+        padding: 8px 12px;
+      }
+      .title-card {
+        padding: 4px 8px;
+        max-width: 220px;
+      }
+      .title-card h1 {
+        font-size: 0.58rem;
+      }
+      .status-bars-container {
+        margin-top: 4px;
+        gap: 3px;
+      }
+      .pixel-bar-row {
+        gap: 4px;
+      }
+      .pixel-bar-label {
+        font-size: 0.44rem;
+        width: 62px;
+      }
+      .pixel-bar-outer {
+        height: 10px;
+      }
+      .pixel-bar-num {
+        font-size: 0.72rem;
+      }
+      .status-badges {
+        margin-top: 4px;
+        gap: 4px;
+      }
+      .badge {
+        font-size: 0.78rem;
+        padding: 1px 4px;
+      }
+      .top-actions .action-btn {
+        padding: 3px 6px;
+        font-size: 0.85rem;
+      }
+
+      /* Thanh kỹ năng ở trung tâm phía dưới giữa Joystick và Cụm Nút */
       .skill-bar-container {
-        bottom: 84px;
+        bottom: 10px;
         gap: 6px;
-        padding: 6px 10px;
+        padding: 4px 8px;
       }
       .skill-slot {
-        width: 52px;
-        height: 64px;
+        width: 48px;
+        height: 58px;
+        padding: 2px 1px;
       }
       .skill-slot#skill-slot-5 {
-        width: 58px;
-        height: 70px;
+        width: 54px;
+        height: 64px;
       }
       .skill-icon {
-        font-size: 1.2rem;
+        font-size: 1.15rem;
+        margin: 1px 0;
+      }
+      .skill-name {
+        font-size: 0.82rem;
+      }
+      .skill-key {
+        font-size: 0.42rem;
+      }
+      .skill-talisman-tag {
+        font-size: 0.38rem;
+      }
+
+      /* Joystick gọn gàng trong landscape */
+      .joystick-base {
+        bottom: 35px;
+        left: 35px;
+        width: 114px;
+        height: 114px;
+      }
+      .joystick-thumb {
+        width: 46px;
+        height: 46px;
+      }
+      .thumb-core {
+        font-size: 1.25rem;
+      }
+
+      /* Cụm nút hành động trong landscape */
+      .mobile-action-cluster {
+        bottom: 12px;
+        right: 14px;
+        gap: 8px 12px;
+      }
+      .btn-shoot {
+        width: 68px;
+        height: 68px;
+      }
+      .btn-shoot .m-icon {
+        font-size: 1.7rem;
+      }
+      .btn-jump {
+        width: 52px;
+        height: 52px;
+      }
+      .btn-jump .m-icon {
+        font-size: 1.35rem;
+      }
+      .btn-sprint {
+        width: 45px;
+        height: 45px;
+      }
+      .btn-outfit {
+        width: 42px;
+        height: 42px;
+      }
+    }
+
+    /* MÀN HÌNH DỌC (PORTRAIT) */
+    @media (orientation: portrait) and (max-width: 600px) {
+      .hud-layer {
+        padding: 10px;
+      }
+      .title-card {
+        max-width: 200px;
+        padding: 4px 6px;
+      }
+      .title-card p {
+        display: none;
+      }
+      .top-actions {
+        flex-direction: column;
+        gap: 4px;
+      }
+      .top-actions .action-btn {
+        font-size: 0.82rem;
+        padding: 3px 6px;
+      }
+      .skill-bar-container {
+        bottom: 115px;
+        gap: 4px;
+        padding: 4px 6px;
+      }
+      .skill-slot {
+        width: 44px;
+        height: 54px;
+      }
+      .skill-slot#skill-slot-5 {
+        width: 48px;
+        height: 58px;
+      }
+      .skill-icon {
+        font-size: 1.05rem;
+      }
+      .skill-name {
+        font-size: 0.74rem;
+      }
+
+      .mobile-action-cluster {
+        bottom: 16px;
+        right: 14px;
+        gap: 10px 12px;
+      }
+      .btn-shoot {
+        width: 68px;
+        height: 68px;
+      }
+      .btn-jump {
+        width: 52px;
+        height: 52px;
+      }
+      .btn-sprint {
+        width: 46px;
+        height: 46px;
+      }
+      .btn-outfit {
+        width: 42px;
+        height: 42px;
       }
     }
   </style>
@@ -726,6 +1295,7 @@
       </div>
 
       <div class="top-actions">
+        <button class="action-btn" id="btn-mobile-toggle" title="Bật/Tắt Phím Ảo Mobile">📱 Phím Ảo</button>
         <button class="action-btn" id="btn-outfit" title="Phím tắt: C">🎨 Hoán Y (C)</button>
         <button class="action-btn active" id="btn-sound">🔊 Linh Âm: Bật</button>
         <button class="action-btn" id="btn-photo">📸 Lưu Ảnh</button>
