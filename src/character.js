@@ -26,18 +26,67 @@ export class Character {
     this.footstepTimer = 0;
     this.squashFactor = 1.0;
     this.gunRecoil = 0;
+    this.muzzleFlashTimer = 0;
 
-    // Bảng màu trang phục cute
+    // Kỹ năng & Thi triển phép thuật (Skill Casting)
+    this.isCasting = false;
+    this.castSkill = 0;
+    this.castTime = 0;
+    this.castDuration = 0.6;
+
+    // Bảng màu trang phục Tiên Hiệp cổ phong
     this.outfitIndex = 0;
     this.outfits = [
-      { name: 'Xanh Mint Dễ Thương', clothes: 0x76d7c4, hat: 0xff6b6b },
-      { name: 'Vàng Mật Ong Rực Rỡ', clothes: 0xffd166, hat: 0x48dbfb },
-      { name: 'Hồng Dâu Ngọt Ngào', clothes: 0xff9ff3, hat: 0xfeca57 },
-      { name: 'Tím Lavender Mộng Mơ', clothes: 0xb8b5ff, hat: 0x54a0ff },
+      { name: 'Thanh Vân Tiên Bào (Lam Ngọc)', clothes: 0x54a0ff, hat: 0x1dd1a1 },
+      { name: 'Tử Tiêu Kiếm Tông (Tử Kim)', clothes: 0x8854d0, hat: 0xf1c40f },
+      { name: 'Hồng Trần Ma Tu (Chu Sa Hắc Bào)', clothes: 0xeb3b5a, hat: 0x2d3436 },
+      { name: 'Bạch Hạc Chân Nhân (Bạch Ngọc)', clothes: 0xf5f6fa, hat: 0x00d2d3 },
     ];
 
     this.buildMesh();
+    this.buildCastAura();
+    this.buildContactShadow();
     this.scene.add(this.group);
+  }
+
+  buildContactShadow() {
+    const geo = new THREE.CircleGeometry(0.55, 16);
+    geo.rotateX(-Math.PI / 2);
+    this.shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x111111,
+      transparent: true,
+      opacity: 0.38,
+      depthWrite: false,
+    });
+    this.contactShadow = new THREE.Mesh(geo, this.shadowMat);
+    this.scene.add(this.contactShadow);
+  }
+
+  buildCastAura() {
+    this.castAuraGroup = new THREE.Group();
+    this.castAuraGroup.position.y = 0.08;
+
+    // Vòng tròn ma pháp ngoài
+    const ringGeo = new THREE.RingGeometry(0.85, 1.45, 24);
+    ringGeo.rotateX(-Math.PI / 2);
+    this.castAuraMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, this.castAuraMat);
+    this.castAuraGroup.add(ringMesh);
+
+    // Vòng sao 6 cánh bên trong
+    const innerRingGeo = new THREE.RingGeometry(0.2, 0.45, 6);
+    innerRingGeo.rotateX(-Math.PI / 2);
+    const innerMesh = new THREE.Mesh(innerRingGeo, this.castAuraMat);
+    this.castAuraGroup.add(innerMesh);
+
+    this.castAuraGroup.visible = false;
+    this.group.add(this.castAuraGroup);
   }
 
   buildMesh() {
@@ -218,6 +267,25 @@ export class Character {
     bedroll.position.set(0, 0.32, 0);
     this.backpack.add(bedroll);
 
+    // Hồ Lô Tiên (Daoist Wine Gourd) đeo bên hông ba lô
+    const gourdGroup = new THREE.Group();
+    gourdGroup.position.set(0.28, 0.05, -0.05);
+    gourdGroup.rotation.z = -0.3;
+    const gourdMat = new THREE.MeshStandardMaterial({ color: 0xf5cd79, roughness: 0.5, flatShading: true });
+    const gourdLower = new THREE.Mesh(new THREE.DodecahedronGeometry(0.14, 1), gourdMat);
+    gourdGroup.add(gourdLower);
+    const gourdUpper = new THREE.Mesh(new THREE.DodecahedronGeometry(0.09, 1), gourdMat);
+    gourdUpper.position.y = 0.16;
+    gourdGroup.add(gourdUpper);
+    const gourdCork = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 5), new THREE.MeshStandardMaterial({ color: 0xd63031 }));
+    gourdCork.position.y = 0.25;
+    gourdGroup.add(gourdCork);
+    const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.16, 4), new THREE.MeshBasicMaterial({ color: 0xee5253 }));
+    tassel.position.set(0.08, 0.08, 0);
+    tassel.rotation.z = 0.5;
+    gourdGroup.add(tassel);
+    this.backpack.add(gourdGroup);
+
     this.body.add(this.backpack);
 
     // 4. TAY TRÁI
@@ -241,11 +309,11 @@ export class Character {
     // Khẩu súng Mega Blaster
     this.gun = new THREE.Group();
     this.gun.position.set(0.05, -0.28, 0.18);
-    this.gun.rotation.x = -Math.PI / 2 + 0.1; // Chĩa súng về phía trước
+    this.gun.rotation.x = -Math.PI / 2 + 0.1;
 
     // Thân súng chính
     const gunBodyMat = new THREE.MeshStandardMaterial({
-      color: 0xff6348, // Cam tươi vui nhộn
+      color: 0xff6348,
       roughness: 0.4,
       flatShading: true,
     });
@@ -255,7 +323,7 @@ export class Character {
 
     // Nòng súng tròn to (Megaphone Blaster)
     const barrelMat = new THREE.MeshStandardMaterial({
-      color: 0xffc048, // Vàng ấm
+      color: 0xffc048,
       roughness: 0.3,
       flatShading: true,
     });
@@ -266,8 +334,8 @@ export class Character {
     this.gun.add(barrel);
 
     // Lõi năng lượng phát sáng
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0x00d2d3 });
-    const core = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), coreMat);
+    this.coreMat = new THREE.MeshBasicMaterial({ color: 0x00d2d3 });
+    const core = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), this.coreMat);
     core.position.set(0, 0.12, -0.05);
     this.gun.add(core);
 
@@ -275,6 +343,21 @@ export class Character {
     this.muzzleNode = new THREE.Object3D();
     this.muzzleNode.position.set(0, 0.02, 0.52);
     this.gun.add(this.muzzleNode);
+
+    // Hiệu ứng Muzzle Flash hình ngôi sao phát sáng
+    const flashGeo = new THREE.DodecahedronGeometry(0.22, 0);
+    this.flashMat = new THREE.MeshBasicMaterial({
+      color: 0xfffa65,
+      transparent: true,
+      opacity: 0.95,
+    });
+    this.muzzleFlash = new THREE.Mesh(flashGeo, this.flashMat);
+    this.muzzleFlash.visible = false;
+    this.muzzleNode.add(this.muzzleFlash);
+
+    // Ánh sáng chớp nòng súng rọi sáng môi trường
+    this.muzzleLight = new THREE.PointLight(0xffdd59, 0, 8, 2.0);
+    this.muzzleNode.add(this.muzzleLight);
 
     this.rightArm.add(this.gun);
     this.body.add(this.rightArm);
@@ -324,8 +407,75 @@ export class Character {
   }
 
   triggerShootAnimation() {
-    this.gunRecoil = 0.25; // Giật súng lùi lại
+    this.gunRecoil = 0.35; // Giật súng lùi lại dứt khoát
+    this.muzzleFlashTimer = 0.09;
+    this.muzzleFlash.visible = true;
+    this.muzzleFlash.scale.setScalar(1.0 + Math.random() * 0.5);
+    this.muzzleFlash.rotation.z = Math.random() * Math.PI;
+    if (this.muzzleLight) {
+      this.muzzleLight.intensity = 2.8;
+    }
+
+    // Lõi súng lóe sáng
+    this.coreMat.color.setHex(0xffffff);
+
     sound.playShoot();
+  }
+
+  // KÍCH HOẠT ANIMATION VÀ VÒNG MA PHÁP THI TRIỂN KỸ NĂNG CỦA BÉ GẤU
+  triggerSkillCast(skillNum) {
+    this.isCasting = true;
+    this.castSkill = skillNum;
+    this.castTime = 0;
+    this.castDuration = skillNum === 5 ? 1.35 : (skillNum === 4 ? 0.75 : 0.6);
+
+    const colors = {
+      1: 0xff4757, // Hỏa
+      2: 0x00d2d3, // Lôi
+      3: 0x7ed6df, // Băng
+      4: 0xe67e22, // Thổ
+      5: 0xffd700, // Kim (Vạn Kiếm Quy Tông)
+    };
+
+    const color = colors[skillNum] || 0xffffff;
+    if (this.castAuraMat) {
+      this.castAuraMat.color.setHex(color);
+      this.castAuraMat.opacity = 0.95;
+    }
+    this.castAuraGroup.visible = true;
+    this.castAuraGroup.scale.set(0.3, 0.3, 0.3);
+
+    // Cập nhật màu lõi năng lượng súng theo kỹ năng
+    this.coreMat.color.setHex(color);
+
+    if (skillNum === 5) {
+      // Vạn Kiếm: Bé gấu ngự không phi hành, lơ lửng ngự kiếm!
+      this.jumpVelocity = 5.5;
+      this.isGrounded = false;
+      this.squashFactor = 1.25;
+      sound.playSwordSummon();
+    } else if (skillNum === 4) {
+      // Địa chấn: Bé gấu co chân bật nhảy lên không trung rồi giậm mạnh xuống!
+      this.jumpVelocity = 7.0;
+      this.isGrounded = false;
+      this.squashFactor = 1.35;
+    } else if (skillNum === 1) {
+      this.squashFactor = 1.25;
+    } else if (skillNum === 3) {
+      this.squashFactor = 0.85;
+    }
+
+    if (this.particles) {
+      this.particles.emitElementalParticles(
+        this.position.clone().add(new THREE.Vector3(0, 0.2, 0)),
+        14,
+        [color, 0xffffff],
+        [3, 6],
+        0.5,
+        4.0,
+        0.8
+      );
+    }
   }
 
   getMuzzleWorldPosition() {
@@ -348,14 +498,13 @@ export class Character {
     this.isMoving = moveLen > 0.05;
 
     // Tốc độ di chuyển
-    const targetSpeed = this.isMoving ? (this.isSprinting ? 9.5 : 5.2) : 0;
-    this.speed = THREE.MathUtils.lerp(this.speed, targetSpeed, delta * 10);
+    const targetSpeed = this.isMoving ? (this.isSprinting ? 9.8 : 5.4) : 0;
+    this.speed = THREE.MathUtils.lerp(this.speed, targetSpeed, delta * 11);
 
     // Tính vector vận tốc theo hướng
     if (this.isMoving) {
       this.velocity.x = inputVector.x * this.speed;
       this.velocity.z = inputVector.z * this.speed;
-
       this.targetRotationY = Math.atan2(inputVector.x, inputVector.z);
     } else {
       this.velocity.x = THREE.MathUtils.lerp(this.velocity.x, 0, delta * 8);
@@ -371,8 +520,8 @@ export class Character {
     this.position.x += this.velocity.x * delta;
     this.position.z += this.velocity.z * delta;
 
-    this.position.x = THREE.MathUtils.clamp(this.position.x, -80, 80);
-    this.position.z = THREE.MathUtils.clamp(this.position.z, -80, 80);
+    this.position.x = THREE.MathUtils.clamp(this.position.x, -121, 121);
+    this.position.z = THREE.MathUtils.clamp(this.position.z, -121, 121);
 
     const groundY = getTerrainHeight(this.position.x, this.position.z);
 
@@ -384,7 +533,7 @@ export class Character {
         this.position.y = groundY;
         this.isGrounded = true;
         this.jumpVelocity = 0;
-        this.squashFactor = 0.75;
+        this.squashFactor = 0.65;
         sound.playLand();
         if (this.particles) {
           this.particles.emitDust(this.position);
@@ -397,73 +546,195 @@ export class Character {
 
     this.group.position.copy(this.position);
 
-    this.squashFactor = THREE.MathUtils.lerp(this.squashFactor, 1.0, delta * 8);
-    this.gunRecoil = THREE.MathUtils.lerp(this.gunRecoil, 0, delta * 12);
-
-    // ANIMATION TIẾN TRÌNH
-    const animSpeed = this.isMoving ? (this.isSprinting ? 14 : 9) : 3;
-    this.animTime += delta * animSpeed;
-
-    // Giật súng khi bắn
-    this.gun.position.z = 0.18 - this.gunRecoil;
-
-    if (this.isGrounded) {
-      if (this.isMoving) {
-        const legSwing = Math.sin(this.animTime) * (this.isSprinting ? 0.9 : 0.6);
-        this.leftLeg.rotation.x = legSwing;
-        this.rightLeg.rotation.x = -legSwing;
-
-        this.leftArm.rotation.x = -legSwing * 0.8;
-        // Tay phải cầm súng giơ về phía trước và nhấp nhô nhẹ
-        this.rightArm.rotation.x = -0.4 + Math.sin(this.animTime) * 0.15;
-
-        this.body.rotation.z = Math.sin(this.animTime) * 0.08;
-        this.body.rotation.x = this.isSprinting ? 0.22 : 0.08;
-
-        const bounce = Math.abs(Math.sin(this.animTime * 2)) * 0.08;
-        this.body.position.y = bounce;
-
-        this.backpack.rotation.x = Math.sin(this.animTime * 2) * 0.12;
-
-        this.ears[0].rotation.z = -0.1 + Math.sin(this.animTime * 2) * 0.15;
-        this.ears[1].rotation.z = 0.1 - Math.sin(this.animTime * 2) * 0.15;
-
-        this.footstepTimer += delta * animSpeed;
-        if (this.footstepTimer > Math.PI) {
-          this.footstepTimer = 0;
-          sound.playFootstep(this.isSprinting);
-          if (this.particles) {
-            this.particles.emitDust(this.position);
-          }
-        }
-      } else {
-        const breath = Math.sin(this.animTime * 0.8);
-        this.body.scale.set(1.0 + breath * 0.02, 1.0 - breath * 0.02, 1.0 + breath * 0.02);
-        this.body.position.y = breath * 0.03;
-        this.body.rotation.set(0, 0, 0);
-
-        this.leftLeg.rotation.set(0, 0, 0);
-        this.rightLeg.rotation.set(0, 0, 0);
-        this.leftArm.rotation.set(0, 0, Math.sin(this.animTime * 0.8) * 0.05);
-
-        // Tay phải luôn cầm súng sẵn sàng ngắm bắn
-        this.rightArm.rotation.set(-0.55 + breath * 0.04, 0.1, 0);
-
-        this.head.rotation.y = Math.sin(this.animTime * 0.4) * 0.12;
-        this.head.rotation.z = Math.cos(this.animTime * 0.5) * 0.04;
-
-        this.ears[0].rotation.z = Math.sin(this.animTime * 0.6) * 0.08;
-        this.ears[1].rotation.z = -Math.sin(this.animTime * 0.6) * 0.08;
-      }
-    } else {
-      this.leftLeg.rotation.x = -0.5;
-      this.rightLeg.rotation.x = -0.5;
-      this.leftArm.rotation.x = 2.4;
-      this.rightArm.rotation.x = -0.8;
-      this.body.rotation.x = -0.15;
-      this.head.rotation.x = -0.2;
+    // Cập nhật bóng đổ tiếp xúc mặt đất (Contact Shadow)
+    if (this.contactShadow) {
+      this.contactShadow.position.set(this.position.x, groundY + 0.025, this.position.z);
+      const heightAbove = Math.max(0, this.position.y - groundY);
+      this.shadowMat.opacity = Math.max(0.04, 0.38 - heightAbove * 0.12);
+      const s = Math.max(0.35, 1.0 - heightAbove * 0.14);
+      this.contactShadow.scale.set(s, s, s);
     }
 
+    // Giảm dần ánh sáng nòng súng
+    if (this.muzzleLight && this.muzzleLight.intensity > 0) {
+      this.muzzleLight.intensity = THREE.MathUtils.lerp(this.muzzleLight.intensity, 0, delta * 18);
+    }
+
+    // Muzzle flash timer
+    if (this.muzzleFlashTimer > 0) {
+      this.muzzleFlashTimer -= delta;
+      if (this.muzzleFlashTimer <= 0) {
+        this.muzzleFlash.visible = false;
+        this.coreMat.color.setHex(0x00d2d3);
+      }
+    }
+
+    this.squashFactor = THREE.MathUtils.lerp(this.squashFactor, 1.0, delta * 9);
+    this.gunRecoil = THREE.MathUtils.lerp(this.gunRecoil, 0, delta * 14);
+
+    // Cập nhật lùi nòng súng khi bắn
+    this.gun.position.z = 0.18 - this.gunRecoil;
+
+    // ANIMATION TIẾN TRÌNH
+    const animSpeed = this.isMoving ? (this.isSprinting ? 14.5 : 9.5) : 3.2;
+    this.animTime += delta * animSpeed;
+
+    // --- XỬ LÝ ANIMATION THI TRIỂN KỸ NĂNG (CASTING ANIMATIONS) ---
+    if (this.isCasting) {
+      this.castTime += delta;
+      const castProgress = Math.min(1.0, this.castTime / this.castDuration);
+
+      // Xoay và phóng to vòng ma pháp dưới chân
+      this.castAuraGroup.rotation.y += delta * 6;
+      const auraScale = THREE.MathUtils.lerp(0.3, 1.35, Math.min(1.0, castProgress * 1.8));
+      this.castAuraGroup.scale.set(auraScale, auraScale, auraScale);
+      this.castAuraMat.opacity = Math.max(0, (1.0 - castProgress * 0.7) * 0.9);
+
+      // Từng dáng thi triển đặc trưng cho 4 kỹ năng:
+      if (this.castSkill === 1) {
+        // [1] Thiên thạch lửa: Ưỡn người ngửa ra sau, hai tay giương súng lên trời kêu gọi hỏa thạch!
+        this.body.rotation.x = -0.32;
+        this.head.rotation.x = -0.45;
+        this.rightArm.rotation.x = -2.6;
+        this.leftArm.rotation.x = -2.6;
+        this.body.position.y = 0.15;
+      } else if (this.castSkill === 2) {
+        // [2] Sấm sét: Lao người về phía trước ngắm bắn súng thẳng tắp, súng giật điện rung lắc!
+        this.body.rotation.x = 0.28;
+        this.head.rotation.x = 0.15;
+        this.rightArm.rotation.x = -1.6 + (Math.random() - 0.5) * 0.08;
+        this.rightArm.rotation.y = (Math.random() - 0.5) * 0.08;
+        this.leftArm.rotation.x = 0.4;
+        this.ears[0].rotation.z = -0.25;
+        this.ears[1].rotation.z = 0.25;
+      } else if (this.castSkill === 3) {
+        // [3] Bão băng: Xoay tròn 360 độ (Whirlwind Spin) bung rộng hai cánh tay tạo vòng bão tuyết!
+        this.model.rotation.y = this.rotationY + castProgress * Math.PI * 4;
+        this.body.rotation.x = 0.15;
+        this.rightArm.rotation.x = 0;
+        this.rightArm.rotation.z = 1.3;
+        this.leftArm.rotation.x = 0;
+        this.leftArm.rotation.z = -1.3;
+        this.head.rotation.y = Math.sin(castProgress * 12) * 0.2;
+      } else if (this.castSkill === 4) {
+        // [4] Địa chấn: Bật nhảy giậm mạnh xuống đất với toàn bộ trọng lực!
+        if (castProgress < 0.5) {
+          this.body.rotation.x = -0.2;
+          this.rightArm.rotation.x = -2.2;
+          this.leftArm.rotation.x = -2.2;
+        } else {
+          this.body.rotation.x = 0.45;
+          this.rightArm.rotation.x = -0.8;
+          this.leftArm.rotation.x = -0.8;
+          this.head.rotation.x = 0.3;
+        }
+      } else if (this.castSkill === 5) {
+        // [5] Vạn Kiếm Quy Tông: Ngự kiếm phi tiên, hai tay kết kiếm chỉ giương lên rồi trảm xuống!
+        this.body.position.y = 0.65 + Math.sin(this.castTime * 10) * 0.14;
+        if (castProgress < 0.45) {
+          // Giai đoạn 1: Hai tay kết kiếm ấn giương cao lên trời, chuẩn bị vạn kiếm
+          this.body.rotation.x = -0.28;
+          this.rightArm.rotation.x = -2.4;
+          this.rightArm.rotation.z = 0.35;
+          this.leftArm.rotation.x = -2.4;
+          this.leftArm.rotation.z = -0.35;
+          this.head.rotation.x = -0.3;
+        } else {
+          // Giai đoạn 2: Hai tay trảm thẳng về phía trước chỉ huy vạn kiếm phóng tới mục tiêu
+          this.body.rotation.x = 0.28;
+          this.rightArm.rotation.x = -1.62;
+          this.rightArm.rotation.z = 0;
+          this.leftArm.rotation.x = -1.62;
+          this.leftArm.rotation.z = 0;
+          this.head.rotation.x = 0.12;
+        }
+
+        if (this.particles && Math.random() < 0.4) {
+          this.particles.emitElementalParticles(
+            this.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 1.2, (Math.random() - 0.5) * 0.6)),
+            2,
+            [0xffd700, 0xffffff, 0xffa502],
+            [1, 3],
+            0.35,
+            0,
+            0.5
+          );
+        }
+      }
+
+      if (this.castTime >= this.castDuration) {
+        this.isCasting = false;
+        this.castAuraGroup.visible = false;
+      }
+    } else {
+      // --- ANIMATION DI CHUYỂN & NGHỈ NGƠI THƯỜNG ---
+      // Độ nghiêng người khi ôm cua rẽ hướng (Banking roll)
+      const bankRoll = -rotDiff * 0.35;
+      this.body.rotation.z = THREE.MathUtils.lerp(this.body.rotation.z, bankRoll, delta * 10);
+
+      if (this.isGrounded) {
+        if (this.isMoving) {
+          const legSwing = Math.sin(this.animTime) * (this.isSprinting ? 0.95 : 0.65);
+          this.leftLeg.rotation.x = legSwing;
+          this.rightLeg.rotation.x = -legSwing;
+
+          this.leftArm.rotation.x = -legSwing * 0.85;
+          this.rightArm.rotation.x = -0.45 + Math.sin(this.animTime) * 0.18;
+          this.rightArm.rotation.y = 0;
+          this.rightArm.rotation.z = 0;
+          this.leftArm.rotation.z = 0;
+
+          this.body.rotation.x = this.isSprinting ? 0.24 : 0.09;
+          this.head.rotation.x = 0;
+
+          const bounce = Math.abs(Math.sin(this.animTime * 2)) * (this.isSprinting ? 0.12 : 0.08);
+          this.body.position.y = bounce;
+
+          this.backpack.rotation.x = Math.sin(this.animTime * 2) * 0.14;
+
+          this.ears[0].rotation.z = -0.1 + Math.sin(this.animTime * 2) * 0.18;
+          this.ears[1].rotation.z = 0.1 - Math.sin(this.animTime * 2) * 0.18;
+
+          this.footstepTimer += delta * animSpeed;
+          if (this.footstepTimer > Math.PI) {
+            this.footstepTimer = 0;
+            sound.playFootstep(this.isSprinting);
+            if (this.particles) {
+              this.particles.emitDust(this.position);
+            }
+          }
+        } else {
+          // Trạng thái nghỉ (Idle thở phập phồng đáng yêu)
+          const breath = Math.sin(this.animTime * 0.8);
+          this.body.scale.set(1.0 + breath * 0.02, 1.0 - breath * 0.02, 1.0 + breath * 0.02);
+          this.body.position.y = breath * 0.03;
+          this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, 0, delta * 8);
+
+          this.leftLeg.rotation.set(0, 0, 0);
+          this.rightLeg.rotation.set(0, 0, 0);
+          this.leftArm.rotation.set(0, 0, Math.sin(this.animTime * 0.8) * 0.06);
+
+          this.rightArm.rotation.set(-0.55 + breath * 0.04, 0.1, 0);
+
+          this.head.rotation.x = 0;
+          this.head.rotation.y = Math.sin(this.animTime * 0.4) * 0.12;
+          this.head.rotation.z = Math.cos(this.animTime * 0.5) * 0.04;
+
+          this.ears[0].rotation.z = Math.sin(this.animTime * 0.6) * 0.08;
+          this.ears[1].rotation.z = -Math.sin(this.animTime * 0.6) * 0.08;
+        }
+      } else {
+        // Trạng thái trên không trung
+        this.leftLeg.rotation.x = -0.55;
+        this.rightLeg.rotation.x = -0.55;
+        this.leftArm.rotation.x = 2.4;
+        this.rightArm.rotation.x = -0.85;
+        this.body.rotation.x = -0.18;
+        this.head.rotation.x = -0.22;
+      }
+    }
+
+    // Squash & Stretch toàn thân
     this.body.scale.y = this.squashFactor;
     this.body.scale.x = 1.0 / Math.sqrt(this.squashFactor);
     this.body.scale.z = 1.0 / Math.sqrt(this.squashFactor);

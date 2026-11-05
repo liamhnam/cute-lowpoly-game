@@ -22,6 +22,9 @@ export class ThirdPersonController {
       sprint: false,
     };
 
+    // Rung lắc Camera mượt mà (Screen Trauma / Shake)
+    this.trauma = 0;
+
     // Thông số Camera Orbit góc nhìn thứ 3
     this.cameraDistance = 8.5;
     this.minDistance = 4.0;
@@ -40,6 +43,10 @@ export class ThirdPersonController {
     this.prevTouchPos = { x: 0, y: 0 };
 
     this.initListeners();
+  }
+
+  addTrauma(amount) {
+    this.trauma = Math.min(1.0, this.trauma + amount);
   }
 
   requestLock() {
@@ -171,6 +178,7 @@ export class ThirdPersonController {
 
   triggerShoot() {
     this.character.triggerShootAnimation();
+    this.addTrauma(0.08); // Rung nhẹ tạo cảm giác đầm tay
 
     const shootDir = new THREE.Vector3();
     this.camera.getWorldDirection(shootDir);
@@ -195,7 +203,11 @@ export class ThirdPersonController {
     targetPos.y = getTerrainHeight(targetPos.x, targetPos.z);
 
     if (this.onCastSkill) {
-      this.onCastSkill(skillNum, targetPos);
+      const castSuccess = this.onCastSkill(skillNum, targetPos);
+      if (castSuccess) {
+        this.character.triggerSkillCast(skillNum);
+        this.addTrauma(skillNum === 5 ? 0.35 : (skillNum === 4 ? 0.25 : 0.12));
+      }
     }
   }
 
@@ -255,6 +267,11 @@ export class ThirdPersonController {
       case 'Numpad4':
         if (isDown) this.triggerSkill(4);
         break;
+      case 'Digit5':
+      case 'Numpad5':
+      case 'KeyE':
+        if (isDown) this.triggerSkill(5);
+        break;
     }
   }
 
@@ -307,11 +324,22 @@ export class ThirdPersonController {
       this.currentCameraPosition.copy(targetCamPos);
       this.currentCameraTarget.copy(targetLookAt);
     } else {
-      this.currentCameraPosition.lerp(targetCamPos, Math.min(1.0, delta * 9.0));
-      this.currentCameraTarget.lerp(targetLookAt, Math.min(1.0, delta * 12.0));
+      this.currentCameraPosition.lerp(targetCamPos, Math.min(1.0, delta * 9.5));
+      this.currentCameraTarget.lerp(targetLookAt, Math.min(1.0, delta * 12.5));
     }
 
     this.camera.position.copy(this.currentCameraPosition);
     this.camera.lookAt(this.currentCameraTarget);
+
+    // Áp dụng Rung lắc Camera (Trauma Shake)
+    if (this.trauma > 0) {
+      this.trauma = Math.max(0, this.trauma - delta * 1.5);
+      const shakeMag = this.trauma * this.trauma;
+      const t = performance.now() * 0.055;
+      const shakeX = (Math.sin(t * 1.1) + Math.cos(t * 2.3)) * 0.42 * shakeMag;
+      const shakeY = (Math.cos(t * 1.4) + Math.sin(t * 2.7)) * 0.42 * shakeMag;
+      const shakeZ = Math.sin(t * 1.8) * 0.3 * shakeMag;
+      this.camera.position.add(new THREE.Vector3(shakeX, shakeY, shakeZ));
+    }
   }
 }

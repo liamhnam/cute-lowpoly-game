@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Đồng Cỏ Thơ Mộng - Bé Gấu Kỹ Năng PixelFX</title>
+  <title>Trường An Cổ Đô - Bé Gấu Tu Tiên PixelFX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -20,8 +20,9 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #c9e8fb;
-      font-family: 'Quicksand', sans-serif;
+      background: #c8e6f5;
+      font-family: 'VT323', monospace;
+      image-rendering: pixelated;
     }
 
     #webgl-canvas {
@@ -34,6 +35,7 @@
       cursor: crosshair;
     }
 
+    /* Tâm ngắm Thái Cực / Kiếm Đạo */
     .crosshair {
       position: absolute;
       top: 50%;
@@ -51,66 +53,68 @@
     .crosshair-ring {
       width: 22px;
       height: 22px;
-      border: 2px solid rgba(255, 255, 255, 0.85);
+      border: 2px dashed rgba(255, 235, 59, 0.85);
       border-radius: 50%;
-      box-shadow: 0 0 8px rgba(0, 210, 211, 0.6);
+      box-shadow: 0 0 10px rgba(0, 210, 211, 0.8);
       position: relative;
+      animation: spinCrosshair 12s linear infinite;
+    }
+
+    @keyframes spinCrosshair {
+      100% { transform: rotate(360deg); }
     }
 
     .crosshair-dot {
-      width: 5px;
-      height: 5px;
-      background: #00d2d3;
-      border-radius: 50%;
+      width: 6px;
+      height: 6px;
+      background: #f1c40f;
+      border: 1px solid #1e272e;
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
     }
 
+    /* Bảng thông báo khóa chuột phong cách Ngọc Giản */
     #lock-hint {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, 65px);
-      background: rgba(33, 43, 54, 0.88);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      color: #ffffff;
+      background: #1e272e;
+      color: #f1c40f;
       padding: 12px 24px;
-      border-radius: 30px;
-      font-size: 0.92rem;
-      font-weight: 700;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-      border: 2px solid rgba(255, 255, 255, 0.25);
+      font-size: 1.15rem;
+      letter-spacing: 1px;
+      box-shadow:
+        0 -3px 0 0 #10ac84,
+        0 3px 0 0 #10ac84,
+        -3px 0 0 0 #10ac84,
+        3px 0 0 0 #10ac84,
+        0 8px 24px rgba(0, 0, 0, 0.4);
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       z-index: 70;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      animation: pulseAttention 2s infinite ease-in-out;
+      transition: all 0.2s steps(4);
     }
 
     #lock-hint:hover {
-      transform: translate(-50%, 63px) scale(1.04);
-      background: rgba(43, 56, 70, 0.95);
-      border-color: #00d2d3;
+      transform: translate(-50%, 63px) scale(1.03);
+      color: #00d2d3;
+      box-shadow:
+        0 -3px 0 0 #00d2d3,
+        0 3px 0 0 #00d2d3,
+        -3px 0 0 0 #00d2d3,
+        3px 0 0 0 #00d2d3,
+        0 10px 28px rgba(0, 210, 211, 0.5);
     }
 
     #lock-hint.hidden {
       opacity: 0;
       pointer-events: none;
       transform: translate(-50%, 80px) scale(0.9);
-    }
-
-    @keyframes pulseAttention {
-      0%, 100% {
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-      }
-      50% {
-        box-shadow: 0 10px 35px rgba(0, 210, 211, 0.4);
-      }
     }
 
     .hud-layer {
@@ -123,182 +127,308 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px;
+      padding: 16px;
       z-index: 60;
     }
 
+    /* THANH TRÊN CÙNG: KHUNG BẢNG TU TIÊN PIXEL */
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      gap: 15px;
+      gap: 16px;
     }
 
     .title-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      padding: 12px 20px;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-      border: 2px solid rgba(255, 255, 255, 0.95);
-      max-width: 370px;
-      animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      background: #fdfbf7;
+      padding: 12px 18px;
+      box-shadow:
+        0 -3px 0 0 #2f3542,
+        0 3px 0 0 #2f3542,
+        -3px 0 0 0 #2f3542,
+        3px 0 0 0 #2f3542,
+        0 0 0 2px #d4ac0d,
+        0 8px 20px rgba(0, 0, 0, 0.15);
+      max-width: 440px;
     }
 
     .title-card h1 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #3b5a45;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: #2c3e50;
       display: flex;
       align-items: center;
       gap: 8px;
     }
 
+    .title-card h1 span {
+      color: #e67e22;
+      background: #fef5e7;
+      padding: 2px 6px;
+      border: 1px dashed #e67e22;
+      font-size: 0.6rem;
+    }
+
     .title-card p {
+      font-size: 0.95rem;
+      color: #57606f;
+      margin-top: 5px;
+      line-height: 1.25;
+      font-family: 'VT323', monospace;
+    }
+
+    /* THANH MÁU & LINH LỰC RETRO PIXEL */
+    .status-bars-container {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .pixel-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .pixel-bar-label {
+      width: 78px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.52rem;
+    }
+
+    .pixel-bar-label.hp { color: #d63031; }
+    .pixel-bar-label.mp { color: #0984e3; }
+
+    .pixel-bar-outer {
+      flex: 1;
+      height: 14px;
+      background: #2f3542;
+      border: 2px solid #1e272e;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pixel-bar-inner {
+      height: 100%;
+      width: 100%;
+      transition: width 0.15s steps(10);
+    }
+
+    .pixel-bar-inner.hp {
+      background: repeating-linear-gradient(90deg, #ff4757, #ff4757 8px, #ff6b81 8px, #ff6b81 12px);
+    }
+
+    .pixel-bar-inner.mp {
+      background: repeating-linear-gradient(90deg, #00d2d3, #00d2d3 8px, #54a0ff 8px, #54a0ff 12px);
+    }
+
+    .pixel-bar-num {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'VT323', monospace;
       font-size: 0.82rem;
-      color: #576574;
-      margin-top: 4px;
-      line-height: 1.35;
+      color: #ffffff;
+      text-shadow: 1px 1px 0 #000;
     }
 
     .status-badges {
       display: flex;
       flex-wrap: wrap;
-      gap: 8px;
+      gap: 6px;
       margin-top: 8px;
     }
 
     .badge {
       display: inline-flex;
       align-items: center;
+      gap: 4px;
       background: #edf8eb;
       color: #2b7740;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.76rem;
+      padding: 2px 8px;
+      font-size: 0.95rem;
       font-weight: 700;
-      border: 1px solid #d1edcc;
+      border: 1px solid #10ac84;
+    }
+
+    .badge-realm {
+      background: #fbf0d9;
+      color: #b7791f;
+      border-color: #f1c40f;
     }
 
     .badge-kills {
       background: #ffeaa7;
       color: #d35400;
-      border-color: #f7d794;
+      border-color: #e67e22;
     }
 
+    /* CÁC NÚT HÀNH ĐỘNG GÓC TRÊN BÊN PHẢI (PIXEL JADE BUTTONS) */
     .top-actions {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       pointer-events: auto;
     }
 
     .action-btn {
-      background: rgba(255, 255, 255, 0.92);
-      backdrop-filter: blur(8px);
-      border: 2px solid rgba(255, 255, 255, 0.9);
-      padding: 9px 16px;
-      border-radius: 16px;
-      font-size: 0.85rem;
-      font-weight: 700;
-      font-family: inherit;
-      color: #4a5568;
+      background: #fdfbf7;
+      border: none;
+      padding: 6px 12px;
+      font-family: 'VT323', monospace;
+      font-size: 1.1rem;
+      color: #2c3e50;
       cursor: pointer;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow:
+        0 -2px 0 0 #1e272e,
+        0 2px 0 0 #1e272e,
+        -2px 0 0 0 #1e272e,
+        2px 0 0 0 #1e272e,
+        0 4px 8px rgba(0, 0, 0, 0.12);
+      transition: all 0.1s steps(2);
       display: flex;
       align-items: center;
       gap: 6px;
     }
 
     .action-btn:hover {
-      transform: translateY(-2px) scale(1.03);
-      background: #ffffff;
-      color: #2b7740;
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      background: #f1c40f;
+      color: #1e272e;
+      transform: translateY(-2px);
     }
 
     .action-btn:active {
-      transform: translateY(1px) scale(0.98);
+      transform: translateY(1px);
     }
 
     .action-btn.active {
       background: #e8f9eb;
       color: #2e7d32;
-      border-color: #a3e6aa;
+      border-bottom: 2px solid #10ac84;
     }
 
-    /* THANH KỸ NĂNG PIXELFX (SKILL BAR) */
+    /* THANH KỸ NĂNG: ĐẠO PHÙ & NGỌC BÀI PIXEL (TALISMAN SKILL BAR) */
     .skill-bar-container {
       position: absolute;
-      bottom: 22px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
-      align-items: center;
-      gap: 14px;
-      background: rgba(255, 255, 255, 0.88);
-      backdrop-filter: blur(12px);
-      padding: 10px 18px;
-      border-radius: 24px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-      border: 2px solid rgba(255, 255, 255, 0.95);
+      align-items: flex-end;
+      gap: 12px;
+      background: #2f3542;
+      padding: 10px 16px;
+      box-shadow:
+        0 -4px 0 0 #1e272e,
+        0 4px 0 0 #1e272e,
+        -4px 0 0 0 #1e272e,
+        4px 0 0 0 #1e272e,
+        0 0 0 2px #f1c40f,
+        0 12px 30px rgba(0, 0, 0, 0.4);
       pointer-events: auto;
       z-index: 65;
     }
 
+    /* Mỗi ô kỹ năng là 1 tấm Đạo Phù Pixel */
     .skill-slot {
       position: relative;
-      width: 62px;
-      height: 62px;
-      border-radius: 16px;
-      background: #ffffff;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08), inset 0 0 0 2px #e2e8f0;
+      width: 66px;
+      height: 78px;
+      background: #fdfbf7;
+      box-shadow:
+        0 -2px 0 0 #1e272e,
+        0 2px 0 0 #1e272e,
+        -2px 0 0 0 #1e272e,
+        2px 0 0 0 #1e272e,
+        inset 0 0 0 2px #dcdde1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
+      padding: 4px 2px;
       cursor: pointer;
       overflow: hidden;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.15s steps(3);
     }
 
     .skill-slot:hover {
-      transform: translateY(-4px) scale(1.06);
-      box-shadow: 0 8px 18px rgba(0, 210, 211, 0.3), inset 0 0 0 2px #00d2d3;
+      transform: translateY(-5px);
+      box-shadow:
+        0 -2px 0 0 #f1c40f,
+        0 2px 0 0 #f1c40f,
+        -2px 0 0 0 #f1c40f,
+        2px 0 0 0 #f1c40f,
+        inset 0 0 0 2px #f1c40f;
     }
 
     .skill-slot:active {
-      transform: translateY(1px) scale(0.96);
+      transform: translateY(1px);
+    }
+
+    .skill-talisman-tag {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.46rem;
+      background: #e74c3c;
+      color: #ffffff;
+      padding: 1px 4px;
+      border-radius: 2px;
+      z-index: 2;
     }
 
     .skill-icon {
-      font-size: 1.6rem;
+      font-size: 1.7rem;
       line-height: 1;
       z-index: 2;
+      margin: 2px 0;
     }
 
     .skill-key {
       position: absolute;
       top: 3px;
-      left: 5px;
-      font-size: 0.68rem;
-      font-weight: 800;
-      color: #2d3436;
-      background: rgba(241, 242, 246, 0.9);
-      padding: 1px 5px;
-      border-radius: 6px;
+      left: 4px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.48rem;
+      color: #1e272e;
+      background: #f1c40f;
+      padding: 1px 3px;
       z-index: 3;
-      border: 1px solid #dcdde1;
+      border: 1px solid #1e272e;
     }
 
     .skill-name {
-      font-size: 0.62rem;
+      font-family: 'VT323', monospace;
+      font-size: 0.95rem;
       font-weight: 700;
-      color: #636e72;
-      margin-top: 2px;
+      color: #2c3e50;
       z-index: 2;
+      line-height: 1;
+    }
+
+    /* Ô Kỹ năng 5: Cực Phẩm Ngọc Bài Trấn Phái */
+    .skill-slot#skill-slot-5 {
+      width: 72px;
+      height: 84px;
+      background: linear-gradient(180deg, #fff9db 0%, #ffeaa7 100%);
+      box-shadow:
+        0 -2px 0 0 #f1c40f,
+        0 2px 0 0 #f1c40f,
+        -2px 0 0 0 #f1c40f,
+        2px 0 0 0 #f1c40f,
+        inset 0 0 0 2px #f39c12;
+    }
+
+    .skill-slot#skill-slot-5 .skill-talisman-tag {
+      background: #9b59b6;
+    }
+
+    .skill-slot#skill-slot-5 .skill-key {
+      background: #00d2d3;
+      color: #1e272e;
     }
 
     /* Hiệu ứng Cooldown đen mờ */
@@ -308,8 +438,7 @@
       left: 0;
       width: 100%;
       height: 0%;
-      background: rgba(45, 52, 54, 0.75);
-      backdrop-filter: blur(2px);
+      background: rgba(30, 39, 46, 0.88);
       transition: height 0.1s linear;
       z-index: 4;
     }
@@ -319,10 +448,10 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 0.88rem;
-      font-weight: 800;
-      color: #ffffff;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.72rem;
+      color: #f1c40f;
+      text-shadow: 1px 1px 0 #000;
       z-index: 5;
       display: none;
     }
@@ -331,7 +460,69 @@
       display: block;
     }
 
-    /* Thanh dưới cùng */
+    /* Lóe sáng khi hồi chiêu xong */
+    .skill-slot.skill-ready-flash {
+      animation: pixelFlash 0.4s steps(4);
+    }
+
+    @keyframes pixelFlash {
+      0% { filter: brightness(1); }
+      50% { filter: brightness(2) drop-shadow(0 0 10px #f1c40f); }
+      100% { filter: brightness(1); }
+    }
+
+    /* Hiệu ứng chớp màn hình khi nổ chiêu (Screen Flash) */
+    #screen-flash {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 55;
+      opacity: 0;
+      transition: opacity 0.35s ease-out;
+    }
+
+    #screen-flash.flash-fire {
+      background: radial-gradient(circle, rgba(255, 71, 87, 0.45) 0%, rgba(255, 165, 2, 0.25) 60%, rgba(255, 71, 87, 0) 100%);
+      opacity: 1;
+      animation: flashPulse 0.4s ease-out;
+    }
+
+    #screen-flash.flash-lightning {
+      background: rgba(255, 255, 255, 0.7);
+      opacity: 1;
+      animation: flashPulse 0.25s ease-out;
+    }
+
+    #screen-flash.flash-frost {
+      box-shadow: inset 0 0 100px rgba(126, 214, 223, 0.75);
+      background: radial-gradient(circle, rgba(126, 214, 223, 0.2) 0%, rgba(72, 219, 251, 0.35) 100%);
+      opacity: 1;
+      animation: flashPulse 0.5s ease-out;
+    }
+
+    #screen-flash.flash-earth {
+      box-shadow: inset 0 0 80px rgba(230, 126, 34, 0.5);
+      background: rgba(230, 126, 34, 0.15);
+      opacity: 1;
+      animation: flashPulse 0.45s ease-out;
+    }
+
+    #screen-flash.flash-sword {
+      box-shadow: inset 0 0 120px rgba(255, 215, 0, 0.7);
+      background: radial-gradient(circle, rgba(255, 235, 59, 0.35) 0%, rgba(255, 177, 0, 0.4) 70%, rgba(255, 215, 0, 0.1) 100%);
+      opacity: 1;
+      animation: flashPulse 0.55s ease-out;
+    }
+
+    @keyframes flashPulse {
+      0% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* BẢNG ĐIỀU KHIỂN DƯỚI CÙNG: DẠNG TRỤC THƯ PIXEL (CONTROLS SCROLL) */
     .bottom-bar {
       display: flex;
       justify-content: space-between;
@@ -342,18 +533,22 @@
 
     .controls-help {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.88);
-      backdrop-filter: blur(10px);
-      padding: 12px 16px;
-      border-radius: 20px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
-      border: 2px solid rgba(255, 255, 255, 0.9);
+      background: #fdfbf7;
+      padding: 10px 14px;
+      box-shadow:
+        0 -3px 0 0 #2f3542,
+        0 3px 0 0 #2f3542,
+        -3px 0 0 0 #2f3542,
+        3px 0 0 0 #2f3542,
+        0 0 0 2px #10ac84,
+        0 8px 18px rgba(0, 0, 0, 0.15);
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 6px 14px;
-      font-size: 0.8rem;
-      color: #4a5568;
-      max-width: 320px;
+      gap: 5px 12px;
+      font-family: 'VT323', monospace;
+      font-size: 1.05rem;
+      color: #2c3e50;
+      max-width: 360px;
     }
 
     .control-item {
@@ -363,31 +558,27 @@
     }
 
     .key-badge {
-      background: #ffffff;
-      border: 1px solid #cbd5e0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.06), 0 1px 0 #cbd5e0;
-      padding: 2px 7px;
-      border-radius: 7px;
-      font-weight: 700;
-      font-size: 0.72rem;
-      color: #2d3748;
+      background: #2f3542;
+      color: #ffffff;
+      padding: 1px 5px;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      border: 1px solid #1e272e;
       display: inline-block;
       text-align: center;
-      min-width: 22px;
     }
 
     .key-badge.highlight {
-      background: #ffeaa7;
-      color: #d35400;
-      border-color: #f7d794;
+      background: #f1c40f;
+      color: #1e272e;
     }
 
     .key-badge.skill-badge {
-      background: #e0f2fe;
-      color: #0369a1;
-      border-color: #bae6fd;
+      background: #9b59b6;
+      color: #ffffff;
     }
 
+    /* CỤM NÚT TRÒN ĐIỆN THOẠI (NGỌC BỘI PIXEL) */
     .action-cluster {
       display: flex;
       gap: 12px;
@@ -397,61 +588,60 @@
     .circle-btn {
       width: 66px;
       height: 66px;
-      border-radius: 50%;
-      border: 4px solid #ffffff;
-      color: white;
-      font-size: 1.4rem;
-      font-weight: 700;
+      background: #fdfbf7;
+      box-shadow:
+        0 -3px 0 0 #1e272e,
+        0 3px 0 0 #1e272e,
+        -3px 0 0 0 #1e272e,
+        3px 0 0 0 #1e272e,
+        0 0 0 2px #d4ac0d;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.52rem;
+      color: #2c3e50;
+      transition: all 0.1s steps(2);
     }
 
-    .circle-btn span {
-      font-size: 0.65rem;
-      font-weight: 700;
-      margin-top: -2px;
-      letter-spacing: 0.5px;
-    }
-
-    .btn-shoot {
-      background: linear-gradient(135deg, #ff4757, #ff6b81);
-      box-shadow: 0 10px 22px rgba(255, 71, 87, 0.38);
-    }
-
-    .btn-jump {
-      background: linear-gradient(135deg, #ffa502, #eccc68);
-      box-shadow: 0 10px 22px rgba(255, 165, 2, 0.35);
+    .circle-btn span.emoji {
+      font-size: 1.5rem;
+      margin-bottom: 2px;
     }
 
     .circle-btn:hover {
-      transform: translateY(-3px) scale(1.05);
+      background: #f1c40f;
+      transform: translateY(-3px);
     }
 
     .circle-btn:active {
-      transform: translateY(2px) scale(0.95);
+      transform: translateY(2px);
     }
 
+    /* THÔNG BÁO POPUP (CULTIVATION TOAST) */
     #toast {
       position: absolute;
       top: 90px;
       left: 50%;
       transform: translateX(-50%) translateY(-20px);
-      background: rgba(33, 43, 54, 0.94);
-      backdrop-filter: blur(10px);
-      color: #ffffff;
-      padding: 10px 24px;
-      border-radius: 30px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+      background: #1e272e;
+      color: #f1c40f;
+      padding: 10px 20px;
+      font-family: 'VT323', monospace;
+      font-size: 1.25rem;
+      letter-spacing: 1px;
+      box-shadow:
+        0 -2px 0 0 #f1c40f,
+        0 2px 0 0 #f1c40f,
+        -2px 0 0 0 #f1c40f,
+        2px 0 0 0 #f1c40f,
+        0 10px 25px rgba(0, 0, 0, 0.4);
       opacity: 0;
       pointer-events: none;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      z-index: 100;
+      transition: all 0.25s steps(4);
+      z-index: 80;
     }
 
     #toast.show {
@@ -459,56 +649,36 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    @keyframes slideDown {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
     @media (max-width: 768px) {
-      .hud-layer {
-        padding: 12px;
-      }
-      .controls-help {
-        display: none;
-      }
       .title-card {
-        padding: 10px 14px;
-        max-width: 240px;
-      }
-      .title-card h1 {
-        font-size: 1rem;
+        padding: 8px 12px;
+        max-width: 260px;
       }
       .title-card p {
         display: none;
       }
-      .circle-btn {
-        width: 58px;
-        height: 58px;
-        font-size: 1.2rem;
-      }
       .skill-bar-container {
         bottom: 84px;
-        gap: 8px;
-        padding: 8px 12px;
+        gap: 6px;
+        padding: 6px 10px;
       }
       .skill-slot {
         width: 52px;
-        height: 52px;
+        height: 64px;
+      }
+      .skill-slot#skill-slot-5 {
+        width: 58px;
+        height: 70px;
       }
       .skill-icon {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
       }
     }
   </style>
 </head>
 <body>
   <canvas id="webgl-canvas"></canvas>
+  <div id="screen-flash"></div>
 
   <div class="crosshair">
     <div class="crosshair-ring">
@@ -517,110 +687,144 @@
   </div>
 
   <div id="lock-hint">
-    <span>🖱️</span>
-    <span>Nhấp chuột vào màn hình để xoay Camera & Bắn <em>(Bấm ESC để hiện chuột)</em></span>
+    <span>🏮</span>
+    <span>Nhấp chuột vào Cổ Đô để Ngự Kiếm & Tuần Tra Kinh Thành <em>[Bấm ESC để hiện chuột]</em></span>
   </div>
 
   <div class="hud-layer">
-    <!-- Thanh trên cùng -->
+    <!-- Thanh trên cùng: Khung Tu Tiên Bồng Lai -->
     <div class="top-bar">
       <div class="title-card">
-        <h1>🐻 Bé Gấu Xạ Thủ <span>⚡ PixelFX</span></h1>
-        <p>Bấm các phím số [1] [2] [3] [4] để thi triển kỹ năng PixelFX hủy diệt quái vật và tàn phá địa hình!</p>
+        <h1>🐻 Cổ Đô Trường An <span>🏮 Hoàng Thành</span></h1>
+        <p>Chu Tước Đại Đạo • Tửu Lầu Phố Cổ • Phím [1-5/E] xuất Đạo Pháp trảm yêu bảo vệ kinh thành!</p>
+
+        <!-- Thanh Khí Huyết & Linh Lực -->
+        <div class="status-bars-container">
+          <div class="pixel-bar-row">
+            <span class="pixel-bar-label hp">KHÍ HUYẾT</span>
+            <div class="pixel-bar-outer">
+              <div class="pixel-bar-inner hp" id="bar-hp" style="width: 100%;"></div>
+              <span class="pixel-bar-num" id="text-hp">100/100</span>
+            </div>
+          </div>
+          <div class="pixel-bar-row">
+            <span class="pixel-bar-label mp">LINH LỰC</span>
+            <div class="pixel-bar-outer">
+              <div class="pixel-bar-inner mp" id="bar-mp" style="width: 100%;"></div>
+              <span class="pixel-bar-num" id="text-mp">100/100</span>
+            </div>
+          </div>
+        </div>
+
         <div class="status-badges">
-          <span class="badge" id="hud-state">Đang nghỉ ngơi (Idle)</span>
+          <span class="badge badge-realm" id="hud-realm">🌟 Luyện Khí Tầng 1</span>
+          <span class="badge" id="hud-state">Đang Tĩnh Tọa (Idle)</span>
           <span class="badge" id="hud-speed">0.0 km/h</span>
-          <span class="badge badge-kills" id="hud-kills">🎯 Hạ gục: 0</span>
+          <span class="badge badge-kills" id="hud-kills">🎯 Trảm Yêu: 0</span>
         </div>
       </div>
 
       <div class="top-actions">
-        <button class="action-btn" id="btn-outfit" title="Phím tắt: C">🎨 Đổi Đồ (C)</button>
-        <button class="action-btn active" id="btn-sound">🔊 Âm thanh: Bật</button>
-        <button class="action-btn" id="btn-photo">📸 Chụp ảnh</button>
-        <button class="action-btn" id="btn-fullscreen">⛶ Toàn màn hình</button>
+        <button class="action-btn" id="btn-outfit" title="Phím tắt: C">🎨 Hoán Y (C)</button>
+        <button class="action-btn active" id="btn-sound">🔊 Linh Âm: Bật</button>
+        <button class="action-btn" id="btn-photo">📸 Lưu Ảnh</button>
+        <button class="action-btn" id="btn-fullscreen">⛶ Toàn Cảnh</button>
       </div>
     </div>
 
-    <!-- Thông báo Popup -->
-    <div id="toast">Chào mừng bạn! Dùng phím 1, 2, 3, 4 để xả kỹ năng PixelFX!</div>
+    <!-- Thông báo Popup Tiên Hiệp -->
+    <div id="toast">Chào mừng đạo hữu nhập thế Trường An Kinh Thành! Dùng phím 1-5 hoặc E để trảm yêu!</div>
 
-    <!-- THANH KỸ NĂNG PIXELFX (SKILL BAR) -->
+    <!-- THANH KỸ NĂNG ĐẠO PHÙ PIXEL (TALISMAN SKILL BAR) -->
     <div class="skill-bar-container">
-      <!-- Skill 1: Thiên thạch -->
-      <div class="skill-slot" id="skill-slot-1" title="Phím 1: Thiên Thạch Lửa (Tạo hố dung nham & sát thương 110)">
+      <!-- Skill 1: Xích Viêm Thiên Hỏa -->
+      <div class="skill-slot" id="skill-slot-1" title="Phím 1: Xích Viêm Thiên Hỏa ☄️ (-15 Linh Lực, tạo hố dung nham 110 ST)">
         <span class="skill-key">1</span>
+        <span class="skill-talisman-tag">HỎA</span>
         <span class="skill-icon">☄️</span>
-        <span class="skill-name">Thiên Thạch</span>
+        <span class="skill-name">Xích Viêm</span>
         <div class="skill-cd-overlay" id="skill-cd-1"></div>
         <span class="skill-cd-text" id="skill-text-1">1</span>
       </div>
 
-      <!-- Skill 2: Sấm sét -->
-      <div class="skill-slot" id="skill-slot-2" title="Phím 2: Sấm Sét Giáng Trần (Cháy nứt địa hình & sát thương 140)">
+      <!-- Skill 2: Cửu Thiên Huyền Lôi -->
+      <div class="skill-slot" id="skill-slot-2" title="Phím 2: Cửu Thiên Huyền Lôi ⚡ (-20 Linh Lực, lôi đình giáng thế 140 ST)">
         <span class="skill-key">2</span>
+        <span class="skill-talisman-tag">LÔI</span>
         <span class="skill-icon">⚡</span>
-        <span class="skill-name">Sấm Sét</span>
+        <span class="skill-name">Huyền Lôi</span>
         <div class="skill-cd-overlay" id="skill-cd-2"></div>
         <span class="skill-cd-text" id="skill-text-2">2</span>
       </div>
 
-      <!-- Skill 3: Bão băng -->
-      <div class="skill-slot" id="skill-slot-3" title="Phím 3: Bão Băng Địa Cực (Hóa tuyết trắng & làm chậm quái)">
+      <!-- Skill 3: Huyền Băng Tuyệt Vực -->
+      <div class="skill-slot" id="skill-slot-3" title="Phím 3: Huyền Băng Tuyệt Vực ❄️ (-20 Linh Lực, đóng băng yêu ma)">
         <span class="skill-key">3</span>
+        <span class="skill-talisman-tag">BĂNG</span>
         <span class="skill-icon">❄️</span>
-        <span class="skill-name">Bão Băng</span>
+        <span class="skill-name">Huyền Băng</span>
         <div class="skill-cd-overlay" id="skill-cd-3"></div>
         <span class="skill-cd-text" id="skill-text-3">3</span>
       </div>
 
-      <!-- Skill 4: Địa chấn -->
-      <div class="skill-slot" id="skill-slot-4" title="Phím 4: Địa Chấn Long Trời (Lõm sâu địa hình 2.2m & sát thương 170)">
+      <!-- Skill 4: Hám Địa Thần Thông -->
+      <div class="skill-slot" id="skill-slot-4" title="Phím 4: Hám Địa Thần Thông 🌍 (-25 Linh Lực, sụp đổ địa hình 170 ST)">
         <span class="skill-key">4</span>
+        <span class="skill-talisman-tag">THỔ</span>
         <span class="skill-icon">🌍</span>
-        <span class="skill-name">Địa Chấn</span>
+        <span class="skill-name">Hám Địa</span>
         <div class="skill-cd-overlay" id="skill-cd-4"></div>
         <span class="skill-cd-text" id="skill-text-4">4</span>
       </div>
+
+      <!-- Skill 5: Vạn Kiếm Quy Tông -->
+      <div class="skill-slot" id="skill-slot-5" title="Phím 5 hoặc E: Vạn Kiếm Quy Tông ⚔️ (-35 Linh Lực, Cực Phẩm Trấn Tông Kiếm Trận 240 ST)">
+        <span class="skill-key">5/E</span>
+        <span class="skill-talisman-tag">TRẤN TÔNG</span>
+        <span class="skill-icon">⚔️</span>
+        <span class="skill-name">Vạn Kiếm</span>
+        <div class="skill-cd-overlay" id="skill-cd-5"></div>
+        <span class="skill-cd-text" id="skill-text-5">5</span>
+      </div>
     </div>
 
-    <!-- Thanh dưới cùng -->
+    <!-- Bảng Điều Khiển Cổ Phong Pixel -->
     <div class="bottom-bar">
       <div class="controls-help">
         <div class="control-item">
           <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span>
-          <span>Di chuyển</span>
+          <span>Ngự Phong Hành</span>
         </div>
         <div class="control-item">
-          <span class="key-badge highlight">Click Chuột</span>
-          <span>Bắn Blaster</span>
+          <span class="key-badge highlight">Chuột Trái</span>
+          <span>Phi Tiên Đạn</span>
         </div>
         <div class="control-item">
-          <span class="key-badge skill-badge">1 2 3 4</span>
-          <span><strong>Kỹ năng PixelFX</strong></span>
-        </div>
-        <div class="control-item">
-          <span class="key-badge">ESC</span>
-          <span>Hiện con trỏ chuột</span>
+          <span class="key-badge skill-badge">1-5 (E)</span>
+          <span><strong>Đạo Pháp & Vạn Kiếm</strong></span>
         </div>
         <div class="control-item">
           <span class="key-badge">Space</span>
-          <span>Nhảy cao</span>
+          <span>Đạp Vân Bộ (Nhảy)</span>
         </div>
         <div class="control-item">
           <span class="key-badge">Shift</span>
-          <span>Chạy nhanh</span>
+          <span>Súc Địa Thành Thốn</span>
+        </div>
+        <div class="control-item">
+          <span class="key-badge">C</span>
+          <span>Hoán Tiên Bào</span>
         </div>
       </div>
 
       <div class="action-cluster">
-        <button class="circle-btn btn-jump" id="btn-jump">
-          🦘
-          <span>NHẢY</span>
+        <button class="circle-btn" id="btn-jump">
+          <span class="emoji">🦘</span>
+          <span>ĐẠP VÂN</span>
         </button>
-        <button class="circle-btn btn-shoot" id="btn-shoot">
-          ⚡
-          <span>BẮN</span>
+        <button class="circle-btn" id="btn-shoot">
+          <span class="emoji">⚡</span>
+          <span>PHÁP KÍCH</span>
         </button>
       </div>
     </div>

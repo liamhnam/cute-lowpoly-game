@@ -3,10 +3,11 @@ import { getTerrainHeight } from './world.js';
 import { sound } from './audio.js';
 
 export class Monster {
-  constructor(scene, particles, type = 'golem', spawnPos = new THREE.Vector3()) {
+  constructor(scene, particles, type = 'golem', spawnPos = new THREE.Vector3(), world = null) {
     this.scene = scene;
     this.particles = particles;
     this.type = type;
+    this.world = world;
 
     this.group = new THREE.Group();
     this.position = spawnPos.clone();
@@ -23,6 +24,11 @@ export class Monster {
     this.rotationY = Math.random() * Math.PI * 2;
     this.walkAnimTime = Math.random() * 10;
     this.hitFlashTimer = 0;
+    this.velocity = new THREE.Vector3();
+
+    // Hiệu ứng trạng thái: Đóng băng & Đẩy lùi
+    this.isFrozen = false;
+    this.freezeTimer = 0;
 
     // Kích thước va chạm
     this.hitRadius = this.type === 'golem' ? 2.8 : 2.5;
@@ -30,8 +36,23 @@ export class Monster {
 
     this.buildMesh();
     this.buildHealthBar();
+    this.buildContactShadow();
 
     this.scene.add(this.group);
+  }
+
+  buildContactShadow() {
+    const radius = this.type === 'golem' ? 2.5 : 1.7;
+    const geo = new THREE.CircleGeometry(radius, 16);
+    geo.rotateX(-Math.PI / 2);
+    this.shadowMat = new THREE.MeshBasicMaterial({
+      color: 0x111111,
+      transparent: true,
+      opacity: 0.42,
+      depthWrite: false,
+    });
+    this.contactShadow = new THREE.Mesh(geo, this.shadowMat);
+    this.scene.add(this.contactShadow);
   }
 
   buildMesh() {
@@ -87,6 +108,19 @@ export class Monster {
       eyeR.position.set(0.4, 1.6, 1.45);
       this.torso.add(eyeL);
       this.torso.add(eyeR);
+
+      // Đạo Phù Vàng Phong Ấn (Yellow Daoist Talisman) dán trước trán Thạch Yêu
+      const talismanGeo = new THREE.PlaneGeometry(0.35, 0.75);
+      const talismanMat = new THREE.MeshBasicMaterial({ color: 0xffdd59, side: THREE.DoubleSide });
+      const talisman = new THREE.Mesh(talismanGeo, talismanMat);
+      talisman.position.set(0, 1.85, 1.62);
+      talisman.rotation.x = -0.15;
+      this.torso.add(talisman);
+
+      const runeCinnabar = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.45), new THREE.MeshBasicMaterial({ color: 0xee5253, side: THREE.DoubleSide }));
+      runeCinnabar.position.set(0, 1.85, 1.63);
+      runeCinnabar.rotation.x = -0.15;
+      this.torso.add(runeCinnabar);
 
       // Tay đá khổng lồ
       this.armL = new THREE.Group();
@@ -234,7 +268,6 @@ export class Monster {
   }
 
   checkCollision(bulletPos, bulletRadius) {
-    // Kiểm tra khoảng cách hình trụ
     const dx = bulletPos.x - this.position.x;
     const dz = bulletPos.z - this.position.z;
     const horizDistSq = dx * dx + dz * dz;
@@ -252,18 +285,18 @@ export class Monster {
     if (this.isDead) return;
 
     this.hp -= amount;
-    this.hitFlashTimer = 0.15; // Chớp trắng
-    this.torso.position.z -= 0.2; // Giật lùi nhẹ khi bị bắn
+    this.hitFlashTimer = 0.18;
+    this.torso.position.z -= 0.35;
 
     // Cập nhật thanh máu
     const hpRatio = Math.max(0, this.hp / this.maxHp);
     this.barMesh.scale.x = hpRatio;
-    this.barMesh.position.x = -(1.0 - hpRatio) * 1.5; // Căn lề trái thanh máu
+    this.barMesh.position.x = -(1.0 - hpRatio) * 1.5;
 
     if (hpRatio < 0.3) {
-      this.barMat.color.setHex(0xe74c3c); // Đỏ khi sắp hết máu
+      this.barMat.color.setHex(0xe74c3c);
     } else if (hpRatio < 0.6) {
-      this.barMat.color.setHex(0xf39c12); // Vàng
+      this.barMat.color.setHex(0xf39c12);
     }
 
     if (this.hp <= 0) {
@@ -271,11 +304,51 @@ export class Monster {
     }
   }
 
+  freeze(duration = 2.6) {
+    this.isFrozen = true;
+    this.freezeTimer = duration;
+    this.hitFlashTimer = 0.3;
+    if (this.particles) {
+      this.particles.emitElementalParticles(
+        this.position.clone().add(new THREE.Vector3(0, 2, 0)),
+        16,
+        [0x7ed6df, 0xffffff, 0x48dbfb],
+        [2, 5],
+        0.8,
+        2.0,
+        1.0
+      );
+    }
+  }
+
+  knockback(fromPos, force = 12) {
+    const dir = new THREE.Vector3().subVectors(this.position, fromPos);
+    dir.y = 0;
+    dir.normalize();
+    this.velocity.x += dir.x * force;
+    this.velocity.z += dir.z * force;
+    this.velocity.y += force * 0.4;
+    this.torso.position.z -= 0.6;
+  }
+
   die() {
     this.isDead = true;
-    this.respawnTimer = 9.0; // Hồi sinh sau 9s
+    this.respawnTimer = 9.0;
     sound.playMonsterDefeated();
     this.particles.emitMonsterDefeat(this.position.clone().add(new THREE.Vector3(0, 3, 0)));
+
+    // Hiệu ứng vỡ vụn tảng đá bay theo vật lý khi Thạch Yêu bị hạ gục
+    if (this.world && this.type === 'golem') {
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, flatShading: true, roughness: 0.9 });
+      for (let i = 0; i < 6; i++) {
+        const chunk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7 + Math.random() * 0.5, 0), rockMat);
+        chunk.position.copy(this.position);
+        chunk.position.y += 1.5 + Math.random() * 2.0;
+        chunk.castShadow = true;
+        const dir = new THREE.Vector3((Math.random() - 0.5) * 2, 0.8, (Math.random() - 0.5) * 2).normalize();
+        this.world.addDebris(chunk, dir, 7 + Math.random() * 5, 20, 4.2, 0.52);
+      }
+    }
 
     if (this.onDefeated) {
       this.onDefeated(this);
@@ -284,12 +357,14 @@ export class Monster {
 
   respawn() {
     this.isDead = false;
+    this.isFrozen = false;
+    this.freezeTimer = 0;
+    this.velocity.set(0, 0, 0);
     this.hp = this.maxHp;
     this.barMesh.scale.x = 1.0;
     this.barMesh.position.x = 0;
     this.barMat.color.setHex(0x2ecc71);
 
-    // Xuất hiện ở vị trí ngẫu nhiên trên đồng cỏ
     const angle = Math.random() * Math.PI * 2;
     const dist = 35 + Math.random() * 30;
     this.position.x = Math.cos(angle) * dist;
@@ -314,7 +389,6 @@ export class Monster {
     // 2. Xử lý trạng thái CHẾT & Hồi sinh
     if (this.isDead) {
       this.respawnTimer -= delta;
-      // Hiệu ứng ngã quỵ và thu nhỏ dần
       this.model.rotation.x = THREE.MathUtils.lerp(this.model.rotation.x, -Math.PI / 2.2, delta * 5);
       this.model.scale.multiplyScalar(0.96);
       this.healthBarGroup.visible = false;
@@ -325,11 +399,29 @@ export class Monster {
       return;
     }
 
-    // 3. Hiệu ứng nhấp nháy khi bị bắn trúng
+    // 3. Xử lý trạng thái BỊ ĐÓNG BĂNG
+    if (this.isFrozen) {
+      this.freezeTimer -= delta;
+      if (this.freezeTimer <= 0) {
+        this.isFrozen = false;
+      }
+      for (const mat of this.damageableMaterials) {
+        mat.emissive.setHex(0x00d2d3); // Tỏa sáng xanh băng
+      }
+      // Rung rẩy vì cóng lạnh
+      this.model.position.x = (Math.random() - 0.5) * 0.12;
+      this.model.position.z = (Math.random() - 0.5) * 0.12;
+      return; // Không di chuyển khi bị đóng băng!
+    } else {
+      this.model.position.x = 0;
+      this.model.position.z = 0;
+    }
+
+    // 4. Hiệu ứng nhấp nháy khi bị bắn trúng
     if (this.hitFlashTimer > 0) {
       this.hitFlashTimer -= delta;
       for (const mat of this.damageableMaterials) {
-        mat.emissive.setHex(0xff3333); // Phát sáng đỏ
+        mat.emissive.setHex(0xff3333);
       }
     } else {
       for (const mat of this.damageableMaterials) {
@@ -337,34 +429,40 @@ export class Monster {
       }
     }
 
+    // 5. Áp dụng phản lực Đẩy lùi (Knockback Velocity)
+    if (this.velocity.lengthSq() > 0.01) {
+      this.position.x += this.velocity.x * delta;
+      this.position.z += this.velocity.z * delta;
+      this.position.y += this.velocity.y * delta;
+
+      this.velocity.x *= 0.88;
+      this.velocity.z *= 0.88;
+      this.velocity.y -= 24 * delta; // Trọng lực rơi lại đất
+    }
+
     this.torso.position.z = THREE.MathUtils.lerp(this.torso.position.z, 0, delta * 6);
 
-    // 4. AI DI CHUYỂN TỰ ĐỘNG & RƯỢT ĐUỔI BÉ GẤU
+    // 6. AI DI CHUYỂN TỰ ĐỘNG & RƯỢT ĐUỔI BÉ GẤU
     const distToPlayer = playerPos ? this.position.distanceTo(playerPos) : 999;
     let targetAngle = this.rotationY;
 
     if (distToPlayer < 45 && distToPlayer > 3.8) {
-      // Khi bé gấu ở gần: Quái vật từ từ quay lại bước về phía gấu
       const dirX = playerPos.x - this.position.x;
       const dirZ = playerPos.z - this.position.z;
       targetAngle = Math.atan2(dirX, dirZ);
 
-      // Bước tới
       this.position.x += Math.sin(this.rotationY) * this.speed * delta;
       this.position.z += Math.cos(this.rotationY) * this.speed * delta;
     } else {
-      // Đi dạo tuần tra ngẫu nhiên
       this.walkAnimTime += delta * 0.4;
       targetAngle += Math.sin(this.walkAnimTime) * 0.02;
       this.position.x += Math.sin(this.rotationY) * (this.speed * 0.5) * delta;
       this.position.z += Math.cos(this.rotationY) * (this.speed * 0.5) * delta;
     }
 
-    // Giới hạn trong khuôn viên đồng bằng
-    this.position.x = THREE.MathUtils.clamp(this.position.x, -75, 75);
-    this.position.z = THREE.MathUtils.clamp(this.position.z, -75, 75);
+    this.position.x = THREE.MathUtils.clamp(this.position.x, -120, 120);
+    this.position.z = THREE.MathUtils.clamp(this.position.z, -120, 120);
 
-    // Xoay mượt mà
     let rotDiff = targetAngle - this.rotationY;
     while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
     while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
@@ -372,10 +470,22 @@ export class Monster {
     this.model.rotation.y = this.rotationY;
 
     // Cập nhật độ cao địa hình
-    this.position.y = getTerrainHeight(this.position.x, this.position.z);
+    const groundY = getTerrainHeight(this.position.x, this.position.z);
+    if (this.position.y <= groundY) {
+      this.position.y = groundY;
+      this.velocity.y = 0;
+    }
+
     this.group.position.copy(this.position);
 
-    // 5. ANIMATION BƯỚC ĐI KHỔNG LỒ DẬM ĐẤT
+    // Cập nhật bóng đổ tiếp xúc mặt đất (Contact Shadow)
+    if (this.contactShadow) {
+      this.contactShadow.position.set(this.position.x, groundY + 0.025, this.position.z);
+      const heightAbove = Math.max(0, this.position.y - groundY);
+      this.shadowMat.opacity = this.isDead ? 0 : Math.max(0.04, 0.42 - heightAbove * 0.08);
+      const s = Math.max(0.35, 1.0 - heightAbove * 0.1);
+      this.contactShadow.scale.set(s, s, s);
+    }
     const stepFreq = this.type === 'golem' ? 3.5 : 4.5;
     this.walkAnimTime += delta * stepFreq;
     const stepSwing = Math.sin(this.walkAnimTime) * 0.45;
