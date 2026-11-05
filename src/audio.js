@@ -1,4 +1,4 @@
-// Web Audio API Procedural Sound Effects & Cozy Ambient
+// Web Audio API Procedural Sound Effects, Cozy Ambient & PixelFX Skills
 class SoundManager {
   constructor() {
     this.ctx = null;
@@ -78,7 +78,6 @@ class SoundManager {
     osc.stop(now + 0.16);
   }
 
-  // Âm thanh bắn súng "Pew Pew" năng lượng cute
   playShoot() {
     if (this.muted || !this.ctx) return;
     const now = this.ctx.currentTime;
@@ -105,7 +104,6 @@ class SoundManager {
     osc.stop(now + 0.15);
   }
 
-  // Âm thanh đạn nổ trúng quái vật "Pop / Thud"
   playHit() {
     if (this.muted || !this.ctx) return;
     const now = this.ctx.currentTime;
@@ -126,7 +124,6 @@ class SoundManager {
     osc.stop(now + 0.11);
   }
 
-  // Âm thanh quái vật khổng lồ gầm gừ ngộ nghĩnh
   playMonsterRoar() {
     if (this.muted || !this.ctx) return;
     const now = this.ctx.currentTime;
@@ -147,10 +144,9 @@ class SoundManager {
     osc.stop(now + 0.52);
   }
 
-  // Âm thanh tiêu diệt quái vật khổng lồ (Victory Fanfare)
   playMonsterDefeated() {
     if (this.muted || !this.ctx) return;
-    const notes = [440, 554.37, 659.25, 880]; // A C# E A
+    const notes = [440, 554.37, 659.25, 880];
     const now = this.ctx.currentTime;
 
     notes.forEach((freq, idx) => {
@@ -170,6 +166,100 @@ class SoundManager {
       osc.start(noteTime);
       osc.stop(noteTime + 0.36);
     });
+  }
+
+  // --- ÂM THANH KỸ NĂNG PIXELFX ---
+
+  // Kỹ năng 1: Thiên thạch hỏa ngục rền vang
+  playMeteorExplosion() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Tiếng nổ trầm low-end rumble
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(25, now + 0.8);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+
+    // Filter tạo tiếng nổ đục
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.exponentialRampToValueAtTime(100, now + 0.8);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.85);
+  }
+
+  // Kỹ năng 2: Sét đánh giáng trần chói tai
+  playThunderStrike() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.42);
+  }
+
+  // Kỹ năng 3: Băng kết tinh
+  playFrostNova() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(1800, now + 0.25);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.32);
+  }
+
+  // Kỹ năng 4: Địa chấn rung chuyển đất
+  playEarthquake() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(90, now);
+    osc.frequency.exponentialRampToValueAtTime(20, now + 0.7);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.76);
   }
 
   startBGM() {

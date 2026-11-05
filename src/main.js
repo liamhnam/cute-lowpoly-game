@@ -5,6 +5,7 @@ import { ParticleSystem } from './particles.js';
 import { ThirdPersonController } from './controller.js';
 import { ProjectileSystem } from './projectiles.js';
 import { Monster } from './monsters.js';
+import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
 
 class Game {
@@ -95,7 +96,6 @@ class Game {
       new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-18, 0, 32)),
     ];
 
-    // Sự kiện khi hạ gục quái vật
     for (const monster of this.monsters) {
       monster.onDefeated = (m) => {
         this.monstersDefeated++;
@@ -107,13 +107,23 @@ class Game {
       };
     }
 
-    // 6. Bộ điều khiển góc nhìn thứ 3 (Di chuột xoay camera, ESC nhả chuột)
+    // 6. Hệ thống Kỹ Năng PixelFX (Thiên thạch, Sấm sét, Bão băng, Địa chấn)
+    this.pixelFX = new PixelFXManager(this.scene, this.world, this.particles);
+
+    // 7. Bộ điều khiển góc nhìn thứ 3
     this.controller = new ThirdPersonController(
       this.camera,
       this.character,
       this.canvas,
       (muzzlePos, shootDir) => {
         this.projectiles.spawnBullet(muzzlePos, shootDir);
+      },
+      (skillNum, targetPos) => {
+        const success = this.pixelFX.castSkill(skillNum, targetPos, this.character, this.monsters);
+        if (success) {
+          const names = { 1: 'Thiên Thạch Lửa ☄️', 2: 'Sấm Sét Giáng Trần ⚡', 3: 'Bão Băng Địa Cực ❄️', 4: 'Địa Chấn Long Trời 🌍' };
+          this.showNotification(`Thi triển [${skillNum}]: ${names[skillNum]}!`);
+        }
       }
     );
 
@@ -121,7 +131,6 @@ class Game {
       this.showNotification(`Đã đổi trang phục: ${outfitName}`);
     };
 
-    // Theo dõi trạng thái khóa chuột để hiển thị Banner
     this.controller.onLockChange = (isLocked) => {
       const lockHint = document.getElementById('lock-hint');
       if (lockHint) {
@@ -144,7 +153,6 @@ class Game {
     window.addEventListener('click', enableAudio);
     window.addEventListener('keydown', enableAudio);
 
-    // Bấm vào banner gợi ý khóa chuột để bắt đầu
     const lockHint = document.getElementById('lock-hint');
     if (lockHint) {
       lockHint.addEventListener('click', () => {
@@ -152,7 +160,7 @@ class Game {
       });
     }
 
-    // Nút Bắn ảo cho màn hình cảm ứng / chuột
+    // Nút Bắn ảo
     const shootBtn = document.getElementById('btn-shoot');
     if (shootBtn) {
       shootBtn.addEventListener('click', (e) => {
@@ -213,6 +221,40 @@ class Game {
       });
     }
 
+    // Gắn sự kiện click cho các ô kỹ năng trên HUD
+    for (let i = 1; i <= 4; i++) {
+      const slot = document.getElementById(`skill-slot-${i}`);
+      if (slot) {
+        slot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.controller.triggerSkill(i);
+        });
+      }
+    }
+
+    // Cập nhật Cooldown trực quan trên thanh kỹ năng HUD
+    this.pixelFX.onCooldownUpdate = (cds) => {
+      for (const key in cds) {
+        const cd = cds[key];
+        const slot = document.getElementById(`skill-slot-${key}`);
+        const cdOverlay = document.getElementById(`skill-cd-${key}`);
+        const cdText = document.getElementById(`skill-text-${key}`);
+
+        if (slot && cdOverlay && cdText) {
+          if (cd.current > 0) {
+            slot.classList.add('on-cooldown');
+            const ratio = cd.current / cd.max;
+            cdOverlay.style.height = `${ratio * 100}%`;
+            cdText.textContent = cd.current.toFixed(1) + 's';
+          } else {
+            slot.classList.remove('on-cooldown');
+            cdOverlay.style.height = '0%';
+            cdText.textContent = key;
+          }
+        }
+      }
+    };
+
     // HUD Elements
     this.speedBadge = document.getElementById('hud-speed');
     this.stateBadge = document.getElementById('hud-state');
@@ -235,7 +277,7 @@ class Game {
     this.renderer.render(this.scene, this.camera);
     const dataURL = this.canvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.download = 'cozy-bear-blaster.png';
+    link.download = 'cozy-bear-pixelfx.png';
     link.href = dataURL;
     link.click();
     this.showNotification('📸 Đã chụp và lưu lại khoảnh khắc!');
@@ -261,22 +303,25 @@ class Game {
     // 2. Cập nhật đạn và va chạm với quái vật
     this.projectiles.update(delta, this.monsters);
 
-    // 3. Cập nhật AI quái vật khổng lồ
+    // 3. Cập nhật kỹ năng PixelFX & tàn phá địa hình
+    this.pixelFX.update(delta);
+
+    // 4. Cập nhật AI quái vật khổng lồ
     for (const monster of this.monsters) {
       monster.update(delta, this.character.position, this.camera);
     }
 
-    // 4. Di chuyển ánh nắng mặt trời theo nhân vật
+    // 5. Di chuyển ánh nắng mặt trời theo nhân vật
     this.sunLight.position.x = this.character.position.x + 35;
     this.sunLight.position.z = this.character.position.z + 30;
     this.sunLight.target.position.copy(this.character.position);
     this.sunLight.target.updateMatrixWorld();
 
-    // 5. Cập nhật thế giới và hiệu ứng
+    // 6. Cập nhật thế giới và hiệu ứng
     this.world.update(delta, elapsedTime);
     this.particles.update(delta, this.character.position);
 
-    // 6. Cập nhật HUD
+    // 7. Cập nhật HUD
     if (this.speedBadge) {
       const spdKmh = (this.character.speed * 2.2).toFixed(1);
       this.speedBadge.textContent = `${spdKmh} km/h`;

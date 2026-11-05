@@ -1,14 +1,27 @@
 import * as THREE from 'three';
 
-// Hàm tính độ cao địa hình mượt mà
+// Mảng lưu các hố va chạm / tàn phá địa hình
+export const activeCraters = [];
+
+// Hàm tính độ cao địa hình mượt mà + tính thêm các hố thiên thạch / động đất
 export function getTerrainHeight(x, z) {
   const hill1 = Math.sin(x * 0.035) * Math.cos(z * 0.035) * 2.8;
   const hill2 = Math.sin(x * 0.08 + z * 0.05) * 1.0;
   const hill3 = Math.cos(x * 0.02 - z * 0.03) * 1.5;
-  // Làm phẳng nhẹ khu vực trung tâm để nhân vật xuất phát thoải mái
   const distFromCenter = Math.sqrt(x * x + z * z);
   const flattenFactor = Math.min(1.0, distFromCenter / 15.0);
-  return (hill1 + hill2 + hill3) * flattenFactor;
+  let baseH = (hill1 + hill2 + hill3) * flattenFactor;
+
+  // Tính độ lõm từ các vết nứt và hố thiên thạch
+  for (const c of activeCraters) {
+    const d = Math.hypot(x - c.x, z - c.z);
+    if (d < c.radius) {
+      const deform = c.depth * Math.pow(1.0 - d / c.radius, 2);
+      baseH -= deform;
+    }
+  }
+
+  return baseH;
 }
 
 export class World {
@@ -16,6 +29,7 @@ export class World {
     this.scene = scene;
     this.clouds = [];
     this.grassMaterial = null;
+    this.grassData = []; // Lưu tọa độ từng ngọn cỏ để tương tác
 
     this.createTerrain();
     this.createGrassField();
@@ -29,15 +43,15 @@ export class World {
   createTerrain() {
     const size = 180;
     const segments = 120;
-    const geometry = new THREE.PlaneGeometry(size, size, segments, segments);
-    geometry.rotateX(-Math.PI / 2);
+    this.terrainGeometry = new THREE.PlaneGeometry(size, size, segments, segments);
+    this.terrainGeometry.rotateX(-Math.PI / 2);
 
-    const pos = geometry.attributes.position;
+    const pos = this.terrainGeometry.attributes.position;
     const colors = [];
-    const colorLow = new THREE.Color(0x7dc269); // Xanh tươi mát
-    const colorMid = new THREE.Color(0x8dd477); // Xanh đồng cỏ
-    const colorHigh = new THREE.Color(0xa7e68c); // Xanh vàng trên đỉnh đồi
-    const colorValley = new THREE.Color(0x6ab557); // Thung lũng
+    const colorLow = new THREE.Color(0x7dc269);
+    const colorMid = new THREE.Color(0x8dd477);
+    const colorHigh = new THREE.Color(0xa7e68c);
+    const colorValley = new THREE.Color(0x6ab557);
 
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
@@ -45,7 +59,6 @@ export class World {
       const y = getTerrainHeight(x, z);
       pos.setY(i, y);
 
-      // Vertex color theo độ cao tạo sắc thái tự nhiên
       let vertexCol;
       if (y > 2.0) {
         vertexCol = colorHigh.clone().lerp(colorMid, (y - 2.0) / 3.0);
@@ -57,8 +70,8 @@ export class World {
       colors.push(vertexCol.r, vertexCol.g, vertexCol.b);
     }
 
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    geometry.computeVertexNormals();
+    this.terrainGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    this.terrainGeometry.computeVertexNormals();
 
     const material = new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -67,24 +80,116 @@ export class World {
       metalness: 0.05,
     });
 
-    this.terrainMesh = new THREE.Mesh(geometry, material);
+    this.terrainMesh = new THREE.Mesh(this.terrainGeometry, material);
     this.terrainMesh.receiveShadow = true;
     this.scene.add(this.terrainMesh);
   }
 
+  // HÀM TÀN PHÁ & BIẾN DẠNG ĐỊA HÌNH KHI DÙNG KỸ NĂNG
+  deformTerrain(centerX, centerZ, radius, depth, type = 'fire') {
+    activeCraters.push({
+      x: centerX,
+      z: centerZ,
+      radius: radius,
+      depth: depth,
+      type: type,
+    });
+
+    // Giới hạn số hố lưu trong bộ nhớ
+    if (activeCraters.length > 50) {
+      activeCraters.shift();
+    }
+
+    const pos = this.terrainGeometry.attributes.position;
+    const colorAttr = this.terrainGeometry.attributes.color;
+
+    // Bảng màu cháy xém theo nguyên tố
+    const burnColor = new THREE.Color(
+      type === 'fire' ? 0x241715 : // Đen than dung nham
+      type === 'lightning' ? 0x2d1a3a : // Tím đen sấm sét
+      type === 'ice' ? 0xdff9fb : // Trắng tuyết băng giá
+      0x38281a // Nâu nứt đất nẻ
+    );
+
+    const glowBorder = new THREE.Color(
+      type === 'fire' ? 0xe74c3c : // Viền đỏ cam nóng chảy
+      type === 'lightning' ? 0x00d2d3 : // Viền xanh điện
+      type === 'ice' ? 0x7ed6df : // Viền xanh băng
+      0x785336
+    );
+
+    let affectedCount = 0;
+
+    for (let i = 0; i < pos.count; i++) {
+      const vx = pos.getX(i);
+      const vz = pos.getZ(i);
+      const dist = Math.hypot(vx - centerX, vz - centerZ);
+
+      if (dist < radius) {
+        affectedCount++;
+        const factor = Math.pow(1.0 - dist / radius, 2);
+        const newY = pos.getY(i) - depth * factor;
+        pos.setY(i, newY);
+
+        // Biến đổi màu mặt đất tại vết nổ
+        const curR = colorAttr.getX(i);
+        const curG = colorAttr.getY(i);
+        const curB = colorAttr.getZ(i);
+        const currentColor = new THREE.Color(curR, curG, curB);
+
+        // Gradient từ tâm hố ra rìa
+        const mixRatio = factor * 0.95;
+        const targetColor = dist < radius * 0.4 ? burnColor : glowBorder;
+        currentColor.lerp(targetColor, mixRatio);
+
+        colorAttr.setXYZ(i, currentColor.r, currentColor.g, currentColor.b);
+      }
+    }
+
+    if (affectedCount > 0) {
+      pos.needsUpdate = true;
+      colorAttr.needsUpdate = true;
+      this.terrainGeometry.computeVertexNormals();
+    }
+
+    // Thổi bay / ép rạp cỏ trong bán kính va chạm
+    this.flattenGrass(centerX, centerZ, radius);
+  }
+
+  flattenGrass(centerX, centerZ, radius) {
+    if (!this.grassInstanced || !this.grassData) return;
+    const dummy = new THREE.Object3D();
+    let updated = false;
+
+    for (let i = 0; i < this.grassData.length; i++) {
+      const g = this.grassData[i];
+      if (g.alive) {
+        const d = Math.hypot(g.x - centerX, g.z - centerZ);
+        if (d < radius * 1.1) {
+          g.alive = false;
+          dummy.position.set(g.x, -50, g.z); // Đưa cỏ xuống dưới lòng đất
+          dummy.scale.set(0, 0, 0);
+          dummy.updateMatrix();
+          this.grassInstanced.setMatrixAt(i, dummy.matrix);
+          updated = true;
+        }
+      }
+    }
+
+    if (updated) {
+      this.grassInstanced.instanceMatrix.needsUpdate = true;
+    }
+  }
+
   createGrassField() {
-    // Tạo 1 ngọn cỏ low poly dạng 2 phiến tam giác đan chéo
     const bladeGeo = new THREE.BufferGeometry();
     const w = 0.18;
     const h = 0.85;
 
-    // Các đỉnh của 1 bụi cỏ 2 phiến cắt nhau hình chữ X
     const vertices = new Float32Array([
-      // Phiến 1
       -w, 0, 0,
        w, 0, 0,
        0, h, 0,
-      // Phiến 2 (xoay 90 độ)
        0, 0, -w,
        0, 0,  w,
        0, h,  0,
@@ -95,7 +200,6 @@ export class World {
       1, 0, 0,   1, 0, 0,   1, 0, 0,
     ]);
 
-    // Thuộc tính để shader biết đỉnh nào là ngọn cỏ (y = h) để lắc lư
     const isTip = new Float32Array([
       0, 0, 1,
       0, 0, 1
@@ -105,7 +209,6 @@ export class World {
     bladeGeo.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
     bladeGeo.setAttribute('isTip', new THREE.BufferAttribute(isTip, 1));
 
-    // Custom Shader Material để cỏ lay động tự nhiên theo gió
     this.grassMaterial = new THREE.MeshStandardMaterial({
       color: 0x86dd6e,
       roughness: 0.8,
@@ -128,7 +231,6 @@ export class World {
         `
         #include <begin_vertex>
         if (isTip > 0.5) {
-          // Tính gió thổi dựa trên tọa độ thế giới
           vec4 worldInstance = instanceMatrix * vec4(position, 1.0);
           float wave = sin(uTime * 2.8 + worldInstance.x * 0.35 + worldInstance.z * 0.45);
           float wave2 = cos(uTime * 1.9 + worldInstance.z * 0.6);
@@ -160,6 +262,7 @@ export class World {
       dummy.updateMatrix();
 
       this.grassInstanced.setMatrixAt(i, dummy.matrix);
+      this.grassData.push({ x, z, y, alive: true });
     }
 
     this.grassInstanced.instanceMatrix.needsUpdate = true;
@@ -170,7 +273,6 @@ export class World {
     const treeGroup = new THREE.Group();
     const treeCount = 45;
 
-    // Nguyên liệu thân cây và tán lá
     const trunkMat = new THREE.MeshStandardMaterial({
       color: 0x8b5a2b,
       flatShading: true,
@@ -182,7 +284,6 @@ export class World {
     for (let i = 0; i < treeCount; i++) {
       const tX = (Math.random() - 0.5) * 140;
       const tZ = (Math.random() - 0.5) * 140;
-      // Tránh cây mọc đè khu vực khởi đầu
       if (Math.hypot(tX, tZ) < 8) continue;
 
       const tY = getTerrainHeight(tX, tZ);
@@ -193,7 +294,6 @@ export class World {
       const treeScale = 0.8 + Math.random() * 0.6;
       singleTree.scale.set(treeScale, treeScale, treeScale);
 
-      // Thân cây
       const trunkGeo = new THREE.CylinderGeometry(0.25, 0.4, 2.2, 5);
       const trunk = new THREE.Mesh(trunkGeo, trunkMat);
       trunk.position.y = 1.1;
@@ -209,7 +309,6 @@ export class World {
       });
 
       if (treeType === 'round') {
-        // Cây tán tròn múp míp (Dodecahedron x 3 khối lồng nhau)
         const mainCanopy = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), folMat);
         mainCanopy.position.y = 2.8;
         mainCanopy.castShadow = true;
@@ -225,7 +324,6 @@ export class World {
         subCanopy2.castShadow = true;
         singleTree.add(subCanopy2);
 
-        // Vài quả táo đỏ nhỏ xinh trên cây
         if (Math.random() > 0.4) {
           const appleMat = new THREE.MeshStandardMaterial({ color: 0xff4d4d, roughness: 0.5, flatShading: true });
           for (let a = 0; a < 3; a++) {
@@ -239,7 +337,6 @@ export class World {
           }
         }
       } else {
-        // Cây thông 3 tầng hình chóp nón
         for (let l = 0; l < 3; l++) {
           const coneGeo = new THREE.ConeGeometry(1.7 - l * 0.35, 1.4, 5);
           const cone = new THREE.Mesh(coneGeo, folMat);
@@ -270,12 +367,10 @@ export class World {
       const flower = new THREE.Group();
       flower.position.set(fX, fY, fZ);
 
-      // Thân hoa
       const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45, 4), stemMat);
       stem.position.y = 0.22;
       flower.add(stem);
 
-      // Cánh hoa
       const col = colors[Math.floor(Math.random() * colors.length)];
       const petalMat = new THREE.MeshStandardMaterial({ color: col, flatShading: true, roughness: 0.7 });
       const petalGeo = new THREE.DodecahedronGeometry(0.16, 0);
@@ -283,7 +378,6 @@ export class World {
       head.position.y = 0.45;
       flower.add(head);
 
-      // Nhụy hoa
       const centerMat = new THREE.MeshStandardMaterial({ color: 0xffea00, flatShading: true });
       const center = new THREE.Mesh(new THREE.DodecahedronGeometry(0.07, 0), centerMat);
       center.position.y = 0.5;
@@ -331,7 +425,6 @@ export class World {
     const fenceGroup = new THREE.Group();
     const woodMat = new THREE.MeshStandardMaterial({ color: 0xbd8b57, flatShading: true });
 
-    // Cụm hàng rào mộc mạc xinh xắn gần trung tâm
     const startX = 6;
     const startZ = 4;
     for (let i = 0; i < 7; i++) {
@@ -339,13 +432,11 @@ export class World {
       const z = startZ + Math.sin(i * 0.4) * 0.5;
       const y = getTerrainHeight(x, z);
 
-      // Cột đứng
       const post = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.9, 0.2), woodMat);
       post.position.set(x, y + 0.45, z);
       post.castShadow = true;
       fenceGroup.add(post);
 
-      // Thanh ngang
       if (i < 6) {
         const nextX = startX + (i + 1) * 1.5;
         const nextZ = startZ + Math.sin((i + 1) * 0.4) * 0.5;
@@ -408,12 +499,10 @@ export class World {
   }
 
   update(delta, time) {
-    // Cập nhật shader gió cho cỏ
     if (this.grassUniforms) {
       this.grassUniforms.uTime.value = time;
     }
 
-    // Mây trôi nhẹ nhàng trên bầu trời
     for (const cloud of this.clouds) {
       cloud.position.x += cloud.userData.speed * delta;
       if (cloud.position.x > 110) {

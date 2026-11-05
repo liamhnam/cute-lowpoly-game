@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Đồng Cỏ Thơ Mộng - Bé Gấu Bắn Quái Vật Khổng Lồ</title>
+  <title>Đồng Cỏ Thơ Mộng - Bé Gấu Kỹ Năng PixelFX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
@@ -136,14 +136,14 @@
 
     .title-card {
       pointer-events: auto;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       padding: 12px 20px;
       border-radius: 20px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
       border: 2px solid rgba(255, 255, 255, 0.95);
-      max-width: 360px;
+      max-width: 370px;
     }
 
     .title-card h1 {
@@ -223,46 +223,144 @@
       border-color: #a3e6aa;
     }
 
+    .skill-bar-container {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      padding: 10px 18px;
+      border-radius: 24px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+      border: 2px solid rgba(255, 255, 255, 0.95);
+      pointer-events: auto;
+      z-index: 65;
+    }
+
+    .skill-slot {
+      position: relative;
+      width: 62px;
+      height: 62px;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08), inset 0 0 0 2px #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .skill-slot:hover {
+      transform: translateY(-4px) scale(1.06);
+      box-shadow: 0 8px 18px rgba(0, 210, 211, 0.3), inset 0 0 0 2px #00d2d3;
+    }
+
+    .skill-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+      z-index: 2;
+    }
+
+    .skill-key {
+      position: absolute;
+      top: 3px;
+      left: 5px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #2d3436;
+      background: rgba(241, 242, 246, 0.9);
+      padding: 1px 5px;
+      border-radius: 6px;
+      z-index: 3;
+      border: 1px solid #dcdde1;
+    }
+
+    .skill-name {
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: #636e72;
+      margin-top: 2px;
+      z-index: 2;
+    }
+
+    .skill-cd-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 0%;
+      background: rgba(45, 52, 54, 0.75);
+      backdrop-filter: blur(2px);
+      transition: height 0.1s linear;
+      z-index: 4;
+    }
+
+    .skill-cd-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      z-index: 5;
+      display: none;
+    }
+
+    .skill-slot.on-cooldown .skill-cd-text {
+      display: block;
+    }
+
     .bottom-bar {
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
       gap: 20px;
+      width: 100%;
     }
 
     .controls-help {
       pointer-events: auto;
       background: rgba(255, 255, 255, 0.88);
       backdrop-filter: blur(10px);
-      padding: 14px 18px;
+      padding: 12px 16px;
       border-radius: 20px;
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.07);
       border: 2px solid rgba(255, 255, 255, 0.9);
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px 16px;
-      font-size: 0.82rem;
+      gap: 6px 14px;
+      font-size: 0.8rem;
       color: #4a5568;
+      max-width: 320px;
     }
 
     .control-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .key-badge {
       background: #ffffff;
       border: 1px solid #cbd5e0;
       box-shadow: 0 2px 4px rgba(0,0,0,0.06), 0 1px 0 #cbd5e0;
-      padding: 3px 8px;
-      border-radius: 8px;
+      padding: 2px 7px;
+      border-radius: 7px;
       font-weight: 700;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #2d3748;
       display: inline-block;
       text-align: center;
-      min-width: 24px;
+      min-width: 22px;
     }
 
     .key-badge.highlight {
@@ -271,25 +369,25 @@
       border-color: #f7d794;
     }
 
-    .key-badge.esc-badge {
-      background: #f1f2f6;
-      color: #2f3542;
-      border-color: #ced6e0;
+    .key-badge.skill-badge {
+      background: #e0f2fe;
+      color: #0369a1;
+      border-color: #bae6fd;
     }
 
     .action-cluster {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       pointer-events: auto;
     }
 
     .circle-btn {
-      width: 72px;
-      height: 72px;
+      width: 66px;
+      height: 66px;
       border-radius: 50%;
       border: 4px solid #ffffff;
       color: white;
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 700;
       display: flex;
       flex-direction: column;
@@ -300,7 +398,7 @@
     }
 
     .circle-btn span {
-      font-size: 0.68rem;
+      font-size: 0.65rem;
       font-weight: 700;
       margin-top: -2px;
       letter-spacing: 0.5px;
@@ -308,12 +406,12 @@
 
     .btn-shoot {
       background: linear-gradient(135deg, #ff4757, #ff6b81);
-      box-shadow: 0 12px 24px rgba(255, 71, 87, 0.38);
+      box-shadow: 0 10px 22px rgba(255, 71, 87, 0.38);
     }
 
     .btn-jump {
       background: linear-gradient(135deg, #ffa502, #eccc68);
-      box-shadow: 0 12px 24px rgba(255, 165, 2, 0.35);
+      box-shadow: 0 10px 22px rgba(255, 165, 2, 0.35);
     }
 
     #toast {
@@ -366,8 +464,8 @@
   <div class="hud-layer">
     <div class="top-bar">
       <div class="title-card">
-        <h1>🐻 Bé Gấu Xạ Thủ <span>🔫</span></h1>
-        <p>Bé gấu được trang bị súng Blaster năng lượng để bảo vệ đồng cỏ trước các Quái vật Khổng lồ!</p>
+        <h1>🐻 Bé Gấu Xạ Thủ <span>⚡ PixelFX</span></h1>
+        <p>Bấm các phím số [1] [2] [3] [4] để thi triển kỹ năng PixelFX hủy diệt quái vật và tàn phá địa hình!</p>
         <div class="status-badges">
           <span class="badge" id="hud-state">Đang nghỉ ngơi (Idle)</span>
           <span class="badge" id="hud-speed">0.0 km/h</span>
@@ -383,7 +481,41 @@
       </div>
     </div>
 
-    <div id="toast">Ngắm bắn hạ các Quái vật Khổng lồ bằng súng Blaster!</div>
+    <div id="toast">Chào mừng bạn! Dùng phím 1, 2, 3, 4 để xả kỹ năng PixelFX!</div>
+
+    <div class="skill-bar-container">
+      <div class="skill-slot" id="skill-slot-1">
+        <span class="skill-key">1</span>
+        <span class="skill-icon">☄️</span>
+        <span class="skill-name">Thiên Thạch</span>
+        <div class="skill-cd-overlay" id="skill-cd-1"></div>
+        <span class="skill-cd-text" id="skill-text-1">1</span>
+      </div>
+
+      <div class="skill-slot" id="skill-slot-2">
+        <span class="skill-key">2</span>
+        <span class="skill-icon">⚡</span>
+        <span class="skill-name">Sấm Sét</span>
+        <div class="skill-cd-overlay" id="skill-cd-2"></div>
+        <span class="skill-cd-text" id="skill-text-2">2</span>
+      </div>
+
+      <div class="skill-slot" id="skill-slot-3">
+        <span class="skill-key">3</span>
+        <span class="skill-icon">❄️</span>
+        <span class="skill-name">Bão Băng</span>
+        <div class="skill-cd-overlay" id="skill-cd-3"></div>
+        <span class="skill-cd-text" id="skill-text-3">3</span>
+      </div>
+
+      <div class="skill-slot" id="skill-slot-4">
+        <span class="skill-key">4</span>
+        <span class="skill-icon">🌍</span>
+        <span class="skill-name">Địa Chấn</span>
+        <div class="skill-cd-overlay" id="skill-cd-4"></div>
+        <span class="skill-cd-text" id="skill-text-4">4</span>
+      </div>
+    </div>
 
     <div class="bottom-bar">
       <div class="controls-help">
@@ -392,16 +524,16 @@
           <span>Di chuyển</span>
         </div>
         <div class="control-item">
-          <span class="key-badge highlight">Di chuột</span>
-          <span><strong>Xoay Camera 360°</strong></span>
-        </div>
-        <div class="control-item">
           <span class="key-badge highlight">Click Chuột</span>
-          <span><strong>Bắn súng Blaster</strong></span>
+          <span>Bắn Blaster</span>
         </div>
         <div class="control-item">
-          <span class="key-badge esc-badge">ESC</span>
-          <span>Hiện lại con trỏ chuột</span>
+          <span class="key-badge skill-badge">1 2 3 4</span>
+          <span><strong>Kỹ năng PixelFX</strong></span>
+        </div>
+        <div class="control-item">
+          <span class="key-badge">ESC</span>
+          <span>Hiện con trỏ chuột</span>
         </div>
         <div class="control-item">
           <span class="key-badge">Space</span>

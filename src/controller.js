@@ -1,11 +1,13 @@
 import * as THREE from 'three';
+import { getTerrainHeight } from './world.js';
 
 export class ThirdPersonController {
-  constructor(camera, character, domElement, onShoot) {
+  constructor(camera, character, domElement, onShoot, onCastSkill) {
     this.camera = camera;
     this.character = character;
     this.domElement = domElement;
     this.onShoot = onShoot;
+    this.onCastSkill = onCastSkill;
 
     // Trạng thái Pointer Lock
     this.isLocked = false;
@@ -34,7 +36,6 @@ export class ThirdPersonController {
     this.currentCameraTarget = new THREE.Vector3();
     this.currentCameraPosition = new THREE.Vector3();
 
-    // Fallback cho touch mobile
     this.isTouchDragging = false;
     this.prevTouchPos = { x: 0, y: 0 };
 
@@ -68,7 +69,6 @@ export class ThirdPersonController {
   }
 
   initListeners() {
-    // 1. Theo dõi trạng thái khóa chuột (Pointer Lock)
     const onPointerLockChange = () => {
       this.isLocked =
         document.pointerLockElement === this.domElement ||
@@ -84,26 +84,23 @@ export class ThirdPersonController {
     document.addEventListener('mozpointerlockchange', onPointerLockChange);
     document.addEventListener('webkitpointerlockchange', onPointerLockChange);
 
-    // Click vào canvas để kích hoạt Pointer Lock hoặc Bắn súng
     this.domElement.addEventListener('click', (e) => {
       if (!this.isLocked) {
         this.requestLock();
       } else {
-        // Đã khóa chuột: Click chuột trái bắn súng
         if (e.button === 0) {
           this.triggerShoot();
         }
       }
     });
 
-    // Mousedown để bắn súng phản hồi tức thì khi đang locked
     this.domElement.addEventListener('mousedown', (e) => {
       if (this.isLocked && e.button === 0) {
         this.triggerShoot();
       }
     });
 
-    // 2. Di chuột tự do xoay camera (khi con trỏ đã khóa)
+    // Di chuột xoay camera khi pointer locked
     window.addEventListener('mousemove', (e) => {
       if (!this.isLocked) return;
 
@@ -117,14 +114,12 @@ export class ThirdPersonController {
       this.pitch = THREE.MathUtils.clamp(this.pitch, this.minPitch, this.maxPitch);
     });
 
-    // Zoom chuột
     this.domElement.addEventListener('wheel', (e) => {
       e.preventDefault();
       this.cameraDistance += e.deltaY * 0.005;
       this.cameraDistance = THREE.MathUtils.clamp(this.cameraDistance, this.minDistance, this.maxDistance);
     }, { passive: false });
 
-    // 3. Phím bấm
     window.addEventListener('keydown', (e) => {
       this.handleKey(e.code, true);
     });
@@ -133,7 +128,7 @@ export class ThirdPersonController {
       this.handleKey(e.code, false);
     });
 
-    // 4. Hỗ trợ Touch trên thiết bị cảm ứng
+    // Touch support
     let touchStartDist = 0;
     this.domElement.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
@@ -177,15 +172,30 @@ export class ThirdPersonController {
   triggerShoot() {
     this.character.triggerShootAnimation();
 
-    // Hướng bắn theo tâm nhìn của Camera
     const shootDir = new THREE.Vector3();
     this.camera.getWorldDirection(shootDir);
 
-    // Điểm xuất phát đạn từ nòng súng
     const muzzlePos = this.character.getMuzzleWorldPosition();
 
     if (this.onShoot) {
       this.onShoot(muzzlePos, shootDir);
+    }
+  }
+
+  // KÍCH HOẠT KỸ NĂNG VÀ TÍNH ĐIỂM RƠI MỤC TIÊU PHÍA TRƯỚC
+  triggerSkill(skillNum) {
+    const forward = new THREE.Vector3(
+      -Math.sin(this.yaw),
+      0,
+      -Math.cos(this.yaw)
+    ).normalize();
+
+    // Điểm ngắm rơi kỹ năng cách nhân vật khoảng 14m phía trước
+    const targetPos = this.character.position.clone().addScaledVector(forward, 14);
+    targetPos.y = getTerrainHeight(targetPos.x, targetPos.z);
+
+    if (this.onCastSkill) {
+      this.onCastSkill(skillNum, targetPos);
     }
   }
 
@@ -225,16 +235,30 @@ export class ThirdPersonController {
         }
         break;
       case 'Escape':
-        // Phím ESC sẽ nhả con trỏ chuột
-        if (isDown) {
-          this.exitLock();
-        }
+        if (isDown) this.exitLock();
+        break;
+
+      // CÁC PHÍM SỐ SỬ DỤNG KỸ NĂNG: [1], [2], [3], [4]
+      case 'Digit1':
+      case 'Numpad1':
+        if (isDown) this.triggerSkill(1);
+        break;
+      case 'Digit2':
+      case 'Numpad2':
+        if (isDown) this.triggerSkill(2);
+        break;
+      case 'Digit3':
+      case 'Numpad3':
+        if (isDown) this.triggerSkill(3);
+        break;
+      case 'Digit4':
+      case 'Numpad4':
+        if (isDown) this.triggerSkill(4);
         break;
     }
   }
 
   update(delta) {
-    // 1. Hướng di chuyển tương đối theo góc nhìn camera
     const moveInput = new THREE.Vector2(0, 0);
     if (this.keys.forward) moveInput.y += 1;
     if (this.keys.backward) moveInput.y -= 1;
@@ -266,7 +290,6 @@ export class ThirdPersonController {
 
     this.character.update(delta, worldMoveVector, this.keys.sprint);
 
-    // 2. Cập nhật vị trí Camera theo nhân vật
     const targetLookAt = this.character.position.clone();
     targetLookAt.y += 1.45;
 
