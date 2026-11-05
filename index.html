@@ -128,7 +128,7 @@
       flex-direction: column;
       justify-content: space-between;
       padding: 16px;
-      z-index: 60;
+      z-index: 1000;
     }
 
     /* THANH TRÊN CÙNG: KHUNG BẢNG TU TIÊN PIXEL */
@@ -331,7 +331,8 @@
         0 0 0 2px #f1c40f,
         0 12px 30px rgba(0, 0, 0, 0.4);
       pointer-events: auto;
-      z-index: 65;
+      z-index: 10005;
+      touch-action: manipulation;
     }
 
     /* Mỗi ô kỹ năng là 1 tấm Đạo Phù Pixel */
@@ -659,34 +660,35 @@
       width: 100vw;
       height: 100vh;
       pointer-events: none;
-      z-index: 70;
+      z-index: 50;
       -webkit-tap-highlight-color: transparent;
     }
 
     /* VÙNG CHẠM CẢM ỨNG (TOUCH ZONES) */
     .mobile-touchzone {
       position: absolute;
-      bottom: 0;
       pointer-events: auto;
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
     }
 
-    /* Vùng nửa trái: Cần gạt di chuyển */
+    /* Vùng góc dưới bên trái: Cần gạt di chuyển (Không lấn vào khu vực Skill Bar) */
     .joystick-touchzone {
+      bottom: 0;
       left: 0;
-      width: 48vw;
-      height: 70vh;
-      z-index: 71;
+      width: 30vw;
+      height: 52vh;
+      z-index: 55;
     }
 
-    /* Vùng nửa phải: Vuốt xoay Camera 3D */
+    /* Vùng góc trên bên phải: Vuốt xoay Camera 3D (Không phủ xuống đáy) */
     .camera-touchzone {
+      top: 0;
       right: 0;
-      width: 52vw;
-      height: 80vh;
-      z-index: 68;
+      width: 48vw;
+      height: 55vh;
+      z-index: 52;
     }
 
     .camera-hint-badge {
@@ -850,7 +852,7 @@
       align-items: center;
       justify-items: center;
       pointer-events: auto;
-      z-index: 75;
+      z-index: 10006;
     }
 
     .m-btn {
@@ -1025,118 +1027,169 @@
 
     /* HIỆU ỨNG CHẠM CẢM ỨNG TRÊN Ô KỸ NĂNG */
     .skill-slot.touch-active {
-      transform: scale(0.92) !important;
-      filter: brightness(1.25) drop-shadow(0 0 10px #f1c40f) !important;
+      transform: scale(0.9) !important;
+      filter: brightness(1.35) drop-shadow(0 0 14px #f1c40f) !important;
     }
 
-    /* KHI CHẾ ĐỘ MOBILE HOẠT ĐỘNG */
-    body.mobile-ui-active .controls-help {
+    /* ========================================================
+       CHẾ ĐỘ MOBILE: ẨN TOÀN BỘ CÁC BẢNG CỒNG KỀNH & RÁC MÀN HÌNH
+       CHỈ GIỮ LẠI THANH KỸ NĂNG & THÔNG SỐ KHÍ HUYẾT/LINH LỰC MINI
+       ======================================================== */
+    body.mobile-ui-active .title-card h1,
+    body.mobile-ui-active .title-card p,
+    body.mobile-ui-active .status-badges,
+    body.mobile-ui-active .controls-help,
+    body.mobile-ui-active #lock-hint,
+    body.mobile-ui-active .bottom-bar,
+    body.mobile-ui-active .crosshair,
+    body.mobile-ui-active #btn-outfit,
+    body.mobile-ui-active #btn-photo {
       display: none !important;
     }
 
-    body.mobile-ui-active .bottom-bar .action-cluster {
+    /* Xóa bỏ hoàn toàn khung viền chữ nhật, đổ bóng của Title Card trên mobile */
+    body.mobile-ui-active .title-card {
+      background: transparent !important;
+      box-shadow: none !important;
+      border: none !important;
+      padding: 0 !important;
+      pointer-events: none !important;
+      max-width: 130px !important;
+    }
+
+    /* Thanh Khí Huyết & Linh Lực mini nổi góc trên trái cực kỳ tinh gọn */
+    body.mobile-ui-active .status-bars-container {
+      margin-top: 0 !important;
+      gap: 3px !important;
+      width: 125px !important;
+      background: rgba(30, 39, 46, 0.75) !important;
+      padding: 4px 6px !important;
+      border-radius: 4px !important;
+      border: 1px solid rgba(241, 196, 15, 0.45) !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+      pointer-events: auto !important;
+    }
+
+    body.mobile-ui-active .pixel-bar-row {
+      gap: 4px !important;
+    }
+
+    body.mobile-ui-active .pixel-bar-label {
+      font-size: 0.44rem !important;
+      width: 46px !important;
+    }
+
+    body.mobile-ui-active .pixel-bar-outer {
+      height: 8px !important;
+      border: 1px solid #1e272e !important;
+    }
+
+    body.mobile-ui-active .pixel-bar-num {
       display: none !important;
     }
 
-    body.mobile-ui-active #lock-hint {
-      display: none !important;
+    /* Thu nhỏ các nút hành động phụ trên đỉnh thành icon nhỏ không vướng tầm nhìn */
+    body.mobile-ui-active .top-actions {
+      gap: 6px !important;
     }
 
-    /* ĐIỀU CHỈNH GIAO DIỆN THEO KÍCH THƯỚC MÀN HÌNH */
-    @media (max-width: 900px) {
-      .title-card {
-        padding: 6px 10px;
-        max-width: 250px;
-      }
-      .title-card h1 {
-        font-size: 0.65rem;
-      }
-      .title-card p {
-        display: none;
-      }
-      .top-actions {
-        flex-wrap: wrap;
-        gap: 4px;
-        justify-content: flex-end;
-      }
-      .action-btn {
-        padding: 4px 8px;
-        font-size: 0.92rem;
-      }
+    body.mobile-ui-active .top-actions .action-btn {
+      padding: 4px 8px !important;
+      font-size: 0.85rem !important;
+      background: rgba(30, 39, 46, 0.8) !important;
+      color: #f1c40f !important;
+      border: 1px solid rgba(241, 196, 15, 0.4) !important;
+      box-shadow: none !important;
+      border-radius: 4px !important;
+    }
+
+    /* ========================================================
+       THANH KỸ NĂNG ĐẠO PHÙ: TÂM ĐIỂM SẮC NÉT & CẢM ỨNG CHÍNH XÁC
+       ======================================================== */
+    body.mobile-ui-active .skill-bar-container {
+      position: absolute !important;
+      bottom: 12px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      display: flex !important;
+      gap: 8px !important;
+      padding: 6px 12px !important;
+      background: rgba(30, 39, 46, 0.94) !important;
+      border: 2px solid #f1c40f !important;
+      border-radius: 8px !important;
+      box-shadow:
+        0 -2px 0 0 #f1c40f,
+        0 4px 20px rgba(0, 0, 0, 0.7),
+        0 0 16px rgba(241, 196, 15, 0.4) !important;
+      z-index: 10005 !important;
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+    }
+
+    body.mobile-ui-active .skill-slot {
+      width: 52px !important;
+      height: 64px !important;
+      padding: 3px 2px !important;
+      border-radius: 4px !important;
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+      cursor: pointer !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+
+    body.mobile-ui-active .skill-slot#skill-slot-5 {
+      width: 58px !important;
+      height: 70px !important;
+      border: 2px solid #f1c40f !important;
+    }
+
+    body.mobile-ui-active .skill-icon {
+      font-size: 1.4rem !important;
+      margin: 2px 0 !important;
+    }
+
+    body.mobile-ui-active .skill-name {
+      font-size: 0.88rem !important;
+      font-weight: 700 !important;
+      line-height: 1 !important;
+    }
+
+    body.mobile-ui-active .skill-talisman-tag {
+      font-size: 0.44rem !important;
+      padding: 1px 3px !important;
+    }
+
+    body.mobile-ui-active .skill-key {
+      display: none !important;
     }
 
     /* MÀN HÌNH NGANG (LANDSCAPE - CHUẨN MOBILE GAMING) */
     @media (orientation: landscape) and (max-height: 600px) {
-      .hud-layer {
-        padding: 8px 12px;
-      }
-      .title-card {
-        padding: 4px 8px;
-        max-width: 220px;
-      }
-      .title-card h1 {
-        font-size: 0.58rem;
-      }
-      .status-bars-container {
-        margin-top: 4px;
-        gap: 3px;
-      }
-      .pixel-bar-row {
-        gap: 4px;
-      }
-      .pixel-bar-label {
-        font-size: 0.44rem;
-        width: 62px;
-      }
-      .pixel-bar-outer {
-        height: 10px;
-      }
-      .pixel-bar-num {
-        font-size: 0.72rem;
-      }
-      .status-badges {
-        margin-top: 4px;
-        gap: 4px;
-      }
-      .badge {
-        font-size: 0.78rem;
-        padding: 1px 4px;
-      }
-      .top-actions .action-btn {
-        padding: 3px 6px;
-        font-size: 0.85rem;
+      body.mobile-ui-active .hud-layer {
+        padding: 8px 12px !important;
       }
 
-      /* Thanh kỹ năng ở trung tâm phía dưới giữa Joystick và Cụm Nút */
-      .skill-bar-container {
-        bottom: 10px;
-        gap: 6px;
-        padding: 4px 8px;
+      body.mobile-ui-active .skill-bar-container {
+        bottom: 10px !important;
+        gap: 6px !important;
+        padding: 4px 8px !important;
       }
-      .skill-slot {
-        width: 48px;
-        height: 58px;
-        padding: 2px 1px;
+      body.mobile-ui-active .skill-slot {
+        width: 48px !important;
+        height: 58px !important;
       }
-      .skill-slot#skill-slot-5 {
-        width: 54px;
-        height: 64px;
+      body.mobile-ui-active .skill-slot#skill-slot-5 {
+        width: 54px !important;
+        height: 64px !important;
       }
-      .skill-icon {
-        font-size: 1.15rem;
-        margin: 1px 0;
+      body.mobile-ui-active .skill-icon {
+        font-size: 1.25rem !important;
       }
-      .skill-name {
-        font-size: 0.82rem;
-      }
-      .skill-key {
-        font-size: 0.42rem;
-      }
-      .skill-talisman-tag {
-        font-size: 0.38rem;
+      body.mobile-ui-active .skill-name {
+        font-size: 0.8rem !important;
       }
 
-      /* Joystick gọn gàng trong landscape */
+      /* Joystick & Cụm nút trong landscape */
       .joystick-base {
         bottom: 35px;
         left: 35px;
@@ -1147,11 +1200,6 @@
         width: 46px;
         height: 46px;
       }
-      .thumb-core {
-        font-size: 1.25rem;
-      }
-
-      /* Cụm nút hành động trong landscape */
       .mobile-action-cluster {
         bottom: 12px;
         right: 14px;
@@ -1161,15 +1209,9 @@
         width: 68px;
         height: 68px;
       }
-      .btn-shoot .m-icon {
-        font-size: 1.7rem;
-      }
       .btn-jump {
         width: 52px;
         height: 52px;
-      }
-      .btn-jump .m-icon {
-        font-size: 1.35rem;
       }
       .btn-sprint {
         width: 45px;
@@ -1183,42 +1225,27 @@
 
     /* MÀN HÌNH DỌC (PORTRAIT) */
     @media (orientation: portrait) and (max-width: 600px) {
-      .hud-layer {
-        padding: 10px;
+      body.mobile-ui-active .hud-layer {
+        padding: 10px !important;
       }
-      .title-card {
-        max-width: 200px;
-        padding: 4px 6px;
+      body.mobile-ui-active .skill-bar-container {
+        bottom: 110px !important;
+        gap: 4px !important;
+        padding: 4px 6px !important;
       }
-      .title-card p {
-        display: none;
+      body.mobile-ui-active .skill-slot {
+        width: 44px !important;
+        height: 54px !important;
       }
-      .top-actions {
-        flex-direction: column;
-        gap: 4px;
+      body.mobile-ui-active .skill-slot#skill-slot-5 {
+        width: 48px !important;
+        height: 58px !important;
       }
-      .top-actions .action-btn {
-        font-size: 0.82rem;
-        padding: 3px 6px;
+      body.mobile-ui-active .skill-icon {
+        font-size: 1.15rem !important;
       }
-      .skill-bar-container {
-        bottom: 115px;
-        gap: 4px;
-        padding: 4px 6px;
-      }
-      .skill-slot {
-        width: 44px;
-        height: 54px;
-      }
-      .skill-slot#skill-slot-5 {
-        width: 48px;
-        height: 58px;
-      }
-      .skill-icon {
-        font-size: 1.05rem;
-      }
-      .skill-name {
-        font-size: 0.74rem;
+      body.mobile-ui-active .skill-name {
+        font-size: 0.74rem !important;
       }
 
       .mobile-action-cluster {

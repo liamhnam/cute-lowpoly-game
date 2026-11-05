@@ -71,7 +71,7 @@ export class MobileControlsManager {
     container.className = 'mobile-controls-root';
 
     container.innerHTML = `
-      <!-- VÙNG CẦN GẠT ẢO BÁT QUÁI (NỬA TRÁI MÀN HÌNH) -->
+      <!-- VÙNG CẦN GẠT ẢO BÁT QUÁI (GÓC DƯỚI BÊN TRÁI, KHÔNG PHỦ KHU VỰC SKILL) -->
       <div id="mobile-joystick-touchzone" class="mobile-touchzone joystick-touchzone">
         <div id="mobile-joystick-base" class="joystick-base">
           <div class="joystick-bagua-ring"></div>
@@ -90,9 +90,8 @@ export class MobileControlsManager {
         </div>
       </div>
 
-      <!-- VÙNG VUỐT XOAY CAMERA 3D (NỬA PHẢI MÀN HÌNH) -->
+      <!-- VÙNG VUỐT XOAY CAMERA 3D (GÓC TRÊN BÊN PHẢI) -->
       <div id="mobile-camera-touchzone" class="mobile-touchzone camera-touchzone">
-        <div class="camera-hint-badge">👆 Vuốt để xoay góc nhìn</div>
       </div>
 
       <!-- CỤM NÚT HÀNH ĐỘNG DI ĐỘNG PHONG CÁCH TIÊN BẢO (GÓC DƯỚI BÊN PHẢI) -->
@@ -127,7 +126,7 @@ export class MobileControlsManager {
       <div id="mobile-orientation-banner" class="mobile-orientation-banner">
         <div class="orientation-content">
           <span class="rotate-icon">🔄</span>
-          <span>Xoay ngang màn hình (Landscape) để góc nhìn tiên giới bao la & dễ thao tác nhất!</span>
+          <span>Xoay ngang màn hình (Landscape) để góc nhìn kinh thành bao la & chơi đã nhất!</span>
           <button id="btn-close-orientation" class="btn-close-banner">✕</button>
         </div>
       </div>
@@ -149,6 +148,16 @@ export class MobileControlsManager {
 
     const onTouchStart = (e) => {
       if (!this.isEnabled) return;
+
+      // Kiểm tra nếu điểm chạm trúng Skill Bar hoặc các nút bấm thì nhường quyền
+      if (e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && (el.closest('.skill-bar-container') || el.closest('.skill-slot') || el.closest('.m-btn') || el.closest('.action-btn'))) {
+          return;
+        }
+      }
+
       e.preventDefault();
       e.stopPropagation();
 
@@ -158,8 +167,6 @@ export class MobileControlsManager {
         this.joystickTouchId = touch.identifier;
         this.joystickActive = true;
 
-        // Vị trí gốc của joystick (tự căn chỉnh theo ngón tay người chơi)
-        const rect = this.joystickZone.getBoundingClientRect();
         const touchX = touch.clientX;
         const touchY = touch.clientY;
 
@@ -197,7 +204,6 @@ export class MobileControlsManager {
           this.joystickThumb.style.transform = `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`;
 
           // Chuẩn hóa vector di chuyển (-1 đến +1)
-          // dy ngược với trục game: dy > 0 (kéo xuống) => lùi (y < 0)
           const normX = thumbX / this.maxJoystickRadius;
           const normY = -thumbY / this.maxJoystickRadius;
 
@@ -246,7 +252,6 @@ export class MobileControlsManager {
     if (this.joystickBase) {
       this.joystickBase.classList.remove('active', 'sprinting');
       this.joystickThumb.style.transform = 'translate(-50%, -50%)';
-      // Trả base về vị trí mặc định
       this.joystickBase.style.left = '';
       this.joystickBase.style.top = '';
     }
@@ -256,16 +261,23 @@ export class MobileControlsManager {
     }
   }
 
-  // Xử lý Vuốt Xoay Camera 3D ở nửa phải màn hình (Dual-touch / Multi-touch)
+  // Xử lý Vuốt Xoay Camera 3D (Dual-touch / Multi-touch)
   bindCameraTouchEvents() {
     if (!this.cameraZone) return;
 
     const onTouchStart = (e) => {
       if (!this.isEnabled) return;
-      e.preventDefault();
 
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
+
+        // Kiểm tra nếu chạm vào thanh kỹ năng hoặc nút bấm thì bỏ qua
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && (el.closest('.skill-bar-container') || el.closest('.skill-slot') || el.closest('.m-btn') || el.closest('.action-btn'))) {
+          continue;
+        }
+
+        e.preventDefault();
 
         if (this.cameraTouchId === null) {
           // Ngón đầu tiên trong vùng camera
@@ -312,7 +324,6 @@ export class MobileControlsManager {
           const deltaX = touch.clientX - this.cameraTouchPrev.x;
           const deltaY = touch.clientY - this.cameraTouchPrev.y;
 
-          // Độ nhạy cảm ứng xoay camera mượt mà
           const sensitivity = 0.0055;
           if (this.controller) {
             this.controller.rotateCamera(-deltaX * sensitivity, deltaY * sensitivity);
@@ -356,12 +367,10 @@ export class MobileControlsManager {
         this.triggerHaptic(18);
         shootBtn.classList.add('pressed');
 
-        // Bắn phát đầu ngay lập tức
         if (this.controller) {
           this.controller.triggerShoot();
         }
 
-        // Bật autofire nếu giữ lâu
         clearInterval(this.shootInterval);
         this.shootInterval = setInterval(() => {
           if (this.controller) {
@@ -455,24 +464,32 @@ export class MobileControlsManager {
     }
   }
 
-  // Tối ưu hóa 5 ô Kỹ Năng Đạo Phù cho cảm ứng không độ trễ
+  // Tối ưu hóa 5 ô Kỹ Năng Đạo Phù cho cảm ứng tuyệt đối chính xác
   bindSkillSlotsTouch() {
     for (let i = 1; i <= 5; i++) {
       const slot = document.getElementById(`skill-slot-${i}`);
       if (slot) {
-        const onSkillTouch = (e) => {
+        let lastCast = 0;
+        const executeSkill = (e) => {
+          const now = Date.now();
+          if (now - lastCast < 200) return; // Tránh double-fire
+          lastCast = now;
+
           e.preventDefault();
           e.stopPropagation();
-          this.triggerHaptic(25);
+
+          this.triggerHaptic(30);
           slot.classList.add('touch-active');
-          setTimeout(() => slot.classList.remove('touch-active'), 200);
+          setTimeout(() => slot.classList.remove('touch-active'), 220);
 
           if (this.controller) {
             this.controller.triggerSkill(i);
           }
         };
 
-        slot.addEventListener('touchstart', onSkillTouch, { passive: false });
+        slot.addEventListener('touchstart', executeSkill, { passive: false });
+        slot.addEventListener('pointerdown', executeSkill, { passive: false });
+        slot.addEventListener('click', executeSkill);
       }
     }
   }
@@ -494,6 +511,10 @@ export class MobileControlsManager {
       const isPortrait = window.innerHeight > window.innerWidth;
       if (this.isEnabled && isPortrait && window.innerWidth < 768) {
         banner.classList.add('visible');
+        clearTimeout(this.bannerTimer);
+        this.bannerTimer = setTimeout(() => {
+          banner.classList.remove('visible');
+        }, 5000);
       } else {
         banner.classList.remove('visible');
       }
@@ -504,7 +525,6 @@ export class MobileControlsManager {
     checkOrientation();
   }
 
-  // Rung haptic feedback chân thực trên điện thoại
   triggerHaptic(ms = 15) {
     if ('vibrate' in navigator) {
       try {

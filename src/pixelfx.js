@@ -369,7 +369,12 @@ export class PixelFXManager {
     });
   }
 
-  // KÍCH HOẠT KỸ NĂNG THEO PHÍM SỐ [1], [2], [3], [4]
+  isSkillOnCooldown(skillIndex) {
+    const s = this.cooldowns[skillIndex];
+    return s && s.current > 0;
+  }
+
+  // KÍCH HOẠT KỸ NĂNG THEO PHÍM SỐ [1], [2], [3], [4], [5]
   castSkill(skillIndex, targetPos, character, monsters) {
     const skill = this.cooldowns[skillIndex];
     if (!skill || skill.current > 0) return false;

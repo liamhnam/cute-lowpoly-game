@@ -153,6 +153,13 @@ class Game {
         this.projectiles.spawnBullet(muzzlePos, shootDir);
       },
       (skillNum, targetPos) => {
+        // Kiểm tra hồi chiêu
+        if (this.pixelFX.isSkillOnCooldown(skillNum)) {
+          const cd = this.pixelFX.cooldowns[skillNum].current.toFixed(1);
+          this.showNotification(`⏳ Đang hồi chiêu (${cd}s)...`);
+          return false;
+        }
+
         // Kiểm tra tiêu hao Linh Lực (Mana)
         const manaCost = { 1: 15, 2: 20, 3: 20, 4: 25, 5: 35 };
         const cost = manaCost[skillNum] || 15;
