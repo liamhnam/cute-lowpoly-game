@@ -56,13 +56,17 @@ export class ProjectileSystem {
 
   // Đòn cận chiến trước mặt: trúng mọi quái trong hình quạt của kiểu đòn styleName.
   // remotePlayers/onHitPlayer chỉ truyền cho đòn của chính mình, để mỗi đòn PvP chỉ được báo một lần.
-  slash(center, direction, monsters, styleName = 'sweep', remotePlayers = [], onHitPlayer = null) {
+  slash(center, direction, monsters, styleName = 'sweep', remotePlayers = [], onHitPlayer = null, sectStats = null, sourceCharacter = null) {
     const style = MELEE_STYLES[styleName];
     const dir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
     const arcCos = Math.cos(style.halfAngle);
 
+    const slashColor = sectStats?.slashColor || style.color;
+    const dmgMult = sectStats?.damageMult || 1.0;
+    const actualDamage = Math.round(style.damage * dmgMult);
+
     const arcMat = this.slashArcMat.clone();
-    arcMat.color.setHex(style.color);
+    arcMat.color.setHex(slashColor);
     const arc = new THREE.Mesh(this.slashGeos[styleName], arcMat);
     arc.position.set(center.x, center.y - 0.3, center.z);
     arc.rotation.y = ProjectileSystem.yawFor(dir);
@@ -85,11 +89,20 @@ export class ProjectileSystem {
         center.y,
         monster.position.z - (dz / Math.max(dist, 0.001)) * Math.min(dist, monster.hitRadius)
       );
-      monster.takeDamage(style.damage, hitPos);
+      monster.takeDamage(actualDamage, hitPos);
       if (style.knockback > 0) monster.knockback(center, style.knockback);
+
+      // Thanh Vân Tiên Tông: 35% tỉ lệ chém băng làm chậm
+      if (sectStats?.slowOnHit && Math.random() < 0.35) {
+        monster.knockback(center, -0.6);
+        if (this.particles) {
+          this.particles.emitElementalParticles(hitPos, 8, [0x00d2d3, 0xffffff], [1, 3], 0.3, 1, 0.4);
+        }
+      }
+
       if (this.particles) {
         this.particles.emitHitSparkles(hitPos, 14);
-        this.particles.emitShockwave(hitPos, style.color, 2.5, 0.25);
+        this.particles.emitShockwave(hitPos, slashColor, 2.5, 0.25);
       }
       hitAny = true;
     }
@@ -103,10 +116,10 @@ export class ProjectileSystem {
       if (dist - PLAYER_HIT_RADIUS > style.range) continue;
       if (dist > PLAYER_HIT_RADIUS && (dx * dir.x + dz * dir.z) / dist < arcCos) continue;
       const hitPos = rp.position.clone().add(new THREE.Vector3(0, 1.0, 0));
-      if (onHitPlayer) onHitPlayer(rp.id, style.damage, hitPos, 'sword');
+      if (onHitPlayer) onHitPlayer(rp.id, actualDamage, hitPos, 'sword');
       if (this.particles) {
         this.particles.emitHitSparkles(hitPos, 14);
-        this.particles.emitShockwave(hitPos, style.color, 2.5, 0.25);
+        this.particles.emitShockwave(hitPos, slashColor, 2.5, 0.25);
       }
       hitAny = true;
     }
@@ -114,48 +127,68 @@ export class ProjectileSystem {
     // Chém vỡ vật thể môi trường phía trước
     if (this.world) {
       const worldHitPos = center.clone().addScaledVector(dir, style.range * 0.6);
-      const hitWorldObj = this.world.checkBulletCollision(worldHitPos, 1.4, style.damage);
+      const hitWorldObj = this.world.checkBulletCollision(worldHitPos, 1.4, actualDamage);
       if (hitWorldObj && hitWorldObj.hit) hitAny = true;
     }
 
-    if (hitAny) sound.playHit();
+    if (hitAny) {
+      sound.playHit();
+      // Hồng Trần Ma Tu: Nội tại chém thường hút máu
+      if (sectStats?.lifesteal > 0 && sourceCharacter) {
+        sourceCharacter.heal(sectStats.lifesteal);
+      }
+      // Bạch Hạc Chân Nhân: Nhát đâm thứ 3 tạo tia sét giật xung kích
+      if (sectStats?.id === 4 && styleName === 'thrust' && this.particles) {
+        this.particles.emitShockwave(center, 0xffffff, 4.0, 0.3);
+      }
+    }
     return hitAny;
   }
 
   // Phóng kiếm khí bay ngang theo hướng direction; power 0..1 là lực tụ.
   // isLocal = kiếm khí của chính mình (chỉ loại này mới báo sát thương PvP)
-  spawnSwordQi(origin, direction, power = 0, isLocal = true) {
+  spawnSwordQi(origin, direction, power = 0, isLocal = true, sectStats = null, sourceCharacter = null) {
     const dir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
     const isFull = power >= 1;
     const size = 1.0 + power * 1.5;
     const life = 0.9 + power * 0.3;
 
-    const qi = new THREE.Mesh(this.qiGeo, isFull ? this.qiFullMat : this.qiMat);
+    const qiColor = sectStats?.slashColor || (isFull ? 0xffd700 : 0x00f2fe);
+    const projSpeed = sectStats?.projectileSpeed || 32;
+
+    const qiMat = this.qiMat.clone();
+    qiMat.color.setHex(qiColor);
+    const qi = new THREE.Mesh(this.qiGeo, qiMat);
     qi.position.copy(origin);
     qi.rotation.y = ProjectileSystem.yawFor(dir);
     qi.scale.setScalar(size);
     this.scene.add(qi);
 
+    const dmgMult = sectStats?.damageMult || 1.0;
+    const damage = Math.round((QI_MIN_DAMAGE + (QI_MAX_DAMAGE - QI_MIN_DAMAGE) * power) * dmgMult);
+
     this.projectiles.push({
       mesh: qi,
       dir,
-      velocity: dir.clone().multiplyScalar(32),
+      velocity: dir.clone().multiplyScalar(projSpeed),
       life,
       maxLife: life,
       size,
       radius: 0.9 * size,
-      damage: Math.round(QI_MIN_DAMAGE + (QI_MAX_DAMAGE - QI_MIN_DAMAGE) * power),
+      damage,
       // Đầy lực: xuyên qua quái, mỗi con chỉ trúng một lần
       pierce: isFull,
       hitMonsters: new Set(),
       hitPlayers: new Set(),
       isLocal,
-      color: isFull ? 0xffd700 : 0x00f2fe,
+      color: qiColor,
       trailTimer: 0,
+      sectStats,
+      sourceCharacter,
     });
 
     if (this.particles) {
-      const colors = isFull ? [0xffd700, 0xffffff] : [0x00f2fe, 0xffffff];
+      const colors = [qiColor, 0xffffff];
       this.particles.emitElementalParticles(origin, 4 + Math.round(power * 10), colors, [1, 3], 0.25, 0, 0.4);
     }
   }
@@ -218,6 +251,9 @@ export class ProjectileSystem {
               this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
             }
             sound.playHit();
+            if (p.sectStats?.lifesteal && p.sourceCharacter) {
+              p.sourceCharacter.heal(p.sectStats.lifesteal);
+            }
             if (!p.pierce) {
               hit = true;
               break;
@@ -238,6 +274,9 @@ export class ProjectileSystem {
               this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
             }
             sound.playHit();
+            if (p.sectStats?.lifesteal && p.sourceCharacter) {
+              p.sourceCharacter.heal(p.sectStats.lifesteal);
+            }
             if (!p.pierce) {
               hit = true;
               break;

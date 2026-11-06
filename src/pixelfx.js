@@ -626,11 +626,12 @@ export class PixelFXManager {
     // Xác định môn phái của nhân vật thi triển (bản thân hoặc người chơi khác)
     const sectIdx = ((character?.outfitIndex !== undefined ? character.outfitIndex : this.currentSectIndex) % SECTS.length + SECTS.length) % SECTS.length;
 
-    // Hồi chiêu chỉ áp cho chiêu của chính mình
+    // Hồi chiêu chỉ áp cho chiêu của chính mình (nhân hệ số hồi chiêu theo môn phái)
     if (character === this.localCharacter) {
       const skill = this.cooldowns[slotNum];
       if (!skill || skill.current > 0) return false;
-      skill.current = skill.max;
+      const cdMult = character?.sectStats?.cdMult || 1.0;
+      skill.current = skill.max * cdMult;
     }
 
     switch (sectIdx) {

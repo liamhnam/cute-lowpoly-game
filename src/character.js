@@ -9,6 +9,89 @@ const SLASH_DURATIONS = [0.24, 0.24, 0.3];
 const SHEATHE_DELAY = 4.0;
 const CHARGE_FULL_COLOR = new THREE.Color(0xffd700);
 
+// Thông số 5 Đại Môn Phái: Điểm mạnh, Điểm yếu & Chỉ số cơ bản
+export const SECT_STATS = [
+  {
+    id: 0,
+    name: 'Thái Thanh Đạo Gia',
+    maxHp: 2400,
+    speed: 4.6,
+    sprintSpeed: 8.2,
+    damageMult: 0.95,
+    defenseMult: 0.88, // Giảm 12% sát thương nhận vào
+    cdMult: 1.0,
+    slashColor: 0xf1c40f,
+    slashSpeedMult: 0.95,
+    lifesteal: 0,
+    dashDist: 1.5,
+    pro: 'Khí huyết 2400 HP, giảm 12% ST nhận vào, tự hồi máu',
+    con: 'Chạy chậm nhất (-18%), không có chiêu lướt',
+  },
+  {
+    id: 1,
+    name: 'Thanh Vân Tiên Tông',
+    maxHp: 1700,
+    speed: 5.6,
+    sprintSpeed: 10.0,
+    damageMult: 1.0,
+    defenseMult: 1.0,
+    cdMult: 1.0,
+    slashColor: 0x00d2d3,
+    slashSpeedMult: 1.0,
+    slowOnHit: true, // Chém thường có khả năng làm chậm
+    dashDist: 1.6,
+    pro: 'Khống chế cứng đóng băng 2.8s, chém băng làm chậm',
+    con: 'Máu mỏng (1700 HP), tốn nhiều linh lực',
+  },
+  {
+    id: 2,
+    name: 'Tử Tiêu Kiếm Tông',
+    maxHp: 1900,
+    speed: 5.5,
+    sprintSpeed: 10.0,
+    damageMult: 1.28, // +28% sát thương chém thường
+    defenseMult: 1.0,
+    cdMult: 0.95,
+    slashColor: 0x8854d0,
+    slashSpeedMult: 1.30, // vung kiếm nhanh hơn 30%
+    dashDist: 2.3, // đâm lướt xa hơn
+    pro: 'Sát thương chém +28%, vung kiếm cực nhanh, bạo kích cao',
+    con: 'Thuần cận chiến, không có chiêu tự hồi máu',
+  },
+  {
+    id: 3,
+    name: 'Hồng Trần Ma Tu',
+    maxHp: 2000,
+    speed: 5.3,
+    sprintSpeed: 9.5,
+    damageMult: 1.05,
+    defenseMult: 1.0,
+    cdMult: 1.22, // Hồi chiêu kỹ năng lâu hơn 22%
+    slashColor: 0xff3838,
+    slashSpeedMult: 1.0,
+    lifesteal: 14, // chém trúng hồi 14 HP
+    dashDist: 1.6,
+    pro: 'Đòn đánh thường hút +14 HP, Hắc Động hút nhóm',
+    con: 'Hồi chiêu kỹ năng lâu nhất game (+22% CD)',
+  },
+  {
+    id: 4,
+    name: 'Bạch Hạc Chân Nhân',
+    maxHp: 1600,
+    speed: 6.6, // chạy nhanh nhất game
+    sprintSpeed: 11.8,
+    damageMult: 1.0,
+    defenseMult: 1.18, // Nhận thêm 18% sát thương khi bị đánh (kính pháo)
+    cdMult: 0.92,
+    slashColor: 0xffffff,
+    slashSpeedMult: 1.15,
+    projectileSpeed: 44, // kiếm khí bay nhanh nhất
+    dashDist: 1.8,
+    pro: 'Tốc chạy nhanh nhất game (+22%), sét giật lan',
+    con: 'Phòng thủ yếu nhất (nhận thêm +18% sát thương khi bị đánh)',
+  },
+];
+
 export class Character {
   constructor(scene, particleSystem) {
     this.scene = scene;
@@ -73,10 +156,11 @@ export class Character {
       { id: 'bach_hac', name: 'Bạch Hạc Chân Nhân (Bạch Hạc Tiên Tông)', sectName: 'Bạch Hạc Chân Nhân', clothes: 0xf5f6fa, hat: 0x00d2d3, icon: '🪶' },
     ];
 
-    // Chỉ số Khí Huyết & Multiplayer PvP (2000 Máu)
+    // Chỉ số Khí Huyết & Môn Phái
     this.name = 'Gấu Hiệp Sĩ';
-    this.hp = 2000;
-    this.maxHp = 2000;
+    this.sectStats = SECT_STATS[0];
+    this.hp = this.sectStats.maxHp;
+    this.maxHp = this.sectStats.maxHp;
     this.isDead = false;
     this.kills = 0;
     this.deaths = 0;
@@ -189,17 +273,48 @@ export class Character {
     this.updateBillboard();
   }
 
-  setOutfit(index) {
-    this.outfitIndex = index % this.outfits.length;
+  applyOutfit(index) {
+    this.outfitIndex = ((index % this.outfits.length) + this.outfits.length) % this.outfits.length;
     const current = this.outfits[this.outfitIndex];
     this.clothesMat.color.setHex(current.clothes);
     this.hatMat.color.setHex(current.hat);
+    this.sectStats = SECT_STATS[this.outfitIndex] || SECT_STATS[0];
+
+    const prevMax = this.maxHp || 2000;
+    const ratio = Math.max(0.1, this.hp / prevMax);
+    this.maxHp = this.sectStats.maxHp;
+    this.hp = Math.min(this.maxHp, Math.round(this.maxHp * ratio));
+    this.updateBillboard();
+
     return current.name;
+  }
+
+  setOutfit(index) {
+    return this.applyOutfit(index);
+  }
+
+  heal(amount) {
+    if (this.isDead || amount <= 0) return;
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+    this.updateBillboard();
+    if (this.particles) {
+      this.particles.emitElementalParticles(
+        this.position.clone().add(new THREE.Vector3(0, 0.8, 0)),
+        6,
+        [0x2ed573, 0x7bed9f, 0xffffff],
+        [1, 3],
+        0.3,
+        1.5,
+        0.4
+      );
+    }
   }
 
   takeDamage(amount, attackerName = null, hitPos = null) {
     if (this.isDead) return;
-    this.hp = Math.max(0, this.hp - amount);
+    const defMult = this.sectStats?.defenseMult || 1.0;
+    const actualDmg = Math.max(1, Math.round(amount * defMult));
+    this.hp = Math.max(0, this.hp - actualDmg);
     this.lastHitTimer = 0;
     this.updateBillboard();
 
@@ -760,11 +875,7 @@ export class Character {
   }
 
   cycleOutfit() {
-    this.outfitIndex = (this.outfitIndex + 1) % this.outfits.length;
-    const current = this.outfits[this.outfitIndex];
-    this.clothesMat.color.setHex(current.clothes);
-    this.hatMat.color.setHex(current.hat);
-    return current.name;
+    return this.applyOutfit(this.outfitIndex + 1);
   }
 
   update(delta, inputVector, isSprinting) {
@@ -789,8 +900,10 @@ export class Character {
     const moveLen = inputVector.length();
     this.isMoving = moveLen > 0.05;
 
-    // Tốc độ di chuyển
-    let targetSpeed = this.isMoving ? (this.isSprinting ? 9.8 : 5.4) : 0;
+    // Tốc độ di chuyển theo Môn Phái
+    const baseWalk = this.sectStats?.speed || 5.4;
+    const baseSprint = this.sectStats?.sprintSpeed || 9.8;
+    let targetSpeed = this.isMoving ? (this.isSprinting ? baseSprint : baseWalk) : 0;
     if (this.speedBoostTimer > 0) {
       this.speedBoostTimer -= delta;
       targetSpeed *= 1.5;

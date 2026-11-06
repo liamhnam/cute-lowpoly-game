@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { World } from './world.js';
-import { Character } from './character.js';
+import { Character, SECT_STATS } from './character.js';
 import { ParticleSystem } from './particles.js';
 import { ThirdPersonController } from './controller.js';
 import { ProjectileSystem } from './projectiles.js';
@@ -169,9 +169,11 @@ class Game {
       this.character,
       this.canvas,
       (origin, attackDir, comboStep) => {
+        const sectStats = this.character.sectStats;
         this.projectiles.slash(
           origin, attackDir, this.monsters, comboStep === 2 ? 'thrust' : 'sweep',
-          this.pixelFX.remotePlayers, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source)
+          this.pixelFX.remotePlayers, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source),
+          sectStats, this.character
         );
         if (this.network.isConnected) {
           this.network.sendShoot(origin, attackDir, { kind: 'slash', step: comboStep });
@@ -216,10 +218,11 @@ class Game {
 
     this.pixelFX.controller = this.controller;
 
-    // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí
+    // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí (màu sắc & lực sát thương theo môn phái)
     this.controller.onChargedRelease = (origin, attackDir, power) => {
       const qiOrigin = origin.clone().addScaledVector(attackDir, 0.6);
-      this.projectiles.spawnSwordQi(qiOrigin, attackDir, power, true);
+      const sectStats = this.character.sectStats;
+      this.projectiles.spawnSwordQi(qiOrigin, attackDir, power, true, sectStats, this.character);
       if (this.network.isConnected) {
         this.network.sendShoot(qiOrigin, attackDir, { kind: 'qi', power });
       }
@@ -353,10 +356,11 @@ class Game {
       if (rp) {
         rp.triggerSlash(Math.atan2(dir.x, dir.z), msg.kind === 'qi' ? 0 : (msg.step || 0));
       }
+      const rpSectStats = rp ? (SECT_STATS[rp.outfitIndex] || null) : null;
       if (msg.kind === 'qi') {
-        this.projectiles.spawnSwordQi(origin, dir, msg.power || 0, false);
+        this.projectiles.spawnSwordQi(origin, dir, msg.power || 0, false, rpSectStats, rp);
       } else {
-        this.projectiles.slash(origin, dir, this.monsters, msg.step === 2 ? 'thrust' : 'sweep');
+        this.projectiles.slash(origin, dir, this.monsters, msg.step === 2 ? 'thrust' : 'sweep', [], null, rpSectStats, rp);
       }
       sound.playSwordSlash();
     });

@@ -1387,7 +1387,7 @@
       flex-direction: column;
       gap: 8px;
       margin-top: 6px;
-      max-height: 240px;
+      max-height: 290px;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -1399,7 +1399,7 @@
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       transition: all 0.15s;
     }
 
@@ -1439,12 +1439,28 @@
 
     .outfit-skill-badge {
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.46rem;
+      font-size: 0.44rem;
       background: rgba(0, 0, 0, 0.45);
       color: #00d2d3;
       padding: 3px 6px;
       border: 1px solid #57606f;
       border-radius: 3px;
+    }
+
+    .outfit-traits {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.95rem;
+      font-family: 'VT323', monospace;
+    }
+
+    .outfit-trait.pro {
+      color: #2ed573;
+    }
+
+    .outfit-trait.con {
+      color: #ff6b81;
     }
 
     .modal-actions {
@@ -1678,7 +1694,7 @@
       </div>
 
       <div class="modal-field">
-        <label>Chọn Môn Phái & Tiên Bào (Mỗi phái có 3 chiêu độc nhất):</label>
+        <label>Chọn Môn Phái & Tiên Bào (Ưu - Nhược & Đòn Đánh Đặc Thù):</label>
         <div class="outfit-selector" id="modal-outfits">
           <div class="outfit-card active" data-index="0">
             <div class="outfit-card-header">
@@ -1689,6 +1705,10 @@
               <span class="outfit-skill-badge">🐉 1. Chân Long</span>
               <span class="outfit-skill-badge">☯ 2. Bát Quái</span>
               <span class="outfit-skill-badge">⚡ 3. Canh Kiếm</span>
+            </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Khí huyết 2400 HP, giảm 12% ST, chém hoàng kim</span>
+              <span class="outfit-trait con">🔴 Nhược: Chạy chậm nhất game (-18%), không có lướt</span>
             </div>
           </div>
           <div class="outfit-card" data-index="1">
@@ -1701,6 +1721,10 @@
               <span class="outfit-skill-badge">💨 2. Ngự Phong</span>
               <span class="outfit-skill-badge">🌧️ 3. Vạn Nhận</span>
             </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Đóng băng 2.8s, chém thường có tỉ lệ làm chậm</span>
+              <span class="outfit-trait con">🔴 Nhược: Máu mỏng (1700 HP), tiêu hao nhiều linh lực</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="2">
             <div class="outfit-card-header">
@@ -1711,6 +1735,10 @@
               <span class="outfit-skill-badge">💨 1. Thuấn Bộ</span>
               <span class="outfit-skill-badge">🌀 2. Hộ Thể</span>
               <span class="outfit-skill-badge">⚔️ 3. Vạn Kiếm</span>
+            </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Sát thương chém +28%, vung kiếm cực nhanh, lướt đâm xa</span>
+              <span class="outfit-trait con">🔴 Nhược: Thuần cận chiến, không có chiêu tự hồi máu</span>
             </div>
           </div>
           <div class="outfit-card" data-index="3">
@@ -1723,6 +1751,10 @@
               <span class="outfit-skill-badge">🕳️ 2. Ma Vực</span>
               <span class="outfit-skill-badge">🌋 3. Ma Bạo</span>
             </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Đòn đánh thường hút +14 HP, Hắc Động hút nhóm</span>
+              <span class="outfit-trait con">🔴 Nhược: Thời gian hồi chiêu lâu nhất game (+22% CD)</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="4">
             <div class="outfit-card-header">
@@ -1733,6 +1765,10 @@
               <span class="outfit-skill-badge">⚡ 1. Huyền Lôi</span>
               <span class="outfit-skill-badge">🕊️ 2. Bạch Hạc</span>
               <span class="outfit-skill-badge">💥 3. Hám Địa</span>
+            </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Chạy nhanh nhất game (+22%), sét giật lan 4 người</span>
+              <span class="outfit-trait con">🔴 Nhược: Nhận thêm +18% sát thương khi bị đánh (kính pháo)</span>
             </div>
           </div>
         </div>
