@@ -5,7 +5,7 @@ import { ParticleSystem } from './particles.js';
 import { ThirdPersonController } from './controller.js';
 import { ProjectileSystem } from './projectiles.js';
 import { Monster } from './monsters.js';
-import { PixelFXManager } from './pixelfx.js';
+import { PixelFXManager, HIDDEN_COMBO_SIGNAL } from './pixelfx.js';
 import { sound } from './audio.js';
 import { MobileControlsManager } from './mobileControls.js';
 import { loadSwordModel } from './sword.js';
@@ -161,6 +161,14 @@ class Game {
     this.pixelFX.remotePlayers = [];
     this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source) => this.handleHitPlayer(targetId, dmg, hitPos, source);
     this.pixelFX.localCharacter = this.character;
+
+    // Combo ẩn 3 → 2 → 1 của Hoàng Bào Đạo Sĩ: báo cho mình và gửi tín hiệu để người khác thấy sấm sét
+    this.pixelFX.onHiddenCombo = (targetPos) => {
+      this.showNotification('⚡⚡⚡ THIÊN LÔI PHẠT THẾ! Sấm sét giáng khắp 60m trong 10 giây!');
+      if (this.network.isConnected) {
+        this.network.sendSkill(HIDDEN_COMBO_SIGNAL, targetPos);
+      }
+    };
     this.character.pixelFX = this.pixelFX;
 
     // Đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh): đòn kiếm khí của đạo ảnh cũng gửi qua mạng để máy khác thấy

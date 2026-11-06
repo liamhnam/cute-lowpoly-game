@@ -329,6 +329,13 @@ class FloatingDamageText {
 // (1.6 = hồi nhanh hơn 60%, tức thời gian hồi chiêu rút ngắn còn ~62.5%)
 const BAGUA_COOLDOWN_RATE = 1.6;
 
+// Combo ẩn của Hoàng Bào Đạo Sĩ: dùng chiêu 3 → 2 → 1 theo đúng thứ tự, mỗi bước cách bước trước tối đa
+// HIDDEN_COMBO_WINDOW giây, thì kích hoạt "Thiên Lôi Phạt Thế": 10s sấm sét cực mạnh giáng khắp 60m.
+// Cố ý không ghi trong giao diện. Chiêu 4 là tín hiệu mạng riêng của đòn này (không phải ô kỹ năng).
+const HIDDEN_COMBO = [3, 2, 1];
+const HIDDEN_COMBO_WINDOW = 8.0;
+export const HIDDEN_COMBO_SIGNAL = 4;
+
 export const SECTS = [
   {
     id: 'dao_gia',
@@ -578,6 +585,9 @@ export class PixelFXManager {
     this.onHitPlayer = null;
     this.localCharacter = null; // nhân vật của chính mình
     this.cloneManager = null;   // quản lý đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh)
+    this.comboSeq = [];         // chuỗi chiêu vừa dùng liên tiếp (combo ẩn của Đạo Gia)
+    this.comboTimer = 0;        // còn bao lâu thì chuỗi bị huỷ
+    this.onHiddenCombo = null;  // (targetPos) => void, báo main.js để thông báo và gửi qua mạng
 
     // Quản lý vùng trận pháp & tương tác chiêu thức
     this.lastBaguaPos = null;
@@ -669,6 +679,12 @@ export class PixelFXManager {
   // KÍCH HOẠT KỸ NĂNG THEO MÔN PHÁI (MỖI PHÁI 3 CHIÊU [1], [2], [3])
   castSkill(skillIndex, targetPos, character, monsters) {
     const slotNum = Number(skillIndex);
+
+    // Tín hiệu đòn ẩn từ người chơi khác: chỉ dựng lại hiệu ứng, máy mình không tính hồi chiêu hay combo
+    if (slotNum === HIDDEN_COMBO_SIGNAL) {
+      if (character && character !== this.localCharacter) this.castHeavenlyThunder(character, monsters);
+      return false;
+    }
     if (![1, 2, 3].includes(slotNum)) return false;
 
     // Xác định môn phái của nhân vật thi triển (bản thân hoặc người chơi khác)
@@ -720,7 +736,154 @@ export class PixelFXManager {
         break;
     }
 
+    // Chỉ chiêu của chính mình mới được tính vào combo ẩn
+    if (character === this.localCharacter) this.trackHiddenCombo(slotNum, sectIdx, targetPos, character, monsters);
+
     return true;
+  }
+
+  // Theo dõi chuỗi chiêu 3 → 2 → 1 của Hoàng Bào Đạo Sĩ. Dùng sai thứ tự, hoặc để quá HIDDEN_COMBO_WINDOW
+  // giây giữa hai bước thì chuỗi bị huỷ (dùng lại chiêu 3 thì bắt đầu chuỗi mới).
+  trackHiddenCombo(slotNum, sectIdx, targetPos, character, monsters) {
+    if (sectIdx !== 0) {
+      this.comboSeq = [];
+      return;
+    }
+    if (slotNum === HIDDEN_COMBO[this.comboSeq.length]) {
+      this.comboSeq.push(slotNum);
+    } else {
+      this.comboSeq = slotNum === HIDDEN_COMBO[0] ? [slotNum] : [];
+    }
+    this.comboTimer = HIDDEN_COMBO_WINDOW;
+
+    if (this.comboSeq.length === HIDDEN_COMBO.length) {
+      this.comboSeq = [];
+      this.comboTimer = 0;
+      this.castHeavenlyThunder(character, monsters);
+      if (this.onHiddenCombo) this.onHiddenCombo(targetPos);
+    }
+  }
+
+  // --- ĐÒN ẨN: THIÊN LÔI PHẠT THẾ ---
+  // 10 giây sấm sét cực mạnh giáng liên tục xuống kẻ địch (quái, người chơi, đạo ảnh) trong 60m quanh người ra chiêu.
+  // Mây giông đen che trời và vòng ranh giới 60m đi theo người ra chiêu. Không phá hoại cảnh vật, chỉ trúng địch.
+  // Chỉ máy của người ra chiêu mới báo sát thương PvP (xem canHitPlayers); máy khác chỉ dựng lại hiệu ứng.
+  castHeavenlyThunder(character, monsters) {
+    const DURATION = 10;
+    const RANGE = 60;
+    const STRIKE_INTERVAL = 0.25;   // 4 tia mỗi giây
+    const DAMAGE = 120;             // mỗi tia: một địch đứng một mình chịu ~480 ST/giây
+    const STRIKE_RADIUS = 4.0;
+    const CLOUD_HEIGHT = 45;
+    const isLocal = character === this.localCharacter;
+
+    sound.playThunder();
+    if (isLocal) {
+      if (this.onScreenFlash) this.onScreenFlash('lightning');
+      if (this.controller) this.controller.addTrauma(0.6);
+    }
+
+    // Mây giông và vòng ranh giới 60m
+    const cloudGeo = new THREE.CircleGeometry(RANGE, 48);
+    cloudGeo.rotateX(-Math.PI / 2);
+    const cloudMat = new THREE.MeshBasicMaterial({ color: 0x241b3f, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+    const cloud = new THREE.Mesh(cloudGeo, cloudMat);
+    this.scene.add(cloud);
+
+    const ringGeo = new THREE.RingGeometry(RANGE - 0.7, RANGE, 96);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({ color: 0xa29bfe, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false });
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    this.scene.add(ring);
+
+    let elapsed = 0;
+    let strikeTimer = 0.3;
+    let tick = 0;
+    let lastSound = 0;
+    let lastFlash = 0;
+
+    // Một tia sét giáng xuống điểm to (vector thế giới)
+    const strike = (to, damaging) => {
+      const from = to.clone().add(new THREE.Vector3((Math.random() - 0.5) * 8, 40, (Math.random() - 0.5) * 8));
+      if (this.cloneManager) this.cloneManager.spawnBolt(from, to, 'storm');
+      if (!damaging) return;
+      const text = `⚡ -${DAMAGE}`;
+      for (const m of monsters || []) {
+        if (m.isDead) continue;
+        if (Math.hypot(m.position.x - to.x, m.position.z - to.z) <= STRIKE_RADIUS + m.hitRadius) {
+          this.damageMonster(m, DAMAGE, text, '#a29bfe', to);
+        }
+      }
+      this.damagePlayersNear(to, STRIKE_RADIUS, DAMAGE, text, '#a29bfe', character);
+    };
+
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        const c = character.position;
+        const fade = Math.max(0, Math.min(1, elapsed / 0.6, (DURATION + 0.4 - elapsed) / 0.8));
+        const flicker = 0.88 + 0.12 * Math.sin(elapsed * 11);
+        cloud.position.set(c.x, c.y + CLOUD_HEIGHT, c.z);
+        cloudMat.opacity = 0.5 * fade * flicker;
+        ring.position.set(c.x, getTerrainHeight(c.x, c.z) + 0.15, c.z);
+        ringMat.opacity = 0.45 * fade * flicker;
+
+        if (elapsed < DURATION && !character.isDead) {
+          strikeTimer -= delta;
+          let burst = 0;
+          while (strikeTimer <= 0 && burst < 3) {
+            strikeTimer += STRIKE_INTERVAL;
+            burst++;
+            tick++;
+
+            // Chọn ngẫu nhiên một kẻ địch còn sống trong 60m
+            const targets = [];
+            const inRange = (p) => Math.hypot(p.x - c.x, p.z - c.z) <= RANGE;
+            for (const m of monsters || []) {
+              if (!m.isDead && inRange(m.position)) targets.push(m.position);
+            }
+            for (const rp of this.remotePlayers || []) {
+              if (!rp.isDead && inRange(rp.position)) targets.push(rp.position);
+            }
+
+            if (targets.length) {
+              const p = targets[Math.floor(Math.random() * targets.length)];
+              strike(new THREE.Vector3(p.x, p.y + 1.0, p.z), true);
+            } else if (tick % 2 === 0) {
+              // Không còn địch: vẫn có sấm rền xuống mặt đất quanh người cho ra dáng bão giông
+              const a = Math.random() * Math.PI * 2;
+              const r = 6 + Math.random() * 22;
+              const x = c.x + Math.cos(a) * r;
+              const z = c.z + Math.sin(a) * r;
+              strike(new THREE.Vector3(x, getTerrainHeight(x, z) + 0.3, z), false);
+            }
+
+            const now = performance.now();
+            const near = isLocal || (this.localCharacter && this.localCharacter.position.distanceTo(c) <= RANGE);
+            if (near && now - lastSound > 350) {
+              lastSound = now;
+              sound.playThunder();
+            }
+            if (isLocal && now - lastFlash > 1100) {
+              lastFlash = now;
+              if (this.onScreenFlash) this.onScreenFlash('lightning');
+            }
+            if (isLocal && this.controller) this.controller.addTrauma(0.06);
+          }
+        }
+
+        if (elapsed >= DURATION + 0.5) {
+          this.scene.remove(cloud);
+          this.scene.remove(ring);
+          cloudGeo.dispose();
+          cloudMat.dispose();
+          ringGeo.dispose();
+          ringMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
   }
 
   // PvP: chỉ máy của người ra chiêu mới báo sát thương lên người chơi khác,
@@ -3183,6 +3346,10 @@ export class PixelFXManager {
   }
 
   update(delta) {
+    if (this.comboTimer > 0) {
+      this.comboTimer -= delta;
+      if (this.comboTimer <= 0) this.comboSeq = [];
+    }
     if (this.baguaTimer > 0) this.baguaTimer -= delta;
     if (this.vortexTimer > 0) this.vortexTimer -= delta;
 

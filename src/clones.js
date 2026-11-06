@@ -15,6 +15,12 @@ const CLONE_RANGE = 60;
 const HIT_RADIUS = 0.85;
 const GOLD = 0xffd54a;
 
+// Bảng màu tia sét: 'gold' của Tử Ảnh, 'storm' của đòn ẩn Thiên Lôi Phạt Thế (tím-lam, trắng chói)
+const BOLT_STYLES = {
+  gold: { strands: [0xfff3b0, 0xffc107, 0xffb300, GOLD], core: 0xffc107, flash: GOLD, spark: [GOLD, 0xfff3b0, 0xffffff] },
+  storm: { strands: [0xffffff, 0xa29bfe, 0x74b9ff, 0x6c5ce7], core: 0x8c7ae6, flash: 0xdfe6ff, spark: [0xa29bfe, 0x74b9ff, 0xffffff] },
+};
+
 // Bạch Ảnh
 const RUN_SPEED = 46;          // m/s, gấp ~5 lần chạy nước rút của nhân vật
 const SLASH_INTERVAL = 0.24;   // giây giữa hai nhát chém
@@ -305,7 +311,8 @@ export class CloneManager {
   }
 
   // Tia sét: 4 sợi giật zigzag (lõi trắng + viền vàng) quanh một lõi sáng, quầng sáng chói ở điểm đánh
-  spawnBolt(from, to) {
+  spawnBolt(from, to, style = 'gold') {
+    const palette = BOLT_STYLES[style] || BOLT_STYLES.gold;
     const span = new THREE.Vector3().subVectors(to, from);
     const length = span.length();
     if (length < 0.1) return;
@@ -323,7 +330,7 @@ export class CloneManager {
     const additive = { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false };
 
     // Lõi mảnh vàng nhạt, ba sợi viền vàng đậm: không dùng trắng tinh để sét giữ sắc vàng trên nền sáng
-    [0xfff3b0, 0xffc107, 0xffb300, GOLD].forEach((color, k) => {
+    palette.strands.forEach((color, k) => {
       const amp = k === 0 ? 0.35 : 0.8 + k * 0.3;
       const pts = [];
       for (let s = 0; s <= BOLT_SEGMENTS; s++) {
@@ -343,7 +350,7 @@ export class CloneManager {
     });
 
     const coreGeo = new THREE.CylinderGeometry(0.16, 0.16, length, 6, 1, true);
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffc107, opacity: 0.85, side: THREE.DoubleSide, ...solid });
+    const coreMat = new THREE.MeshBasicMaterial({ color: palette.core, opacity: 0.85, side: THREE.DoubleSide, ...solid });
     const core = new THREE.Mesh(coreGeo, coreMat);
     core.position.copy(from).lerp(to, 0.5);
     core.quaternion.setFromUnitVectors(UP, dir);
@@ -352,7 +359,7 @@ export class CloneManager {
     mats.push([coreMat, 0.85]);
 
     const flashGeo = new THREE.SphereGeometry(1, 10, 10);
-    const flashMat = new THREE.MeshBasicMaterial({ color: 0xffd54a, opacity: 0.8, ...additive });
+    const flashMat = new THREE.MeshBasicMaterial({ color: palette.flash, opacity: 0.8, ...additive });
     const flash = new THREE.Mesh(flashGeo, flashMat);
     flash.position.copy(to);
     group.add(flash);
@@ -364,8 +371,8 @@ export class CloneManager {
 
     if (this.particles) {
       this.particles.emitHitSparkles(to, 10);
-      this.particles.emitShockwave(to, GOLD, BOLT_RADIUS * 1.6, 0.3);
-      this.particles.emitElementalParticles(to, 12, [GOLD, 0xfff3b0, 0xffffff], [3, 8], 0.4, 2.0, 0.5);
+      this.particles.emitShockwave(to, palette.flash, BOLT_RADIUS * 1.6, 0.3);
+      this.particles.emitElementalParticles(to, 12, palette.spark, [3, 8], 0.4, 2.0, 0.5);
     }
     const now = performance.now();
     if (now - this.lastBoltSound > 120) {
