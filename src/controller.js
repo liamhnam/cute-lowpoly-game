@@ -4,6 +4,8 @@ import { getTerrainHeight } from './world.js';
 // Giữ nút tấn công quá CHARGE_START giây thì bắt đầu tụ lực, đầy lực ở CHARGE_FULL giây
 const CHARGE_START = 0.25;
 const CHARGE_FULL = 1.2;
+// Nhấp tiếp trong khoảng này thì nối sang nhát combo kế tiếp
+const COMBO_WINDOW = 0.7;
 
 export class ThirdPersonController {
   constructor(camera, character, domElement, onShoot, onCastSkill) {
@@ -29,8 +31,10 @@ export class ThirdPersonController {
     // Rung lắc Camera mượt mà (Screen Trauma / Shake)
     this.trauma = 0;
 
-    // Hồi chiêu giữa hai đòn chém thường
+    // Hồi chiêu giữa hai đòn chém thường và combo 3 nhát
     this.attackCooldown = 0;
+    this.comboStep = 0;
+    this.comboTimer = 0;
 
     // Giữ nút tấn công để tụ lực kiếm khí
     this.isAttackHeld = false;
@@ -236,17 +240,22 @@ export class ThirdPersonController {
     return origin;
   }
 
-  // Đòn đánh thường: chém kiếm cận chiến theo hướng camera
+  // Đòn đánh thường: combo 3 nhát chém kiếm theo hướng camera
   triggerShoot() {
     if (this.attackCooldown > 0) return;
-    this.attackCooldown = 0.32;
+
+    const step = this.comboTimer > 0 ? (this.comboStep + 1) % 3 : 0;
+    this.comboStep = step;
+    this.comboTimer = COMBO_WINDOW;
+    this.attackCooldown = step === 2 ? 0.5 : 0.26;
 
     const forward = this.getAttackForward();
-    this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z));
-    this.addTrauma(0.08); // Rung nhẹ tạo cảm giác đầm tay
+    this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z), step);
+    if (step === 2) this.character.startDash(forward, 1.6, 0.15); // Nhát đâm lướt tới
+    this.addTrauma(step === 2 ? 0.16 : 0.08); // Rung nhẹ tạo cảm giác đầm tay
 
     if (this.onShoot) {
-      this.onShoot(this.getAttackOrigin(), forward);
+      this.onShoot(this.getAttackOrigin(), forward, step);
     }
   }
 
@@ -271,6 +280,7 @@ export class ThirdPersonController {
     const power = THREE.MathUtils.clamp((holdTime - CHARGE_START) / (CHARGE_FULL - CHARGE_START), 0, 1);
     const forward = this.getAttackForward();
     this.attackCooldown = 0.32;
+    this.comboTimer = 0;
     this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z));
     this.addTrauma(0.12 + power * 0.25);
 
@@ -301,7 +311,7 @@ export class ThirdPersonController {
       const castSuccess = this.onCastSkill(skillNum, targetPos);
       if (castSuccess) {
         this.character.triggerSkillCast(skillNum);
-        this.addTrauma(skillNum === 5 ? 0.35 : (skillNum === 4 ? 0.25 : 0.12));
+        this.addTrauma(skillNum >= 5 ? 0.35 : (skillNum === 4 ? 0.25 : 0.12));
       }
     }
   }
@@ -368,11 +378,18 @@ export class ThirdPersonController {
       case 'KeyE':
         if (isDown) this.triggerSkill(5);
         break;
+      // Đại Canh Kiếm Trận (cần đầy Kiếm Nộ)
+      case 'Digit6':
+      case 'Numpad6':
+      case 'KeyR':
+        if (isDown) this.triggerSkill(6);
+        break;
     }
   }
 
   update(delta) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
+    if (this.comboTimer > 0) this.comboTimer -= delta;
 
     if (this.isAttackHeld) {
       this.attackHoldTime += delta;

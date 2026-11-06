@@ -8,6 +8,7 @@ import { Monster } from './monsters.js';
 import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
 import { MobileControlsManager } from './mobileControls.js';
+import { loadSwordModel } from './sword.js';
 
 class Game {
   constructor() {
@@ -21,6 +22,9 @@ class Game {
     this.playerMaxHp = 100;
     this.playerMp = 100;
     this.playerMaxMp = 100;
+    // Kiếm Nộ: tích theo đòn đánh thường / kiếm khí trúng quái, đầy mới dùng được Đại Canh Kiếm Trận
+    this.playerRage = 0;
+    this.playerMaxRage = 100;
     this.currentRealm = '🌟 Luyện Khí Tầng 1';
 
     this.initScene();
@@ -106,6 +110,7 @@ class Game {
 
     // 3. Nhân vật Bé Gấu Tu Tiên mang hồ lô và pháp bảo
     this.character = new Character(this.scene, this.particles);
+    loadSwordModel(); // Nạp tiên kiếm GLB nếu có, kiếm trên tay & kiếm chiêu tự đổi theo
 
     // 4. Hệ thống chém kiếm & kiếm khí có vệt sáng & tương tác vật thể
     this.projectiles = new ProjectileSystem(this.scene, this.particles, this.world);
@@ -149,8 +154,8 @@ class Game {
       this.camera,
       this.character,
       this.canvas,
-      (origin, attackDir) => {
-        this.projectiles.slash(origin, attackDir, this.monsters);
+      (origin, attackDir, comboStep) => {
+        this.projectiles.slash(origin, attackDir, this.monsters, comboStep === 2 ? 'thrust' : 'sweep');
       },
       (skillNum, targetPos) => {
         // Kiểm tra hồi chiêu
@@ -160,8 +165,22 @@ class Game {
           return false;
         }
 
+        // Đại Canh Kiếm Trận: không tốn Linh Lực mà xả toàn bộ Kiếm Nộ
+        if (skillNum === 6) {
+          if (this.playerRage < this.playerMaxRage) {
+            this.showNotification(`⚡ Kiếm Nộ chưa đầy (${Math.floor(this.playerRage)}/${this.playerMaxRage})! Chém trúng yêu ma để tích nộ...`);
+            return false;
+          }
+          const success = this.pixelFX.castSkill(6, targetPos, this.character, this.monsters);
+          if (success) {
+            this.playerRage = 0;
+            this.showNotification('⚡ ĐẠI CANH KIẾM TRẬN! Mười hai lôi kiếm tru diệt yêu ma!');
+          }
+          return success;
+        }
+
         // Kiểm tra tiêu hao Linh Lực (Mana)
-        const manaCost = { 1: 15, 2: 20, 3: 20, 4: 25, 5: 35 };
+        const manaCost = { 1: 15, 2: 20, 3: 25, 4: 25, 5: 35 };
         const cost = manaCost[skillNum] || 15;
 
         if (this.playerMp < cost) {
@@ -174,10 +193,10 @@ class Game {
           this.playerMp -= cost;
 
           const names = {
-            1: 'Xích Viêm Thiên Hỏa ☄️',
-            2: 'Cửu Thiên Huyền Lôi ⚡',
-            3: 'Huyền Băng Tuyệt Vực ❄️',
-            4: 'Hám Địa Thần Thông 🌍',
+            1: 'Phi Kiếm Thuật 🗡️',
+            2: 'Thuấn Bộ Trảm 💨',
+            3: 'Kiếm Trận Hộ Thể 🌀',
+            4: 'Thiên Kiếm Lạc 🌧️',
             5: 'Vạn Kiếm Quy Tông ⚔️'
           };
           this.showNotification(`Thi triển [${names[skillNum]}]! (-${cost} Linh Lực)`);
@@ -187,6 +206,16 @@ class Game {
     );
 
     this.pixelFX.controller = this.controller;
+
+    // Tích Kiếm Nộ khi đánh thường / kiếm khí trúng quái
+    const rageGain = { sweep: 8, thrust: 12, qi: 10 };
+    this.projectiles.onMonsterHit = (source) => {
+      const wasFull = this.playerRage >= this.playerMaxRage;
+      this.playerRage = Math.min(this.playerMaxRage, this.playerRage + (rageGain[source] || 0));
+      if (!wasFull && this.playerRage >= this.playerMaxRage) {
+        this.showNotification('⚡ Kiếm Nộ đã đầy! Bấm [R] khai mở Đại Canh Kiếm Trận!');
+      }
+    };
 
     // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí
     this.controller.onChargedRelease = (origin, attackDir, power) => {
@@ -344,7 +373,7 @@ class Game {
     }
 
     // Gắn sự kiện click cho các ô kỹ năng trên HUD
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 6; i++) {
       const slot = document.getElementById(`skill-slot-${i}`);
       if (slot) {
         slot.addEventListener('click', (e) => {
@@ -397,6 +426,10 @@ class Game {
     this.textHp = document.getElementById('text-hp');
     this.barMp = document.getElementById('bar-mp');
     this.textMp = document.getElementById('text-mp');
+    this.barRage = document.getElementById('bar-rage');
+    this.textRage = document.getElementById('text-rage');
+    this.rageSlot = document.getElementById('skill-slot-6');
+    this.rageOverlay = document.getElementById('skill-rage-6');
   }
 
   showNotification(msg) {
@@ -449,6 +482,15 @@ class Game {
       this.barMp.style.width = `${mpRatio * 100}%`;
       this.textMp.textContent = `${Math.round(this.playerMp)}/${this.playerMaxMp}`;
     }
+    if (this.barRage && this.textRage) {
+      const rageRatio = this.playerRage / this.playerMaxRage;
+      const isFull = rageRatio >= 1;
+      this.barRage.style.width = `${rageRatio * 100}%`;
+      this.barRage.classList.toggle('full', isFull);
+      this.textRage.textContent = `${Math.round(this.playerRage)}/${this.playerMaxRage}`;
+      if (this.rageOverlay) this.rageOverlay.style.height = `${(1 - rageRatio) * 100}%`;
+      if (this.rageSlot) this.rageSlot.classList.toggle('rage-ready', isFull);
+    }
 
     // 1. Cập nhật nhân vật & điều khiển
     this.controller.update(delta);
@@ -494,11 +536,12 @@ class Game {
         state = 'Đạp Vân Phi Hành 🦘';
       } else if (this.character.isCasting) {
         const skillNames = {
-          1: 'Xích Viêm 🔥',
-          2: 'Huyền Lôi ⚡',
-          3: 'Huyền Băng ❄️',
-          4: 'Hám Địa 🌍',
-          5: 'Vạn Kiếm ⚔️'
+          1: 'Phi Kiếm 🗡️',
+          2: 'Thuấn Bộ 💨',
+          3: 'Kiếm Trận 🌀',
+          4: 'Thiên Kiếm 🌧️',
+          5: 'Vạn Kiếm ⚔️',
+          6: 'Đại Canh Kiếm Trận ⚡'
         };
         state = `Thi triển ${skillNames[this.character.castSkill] || 'Thần Thông'} ✨`;
       } else if (this.character.isMoving) {

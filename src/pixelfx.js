@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { sound } from './audio.js';
 import { getTerrainHeight } from './world.js';
+import { createSword } from './sword.js';
 
 // --- PIXEL ART PROCEDURAL TEXTURE GENERATOR (Theo cảm hứng từ patch-gg/pixelfx) ---
 // Vẽ các frame hiệu ứng pixel art trực tiếp lên canvas 2D nhỏ (nearest-neighbor)
@@ -22,163 +23,6 @@ class PixelCanvasEffect {
 
   clear() {
     this.ctx.clearRect(0, 0, this.size, this.size);
-  }
-
-  // Vẽ vụ nổ pixel fireball (Meteor explosion)
-  drawFireExplosion(progress) {
-    this.clear();
-    const ctx = this.ctx;
-    const center = this.size / 2;
-    const maxR = (this.size / 2) - 4;
-    const currentR = Math.sin(progress * Math.PI) * maxR;
-
-    if (progress < 0.88) {
-      // 1. Viền ngoài khói đen xám dithered
-      ctx.fillStyle = progress > 0.5 ? '#2f3542' : '#ff4757';
-      ctx.beginPath();
-      ctx.arc(center, center, currentR, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 2. Lõi cam rực lửa
-      ctx.fillStyle = '#ffa502';
-      ctx.beginPath();
-      ctx.arc(center, center, currentR * 0.75, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 3. Tâm trắng sáng chói
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(center, center, currentR * 0.48, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 4. Các hạt tàn lửa bay bung ra dạng pixel vuông
-      const sparkCount = 16;
-      for (let i = 0; i < sparkCount; i++) {
-        const angle = (i / sparkCount) * Math.PI * 2 + progress * 2.5;
-        const dist = currentR * (0.8 + (i % 3) * 0.3);
-        const px = Math.floor(center + Math.cos(angle) * dist);
-        const py = Math.floor(center + Math.sin(angle) * dist);
-        ctx.fillStyle = i % 2 === 0 ? '#ffda79' : '#ff5252';
-        ctx.fillRect(px - 1, py - 1, 3, 3);
-      }
-    }
-    this.texture.needsUpdate = true;
-  }
-
-  // Vẽ luồng sấm sét phân nhánh pixel (Lightning Strike)
-  drawLightning(progress) {
-    this.clear();
-    const ctx = this.ctx;
-    const w = this.size;
-    const h = this.size;
-
-    if (progress < 0.85) {
-      const ringR = progress * (w / 2 - 4);
-      ctx.strokeStyle = '#70a1ff';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(w / 2, h / 2, ringR, 0, Math.PI * 2);
-      ctx.stroke();
-
-      const branches = 8;
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-
-      for (let b = 0; b < branches; b++) {
-        let curX = w / 2;
-        let curY = h / 2;
-        const baseAngle = (b / branches) * Math.PI * 2;
-        const segs = 5;
-        const segLen = ringR / segs;
-
-        ctx.beginPath();
-        ctx.moveTo(curX, curY);
-
-        for (let s = 0; s < segs; s++) {
-          const jitter = (Math.random() - 0.5) * 8;
-          curX += Math.cos(baseAngle) * segLen + jitter;
-          curY += Math.sin(baseAngle) * segLen + jitter;
-          ctx.lineTo(Math.floor(curX), Math.floor(curY));
-        }
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = '#00d2d3';
-      ctx.fillRect(w / 2 - 4, h / 2 - 4, 8, 8);
-    }
-    this.texture.needsUpdate = true;
-  }
-
-  // Vẽ sóng băng tuyết mở rộng (Frost Nova)
-  drawFrostNova(progress) {
-    this.clear();
-    const ctx = this.ctx;
-    const w = this.size;
-    const h = this.size;
-    const maxR = w / 2 - 2;
-    const currentR = progress * maxR;
-
-    if (progress < 0.92) {
-      ctx.strokeStyle = '#7ed6df';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(w / 2, h / 2, currentR, 0, Math.PI * 2);
-      ctx.stroke();
-
-      const petals = 8;
-      for (let i = 0; i < petals; i++) {
-        const ang = (i / petals) * Math.PI * 2;
-        const x1 = w / 2 + Math.cos(ang) * currentR;
-        const y1 = h / 2 + Math.sin(ang) * currentR;
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(Math.floor(x1) - 2, Math.floor(y1) - 2, 5, 5);
-
-        const x2 = w / 2 + Math.cos(ang + 0.25) * (currentR * 0.72);
-        const y2 = h / 2 + Math.sin(ang + 0.25) * (currentR * 0.72);
-        ctx.fillStyle = '#22a6b3';
-        ctx.fillRect(Math.floor(x2) - 1, Math.floor(y2) - 1, 3, 3);
-      }
-    }
-    this.texture.needsUpdate = true;
-  }
-
-  // Vẽ sóng chấn động địa chấn nứt đất (Earth Stomp)
-  drawEarthquake(progress) {
-    this.clear();
-    const ctx = this.ctx;
-    const w = this.size;
-    const h = this.size;
-    const maxR = w / 2 - 4;
-
-    if (progress < 0.88) {
-      for (let ring = 0; ring < 3; ring++) {
-        const r = Math.max(0, (progress - ring * 0.14) * maxR);
-        if (r > 0) {
-          ctx.strokeStyle = ring === 0 ? '#4b382a' : '#785336';
-          ctx.lineWidth = 3 - ring;
-          ctx.beginPath();
-          ctx.arc(w / 2, h / 2, r, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-      }
-
-      const cracks = 8;
-      ctx.strokeStyle = '#2d2013';
-      ctx.lineWidth = 2;
-      for (let c = 0; c < cracks; c++) {
-        const angle = (c / cracks) * Math.PI * 2 + 0.3;
-        const len = progress * maxR * 0.95;
-        ctx.beginPath();
-        ctx.moveTo(w / 2, h / 2);
-        ctx.lineTo(
-          Math.floor(w / 2 + Math.cos(angle) * len),
-          Math.floor(h / 2 + Math.sin(angle) * len)
-        );
-        ctx.stroke();
-      }
-    }
-    this.texture.needsUpdate = true;
   }
 
   // Vẽ kiếm trận hoàng kim Pixel Art (Wan Jian Gui Zong Decal)
@@ -303,13 +147,15 @@ export class PixelFXManager {
     this.activeEffects = [];
     this.damageTexts = new FloatingDamageText(scene);
 
-    // Thời gian hồi chiêu của 5 kỹ năng (giây)
+    // Thời gian hồi chiêu của 5 kiếm chiêu (giây)
     this.cooldowns = {
-      1: { current: 0, max: 4.0, name: 'Thiên Thạch Lửa', icon: '☄️' },
-      2: { current: 0, max: 3.0, name: 'Sấm Sét Giáng Trần', icon: '⚡' },
-      3: { current: 0, max: 5.0, name: 'Bão Băng Địa Cực', icon: '❄️' },
-      4: { current: 0, max: 6.0, name: 'Địa Chấn Long Trời', icon: '🌍' },
+      1: { current: 0, max: 4.0, name: 'Phi Kiếm Thuật', icon: '🗡️' },
+      2: { current: 0, max: 5.0, name: 'Thuấn Bộ Trảm', icon: '💨' },
+      3: { current: 0, max: 10.0, name: 'Kiếm Trận Hộ Thể', icon: '🌀' },
+      4: { current: 0, max: 7.0, name: 'Thiên Kiếm Lạc', icon: '🌧️' },
       5: { current: 0, max: 9.0, name: 'Vạn Kiếm Quy Tông', icon: '⚔️' },
+      // Tuyệt kỹ Kiếm Nộ: hồi chiêu bằng thời gian kiếm trận còn hoạt động
+      6: { current: 0, max: 10.0, name: 'Đại Canh Kiếm Trận', icon: '⚡' },
     };
 
     this.onCooldownUpdate = null;
@@ -384,419 +230,196 @@ export class PixelFXManager {
 
     switch (skillIndex) {
       case 1:
-        this.castMeteorStrike(targetPos, monsters);
+        this.castFlyingSword(targetPos, character, monsters);
         break;
       case 2:
-        this.castThunderStrike(targetPos, monsters);
+        this.castBlinkSlash(targetPos, character, monsters);
         break;
       case 3:
-        this.castFrostNova(targetPos, monsters);
+        this.castSwordBarrier(character, monsters);
         break;
       case 4:
-        this.castEarthquake(targetPos, monsters);
+        this.castSwordRain(targetPos, monsters);
         break;
       case 5:
         this.castWanJianGuiZong(targetPos, monsters);
+        break;
+      case 6:
+        this.castDaiCanhSwordArray(character, monsters);
         break;
     }
 
     return true;
   }
 
-  // --- KỸ NĂNG 1: THIÊN THẠCH HỎA NGỤC (METEOR STRIKE) ---
-  castMeteorStrike(targetPos, monsters) {
-    const impactX = targetPos.x;
-    const impactZ = targetPos.z;
-    const impactY = getTerrainHeight(impactX, impactZ);
-    const fallDuration = 0.58;
-
-    // 1. Chỉ điểm vòng ma pháp lửa trên mặt đất
-    this.spawnTelegraph(new THREE.Vector3(impactX, impactY, impactZ), 0xff4757, fallDuration, 7.5);
-
-    const startY = impactY + 38;
-    const startX = impactX - 24;
-    const startZ = impactZ - 24;
-
-    // 2. Khối thiên thạch 3 tầng lõi phát sáng rực rỡ
-    const meteorGroup = new THREE.Group();
-    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const core = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8, 0), coreMat);
-    meteorGroup.add(core);
-
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff4757, transparent: true, opacity: 0.9 });
-    const flame = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5, 1), flameMat);
-    meteorGroup.add(flame);
-
-    const outerMat = new THREE.MeshBasicMaterial({ color: 0xffa502, transparent: true, opacity: 0.75 });
-    const outer = new THREE.Mesh(new THREE.DodecahedronGeometry(2.1, 1), outerMat);
-    meteorGroup.add(outer);
-
-    // Điểm sáng động chiếu rọi địa hình khi thiên thạch bay tới
-    const meteorLight = new THREE.PointLight(0xff6b4a, 4.0, 32);
-    meteorGroup.add(meteorLight);
-
-    meteorGroup.position.set(startX, startY, startZ);
-    this.scene.add(meteorGroup);
-
-    let progress = 0;
-    let trailTimer = 0;
-
-    const fx = {
-      update: (delta) => {
-        progress += delta / fallDuration;
-        trailTimer += delta;
-
-        if (progress < 1.0) {
-          meteorGroup.position.x = THREE.MathUtils.lerp(startX, impactX, progress);
-          meteorGroup.position.y = THREE.MathUtils.lerp(startY, impactY, progress);
-          meteorGroup.position.z = THREE.MathUtils.lerp(startZ, impactZ, progress);
-          meteorGroup.rotation.x += 14 * delta;
-          meteorGroup.rotation.y += 14 * delta;
-
-          // Hạt đuôi lửa cuồn cuộn
-          if (trailTimer > 0.03) {
-            trailTimer = 0;
-            this.particles.emitElementalParticles(
-              meteorGroup.position,
-              4,
-              [0xff4757, 0xffa502, 0xffd32a],
-              [2, 6],
-              0.4,
-              0,
-              0.8
-            );
-          }
-          return true;
-        }
-
-        // --- CHẠM ĐẤT: NỔ TUNG SIÊU HOÀNG TRÁNG! ---
-        this.scene.remove(meteorGroup);
-        sound.playMeteorExplosion();
-
-        if (this.controller) {
-          this.controller.addTrauma(0.85); // Rung giật màn hình cực mạnh
-        }
-        if (this.onScreenFlash) {
-          this.onScreenFlash('fire');
-        }
-
-        // 1. Tàn phá địa hình (Lõm sâu 2.0m, cháy than dung nham)
-        this.world.deformTerrain(impactX, impactZ, 10.5, 2.0, 'fire');
-
-        // 2. Sóng xung kích đôi (Shockwaves)
-        const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
-        this.particles.emitShockwave(hitPos, 0xff4757, 18, 0.65);
-        this.particles.emitShockwave(hitPos, 0xffa502, 12, 0.45);
-
-        // 3. Quả cầu lửa nổ bung phồng to rồi tan biến (Blast Fireball Dome)
-        const blastGeo = new THREE.SphereGeometry(1.0, 12, 12);
-        const blastMat = new THREE.MeshBasicMaterial({
-          color: 0xffa502,
-          transparent: true,
-          opacity: 0.9,
-          depthWrite: false,
-        });
-        const blastMesh = new THREE.Mesh(blastGeo, blastMat);
-        blastMesh.position.copy(hitPos);
-        blastMesh.position.y += 1.2;
-        this.scene.add(blastMesh);
-
-        let blastLife = 0.38;
-        this.activeEffects.push({
-          update: (dt) => {
-            blastLife -= dt;
-            if (blastLife <= 0) {
-              this.scene.remove(blastMesh);
-              return false;
-            }
-            const prog = 1.0 - blastLife / 0.38;
-            const sc = THREE.MathUtils.lerp(1.5, 8.5, Math.pow(prog, 0.5));
-            blastMesh.scale.set(sc, sc * 1.3, sc);
-            blastMat.opacity = (1.0 - prog) * 0.9;
-            return true;
-          }
-        });
-
-        // 4. Các mảnh đá magma bốc cháy văng tứ phía
-        const magmaRocks = [];
-        const rockGeo = new THREE.DodecahedronGeometry(0.5, 0);
-        const rockMat = new THREE.MeshStandardMaterial({
-          color: 0x3d1c06,
-          emissive: 0xff4757,
-          roughness: 0.6,
-          flatShading: true,
-        });
-
-        for (let i = 0; i < 18; i++) {
-          const rMesh = new THREE.Mesh(rockGeo, rockMat);
-          rMesh.position.copy(hitPos);
-          rMesh.position.y += 0.8;
-          rMesh.scale.setScalar(0.6 + Math.random() * 0.7);
-          this.scene.add(rMesh);
-
-          const ang = Math.random() * Math.PI * 2;
-          const spd = 7 + Math.random() * 11;
-          magmaRocks.push({
-            mesh: rMesh,
-            vel: new THREE.Vector3(
-              Math.cos(ang) * spd,
-              8 + Math.random() * 10,
-              Math.sin(ang) * spd
-            ),
-            rot: (Math.random() - 0.5) * 12,
-          });
-        }
-
-        let magmaLife = 1.5;
-        this.activeEffects.push({
-          update: (dt) => {
-            magmaLife -= dt;
-            for (const mr of magmaRocks) {
-              mr.mesh.position.addScaledVector(mr.vel, dt);
-              mr.vel.y -= 22 * dt;
-              mr.mesh.rotation.x += mr.rot * dt;
-              mr.mesh.rotation.y += mr.rot * dt;
-            }
-            if (magmaLife <= 0) {
-              for (const mr of magmaRocks) this.scene.remove(mr.mesh);
-              return false;
-            }
-            return true;
-          }
-        });
-
-        // 5. Cột lửa bập bùng cháy trên đất trong 2.0s
-        this.particles.emitSmoke(hitPos, 12, 0x333333, 1.4);
-        this.particles.emitElementalParticles(hitPos, 45, [0xff4757, 0xffa502, 0xffd32a], [6, 16], 0.9, 8.0, 1.4);
-
-        // 6. Decal Pixel Art vết cháy nổ trên mặt đất
-        this.spawnGroundDecalEffect('fire', new THREE.Vector3(impactX, impactY + 0.12, impactZ), 16, 1.6);
-
-        // 7. Gây sát thương diện rộng cực lớn
-        this.dealDamageAOE(hitPos, 11.0, 125, '🔥 -125 CRIT!', '#ff4757', monsters, null, 'fire');
-        return false;
-      }
-    };
-
-    this.activeEffects.push(fx);
+  // Gây sát thương lên một con quái kèm số sát thương nhảy lên
+  damageMonster(monster, amount, text, textColor, sourcePos) {
+    monster.takeDamage(amount, sourcePos);
+    const hitPos = monster.position.clone();
+    hitPos.y += monster.hitHeight * 0.7;
+    this.damageTexts.spawn(text, hitPos, textColor);
+    if (this.particles) this.particles.emitHitSparkles(hitPos, 10);
   }
 
-  // --- KỸ NĂNG 2: SẤM SÉT GIÁNG TRẦN (THUNDER STRIKE) ---
-  castThunderStrike(targetPos, monsters) {
-    const impactX = targetPos.x;
-    const impactZ = targetPos.z;
-    const impactY = getTerrainHeight(impactX, impactZ);
+  // Hướng ngang từ from tới to (dùng hướng mặc định nếu trùng điểm)
+  static flatDirection(from, to) {
+    const dir = new THREE.Vector3(to.x - from.x, 0, to.z - from.z);
+    return dir.lengthSq() > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 0, -1);
+  }
 
-    sound.playThunderStrike();
+  // --- KIẾM CHIÊU 1: PHI KIẾM THUẬT ---
+  // Phóng tiên kiếm bay thẳng xuyên qua quái, hết tầm thì quay về tay và xuyên thêm lần nữa
+  castFlyingSword(targetPos, character, monsters) {
+    const dir = PixelFXManager.flatDirection(character.position, targetPos);
+    const sword = createSword(1.6);
+    sword.visible = false;
+    this.scene.add(sword);
 
-    if (this.controller) {
-      this.controller.addTrauma(0.65); // Rung giật nhanh và bén
-    }
-    if (this.onScreenFlash) {
-      this.onScreenFlash('lightning');
-    }
+    const up = new THREE.Vector3(0, 1, 0);
+    const pos = new THREE.Vector3();
+    let elapsed = 0;
+    let phase = 'windup'; // windup → out → back
+    let hitSet = new Set();
 
-    const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
-
-    // 1. Tạo luồng sét gấp khúc phân nhánh Procedural (Jagged 3D Lightning Bolts)
-    const lightningGroup = new THREE.Group();
-    const boltMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const arcMat = new THREE.MeshBasicMaterial({ color: 0x00d2d3, transparent: true, opacity: 0.75, depthWrite: false });
-
-    const createLightningBranch = (start, end, segments = 8, jitter = 1.4, radius = 0.28) => {
-      let prevPt = start.clone();
-      for (let s = 1; s <= segments; s++) {
-        const t = s / segments;
-        const curPt = new THREE.Vector3().lerpVectors(start, end, t);
-        if (s < segments) {
-          curPt.x += (Math.random() - 0.5) * jitter;
-          curPt.z += (Math.random() - 0.5) * jitter;
-        }
-
-        const segLen = prevPt.distanceTo(curPt);
-        const coreGeo = new THREE.CylinderGeometry(radius * 0.7, radius, segLen, 5);
-        const arcGeo = new THREE.CylinderGeometry(radius * 1.8, radius * 2.2, segLen, 5);
-
-        const meshCore = new THREE.Mesh(coreGeo, boltMat);
-        const meshArc = new THREE.Mesh(arcGeo, arcMat);
-
-        const mid = new THREE.Vector3().addVectors(prevPt, curPt).multiplyScalar(0.5);
-        meshCore.position.copy(mid);
-        meshArc.position.copy(mid);
-
-        meshCore.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), curPt.clone().sub(prevPt).normalize());
-        meshArc.quaternion.copy(meshCore.quaternion);
-
-        lightningGroup.add(meshCore);
-        lightningGroup.add(meshArc);
-
-        prevPt = curPt;
-      }
-    };
-
-    // Tia sét chính đánh thẳng từ tầng mây
-    const skyPos = new THREE.Vector3(impactX, impactY + 48, impactZ);
-    createLightningBranch(skyPos, hitPos, 10, 2.2, 0.35);
-
-    // 2 tia sét phụ nhánh rẽ sang 2 bên
-    const branch1End = hitPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 6));
-    branch1End.y = getTerrainHeight(branch1End.x, branch1End.z);
-    createLightningBranch(new THREE.Vector3(impactX, impactY + 24, impactZ), branch1End, 6, 1.6, 0.2);
-
-    const branch2End = hitPos.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, 0, (Math.random() - 0.5) * 6));
-    branch2End.y = getTerrainHeight(branch2End.x, branch2End.z);
-    createLightningBranch(new THREE.Vector3(impactX, impactY + 32, impactZ), branch2End, 6, 1.6, 0.2);
-
-    // Đèn chớp xanh tím
-    const strikeLight = new THREE.PointLight(0x00d2d3, 8.0, 35);
-    strikeLight.position.set(impactX, impactY + 4, impactZ);
-    lightningGroup.add(strikeLight);
-
-    this.scene.add(lightningGroup);
-
-    // 2. Tàn phá địa hình (Vết nứt sấm sét)
-    this.world.deformTerrain(impactX, impactZ, 8.0, 1.2, 'lightning');
-
-    // 3. Sóng điện giật lan tỏa
-    this.particles.emitShockwave(hitPos, 0x00d2d3, 14, 0.4);
-    this.particles.emitShockwave(hitPos, 0xffffff, 8, 0.25);
-    this.particles.emitElementalParticles(hitPos, 35, [0x00d2d3, 0xffffff, 0x70a1ff], [6, 16], 0.7, 4.0, 1.2);
-
-    // 4. Decal sét vẽ trên đất
-    this.spawnGroundDecalEffect('lightning', new THREE.Vector3(impactX, impactY + 0.12, impactZ), 13, 1.0);
-
-    // 5. Sát thương cao & chấn động
-    this.dealDamageAOE(hitPos, 8.5, 145, '⚡ -145 SHOCK!', '#00d2d3', monsters, null, 'lightning');
-
-    let boltLife = 0.25;
     this.activeEffects.push({
       update: (delta) => {
-        boltLife -= delta;
-        if (boltLife > 0) {
-          boltMat.opacity = boltLife / 0.25;
-          arcMat.opacity = (boltLife / 0.25) * 0.75;
-          strikeLight.intensity = (boltLife / 0.25) * 8.0;
-          return true;
+        elapsed += delta;
+
+        if (phase === 'windup') {
+          if (elapsed < 0.18) return true;
+          phase = 'out';
+          elapsed = 0;
+          character.setSwordThrown(true);
+          pos.copy(character.position).add(new THREE.Vector3(0, 1.2, 0)).addScaledVector(dir, 0.8);
+          sword.visible = true;
+          sound.playSwordSlash();
         }
-        this.scene.remove(lightningGroup);
-        return false;
+
+        let moveDir;
+        let damage;
+        if (phase === 'out') {
+          moveDir = dir;
+          damage = 60;
+          pos.addScaledVector(dir, 36 * delta);
+          if (elapsed >= 0.6) {
+            phase = 'back';
+            hitSet = new Set();
+          }
+        } else {
+          const home = character.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+          moveDir = home.clone().sub(pos);
+          const dist = moveDir.length();
+          moveDir.normalize();
+          damage = 40;
+          if (dist < 1.2 || elapsed > 3.0) {
+            this.scene.remove(sword);
+            character.setSwordThrown(false);
+            if (this.particles) this.particles.emitElementalParticles(home, 10, [0x1dd1a1, 0xffffff], [1, 3], 0.3, 0, 0.4);
+            return false;
+          }
+          pos.addScaledVector(moveDir, Math.min(dist, 40 * delta));
+        }
+
+        // Mũi kiếm hướng theo đường bay, rung nhẹ như kiếm có linh tính
+        sword.position.copy(pos);
+        sword.quaternion.setFromUnitVectors(up, moveDir);
+        sword.rotateY(Math.sin(elapsed * 30) * 0.3);
+
+        if (this.particles && Math.random() < 0.7) {
+          this.particles.emitElementalParticles(pos, 1, [0x1dd1a1, 0x7bed9f, 0xffffff], [0.2, 0.8], 0.3, 0, 0.4);
+        }
+
+        for (const monster of monsters) {
+          if (monster.isDead || hitSet.has(monster)) continue;
+          if (monster.checkCollision(pos, 1.2)) {
+            hitSet.add(monster);
+            this.damageMonster(monster, damage, `🗡️ -${damage}`, '#1dd1a1', pos);
+            sound.playHit();
+            if (this.controller) this.controller.addTrauma(0.05);
+          }
+        }
+        return true;
       }
     });
   }
 
-  // --- KỸ NĂNG 3: BÃO BĂNG ĐỊA CỰC (FROST NOVA) ---
-  castFrostNova(targetPos, monsters) {
-    const impactX = targetPos.x;
-    const impactZ = targetPos.z;
-    const impactY = getTerrainHeight(impactX, impactZ);
-    const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
+  // --- KIẾM CHIÊU 2: THUẤN BỘ TRẢM ---
+  // Lướt chớp nhoáng 10m chém xuyên mọi quái trên đường, sau đó kiếm ngân nổ thêm một đợt
+  castBlinkSlash(targetPos, character, monsters) {
+    const dir = PixelFXManager.flatDirection(character.position, targetPos);
+    const dashDuration = 0.22;
+    const dashDistance = 10;
+    const start = character.position.clone();
+    character.startDash(dir, dashDistance, dashDuration);
+    sound.playSwordSlash();
+    if (this.onScreenFlash) this.onScreenFlash('sword');
 
-    sound.playFrostNova();
-
-    if (this.controller) {
-      this.controller.addTrauma(0.45);
-    }
-    if (this.onScreenFlash) {
-      this.onScreenFlash('frost');
-    }
-
-    // 1. Tàn phá địa hình (Đóng băng vĩnh cửu)
-    this.world.deformTerrain(impactX, impactZ, 12.0, 0.5, 'ice');
-
-    // 2. Sóng băng giá tỏa nhanh ra xung quanh
-    this.particles.emitShockwave(hitPos, 0x7ed6df, 18, 0.7);
-    this.particles.emitShockwave(hitPos, 0xffffff, 11, 0.45);
-
-    // 3. Decal hoa tuyết pixel
-    this.spawnGroundDecalEffect('ice', new THREE.Vector3(impactX, impactY + 0.12, impactZ), 17, 1.8);
-
-    // 4. Các trụ băng tinh thể nhọn hoắt nhô bật lên từ lòng đất (Crystal Ice Spikes)
-    const iceGroup = new THREE.Group();
-    const iceMat = new THREE.MeshStandardMaterial({
-      color: 0x7ed6df,
-      roughness: 0.15,
-      metalness: 0.3,
-      flatShading: true,
+    // Vệt kiếm quang thẳng tắp nối điểm đầu và điểm cuối
+    const streakMat = new THREE.MeshBasicMaterial({
+      color: 0x7efff5,
       transparent: true,
       opacity: 0.9,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
     });
+    const streak = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, dashDistance), streakMat);
+    streak.position.copy(start).addScaledVector(dir, dashDistance / 2);
+    streak.position.y += 1.0;
+    streak.rotation.y = Math.atan2(dir.x, dir.z);
+    streak.scale.z = 0.01;
+    this.scene.add(streak);
 
-    const spikes = [];
-    const spikeCount = 14;
+    const hitMonsters = [];
+    let elapsed = 0;
+    let echoed = false;
 
-    for (let i = 0; i < spikeCount; i++) {
-      const ang = (i / spikeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
-      const dist = 2.5 + Math.random() * 5.5;
-      const ix = impactX + Math.cos(ang) * dist;
-      const iz = impactZ + Math.sin(ang) * dist;
-      const iy = getTerrainHeight(ix, iz);
-
-      const targetHeight = 2.8 + Math.random() * 2.2;
-      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.7, targetHeight, 5), iceMat);
-      spike.position.set(ix, iy, iz);
-      spike.rotation.x = (Math.random() - 0.5) * 0.35;
-      spike.rotation.z = (Math.random() - 0.5) * 0.35;
-      spike.scale.set(0.01, 0.01, 0.01);
-      spike.castShadow = true;
-      iceGroup.add(spike);
-
-      spikes.push({ mesh: spike, targetScaleY: 1.0, currentScale: 0.01 });
-    }
-
-    // Vòng lốc xoáy tuyết bay quanh tâm (Blizzard Swirl)
-    const snowParticles = [];
-    for (let i = 0; i < 28; i++) {
-      const pMesh = new THREE.Mesh(
-        new THREE.DodecahedronGeometry(0.2, 0),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 })
-      );
-      this.scene.add(pMesh);
-      snowParticles.push({
-        mesh: pMesh,
-        angle: Math.random() * Math.PI * 2,
-        dist: 2 + Math.random() * 6,
-        height: 0.5 + Math.random() * 4,
-        rotSpeed: 3 + Math.random() * 4,
-      });
-    }
-
-    this.scene.add(iceGroup);
-
-    // 5. Đóng băng quái vật & Gây sát thương
-    this.dealDamageAOE(hitPos, 12.0, 95, '❄️ -95 FROZEN!', '#7ed6df', monsters, 'freeze', 'ice');
-
-    let iceLife = 2.6;
     this.activeEffects.push({
       update: (delta) => {
-        iceLife -= delta;
+        elapsed += delta;
 
-        // Hiệu ứng mọc trồi lên nảy nhẹ
-        for (const sp of spikes) {
-          if (sp.currentScale < 1.0) {
-            sp.currentScale = Math.min(1.0, sp.currentScale + delta * 5.0);
-            sp.mesh.scale.set(sp.currentScale, sp.currentScale, sp.currentScale);
+        if (elapsed <= dashDuration + 0.02) {
+          // Vệt kiếm kéo dài theo bước lướt, bóng ảnh để lại hạt ngọc
+          streak.scale.z = Math.min(1, elapsed / dashDuration);
+          streak.position.copy(start).addScaledVector(dir, (dashDistance * streak.scale.z) / 2);
+          streak.position.y += 1.0;
+          if (this.particles) {
+            this.particles.emitElementalParticles(character.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 3, [0x7efff5, 0x1dd1a1, 0xffffff], [0.5, 2], 0.35, 0, 0.5);
+          }
+
+          for (const monster of monsters) {
+            if (monster.isDead || hitMonsters.includes(monster)) continue;
+            const d = Math.hypot(monster.position.x - character.position.x, monster.position.z - character.position.z);
+            if (d <= monster.hitRadius + 1.4) {
+              hitMonsters.push(monster);
+              this.damageMonster(monster, 70, '💨 -70', '#7efff5', character.position);
+              sound.playHit();
+            }
+          }
+        } else {
+          streakMat.opacity = Math.max(0, 0.9 - (elapsed - dashDuration) * 1.6);
+        }
+
+        // Kiếm ngân: đợt nổ trễ trên mọi quái vừa bị chém qua
+        if (!echoed && elapsed >= dashDuration + 0.35) {
+          echoed = true;
+          if (hitMonsters.length > 0) {
+            sound.playSwordSlash();
+            if (this.controller) this.controller.addTrauma(0.25);
+          }
+          for (const monster of hitMonsters) {
+            if (monster.isDead) continue;
+            const p = monster.position.clone();
+            p.y += 1.5;
+            this.particles.emitShockwave(p, 0x7efff5, 4.0, 0.3);
+            this.particles.emitElementalParticles(p, 14, [0x7efff5, 0xffffff], [3, 7], 0.4, 0, 0.6);
+            this.damageMonster(monster, 40, '✦ -40 KIẾM NGÂN', '#ffffff', p);
           }
         }
 
-        // Lốc tuyết xoay tròn
-        for (const sp of snowParticles) {
-          sp.angle += sp.rotSpeed * delta;
-          sp.mesh.position.set(
-            impactX + Math.cos(sp.angle) * sp.dist,
-            impactY + sp.height,
-            impactZ + Math.sin(sp.angle) * sp.dist
-          );
-        }
-
-        // Khi hết hạn: Vỡ vụn thành các tinh thể lấp lánh!
-        if (iceLife <= 0.4) {
-          iceGroup.scale.multiplyScalar(0.94);
-        }
-
-        if (iceLife <= 0) {
-          this.scene.remove(iceGroup);
-          for (const sp of snowParticles) this.scene.remove(sp.mesh);
-          this.particles.emitElementalParticles(hitPos, 35, [0x7ed6df, 0xffffff], [3, 8], 0.7, 6.0, 1.1);
+        if (elapsed >= dashDuration + 0.6) {
+          this.scene.remove(streak);
+          streak.geometry.dispose();
+          streakMat.dispose();
           return false;
         }
         return true;
@@ -804,107 +427,390 @@ export class PixelFXManager {
     });
   }
 
-  // --- KỸ NĂNG 4: ĐỊA CHẤN LONG TRỜI (EARTH STOMP / CATACLYSM) ---
-  castEarthquake(targetPos, monsters) {
-    const impactX = targetPos.x;
-    const impactZ = targetPos.z;
-    const impactY = getTerrainHeight(impactX, impactZ);
-    const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
+  // --- KIẾM CHIÊU 3: KIẾM TRẬN HỘ THỂ ---
+  // 6 thanh kiếm xoay quanh người 6 giây cắt mọi quái áp sát, hết giờ thì bắn tung ra bốn phía
+  castSwordBarrier(character, monsters) {
+    const count = 6;
+    const radius = 2.4;
+    const duration = 6.0;
+    const up = new THREE.Vector3(0, 1, 0);
+    const swords = [];
 
-    sound.playEarthquake();
-
-    if (this.controller) {
-      this.controller.addTrauma(0.95); // Chấn động cực mạnh và rung lâu
+    for (let i = 0; i < count; i++) {
+      const sword = createSword(1.1);
+      this.scene.add(sword);
+      swords.push({ mesh: sword, launched: false, dir: new THREE.Vector3(), hitSet: new Set() });
     }
-    if (this.onScreenFlash) {
-      this.onScreenFlash('earth');
-    }
 
-    // 1. Tàn phá địa hình cực mạnh (Hố sâu 2.5m, vết nứt nẻ nham thạch)
-    this.world.deformTerrain(impactX, impactZ, 14.0, 2.5, 'earth');
-
-    // 2. 3 đợt sóng chấn động liên tiếp
-    this.particles.emitShockwave(hitPos, 0xe67e22, 20, 0.85);
-    setTimeout(() => this.particles.emitShockwave(hitPos, 0x8d5b4c, 14, 0.65), 120);
-    setTimeout(() => this.particles.emitShockwave(hitPos, 0xd35400, 8, 0.45), 240);
-
-    // 3. Decal chấn động pixel
-    this.spawnGroundDecalEffect('earth', new THREE.Vector3(impactX, impactY + 0.14, impactZ), 20, 1.8);
-
-    // 4. Các phiến đá kiến tạo dựng đứng trồi lên từ lòng đất (Tectonic Slabs)
-    const slabGroup = new THREE.Group();
-    const slabMat = new THREE.MeshStandardMaterial({
-      color: 0x634d3b,
-      roughness: 0.9,
-      flatShading: true,
+    // Vòng trận pháp dưới chân
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x7bed9f,
+      transparent: true,
+      opacity: 0.55,
+      side: THREE.DoubleSide,
+      depthWrite: false,
     });
+    const ringGeo = new THREE.RingGeometry(radius - 0.12, radius + 0.12, 40);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ring = new THREE.Mesh(ringGeo, ringMat);
+    this.scene.add(ring);
 
-    const slabCount = 8;
-    for (let i = 0; i < slabCount; i++) {
-      const ang = (i / slabCount) * Math.PI * 2;
-      const dist = 5.0 + Math.random() * 3.5;
-      const sx = impactX + Math.cos(ang) * dist;
-      const sz = impactZ + Math.sin(ang) * dist;
-      const sy = getTerrainHeight(sx, sz);
+    sound.playSwordSummon();
 
-      const slabMesh = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.8, 0.8), slabMat);
-      slabMesh.position.set(sx, sy + 1.2, sz);
-      slabMesh.rotation.y = ang + Math.PI / 2;
-      slabMesh.rotation.x = (Math.random() - 0.5) * 0.4;
-      slabMesh.rotation.z = (Math.random() - 0.5) * 0.4;
-      slabMesh.castShadow = true;
-      slabGroup.add(slabMesh);
-    }
-    this.scene.add(slabGroup);
+    let elapsed = 0;
+    let tickTimer = 0;
+    let burst = false;
 
-    // 5. Bão đá vụn bay tung lên trời (Rock Avalanche)
-    const flyingRocks = [];
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x574b40, flatShading: true });
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        const center = character.position;
 
-    for (let i = 0; i < 22; i++) {
-      const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45 + Math.random() * 0.45, 0), rockMat);
-      const rx = impactX + (Math.random() - 0.5) * 7;
-      const rz = impactZ + (Math.random() - 0.5) * 7;
-      rock.position.set(rx, impactY + 0.6, rz);
-      this.scene.add(rock);
+        if (elapsed < duration) {
+          // Kiếm xoay vòng, mũi chĩa ra ngoài
+          for (let i = 0; i < count; i++) {
+            const angle = elapsed * 3.2 + (i / count) * Math.PI * 2;
+            const out = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+            const s = swords[i].mesh;
+            s.position.set(center.x + out.x * radius, center.y + 1.0 + Math.sin(elapsed * 4 + i) * 0.15, center.z + out.z * radius);
+            s.quaternion.setFromUnitVectors(up, out);
+          }
+          ring.position.set(center.x, center.y + 0.06, center.z);
+          ring.rotation.y = -elapsed * 1.5;
+          ringMat.opacity = 0.35 + Math.sin(elapsed * 6) * 0.15;
 
-      flyingRocks.push({
-        mesh: rock,
-        vel: new THREE.Vector3(
-          (Math.random() - 0.5) * 12,
-          8 + Math.random() * 9,
-          (Math.random() - 0.5) * 12
-        ),
-        rotVel: (Math.random() - 0.5) * 10,
+          // Mỗi 0.4s cắt mọi quái lọt vào vòng kiếm
+          tickTimer -= delta;
+          if (tickTimer <= 0) {
+            tickTimer = 0.4;
+            for (const monster of monsters) {
+              if (monster.isDead) continue;
+              const d = Math.hypot(monster.position.x - center.x, monster.position.z - center.z);
+              if (d <= radius + monster.hitRadius + 0.4) {
+                this.damageMonster(monster, 15, '🌀 -15', '#7bed9f', center);
+                sound.playHit();
+              }
+            }
+          }
+          return true;
+        }
+
+        // Hết thời gian: kiếm bắn tung ra bốn phía
+        if (!burst) {
+          burst = true;
+          this.scene.remove(ring);
+          ringGeo.dispose();
+          ringMat.dispose();
+          sound.playSwordSlash();
+          if (this.controller) this.controller.addTrauma(0.2);
+          for (const s of swords) {
+            s.dir.set(s.mesh.position.x - center.x, 0, s.mesh.position.z - center.z).normalize();
+          }
+        }
+
+        for (const s of swords) {
+          s.mesh.position.addScaledVector(s.dir, 30 * delta);
+          for (const monster of monsters) {
+            if (monster.isDead || s.hitSet.has(monster)) continue;
+            if (monster.checkCollision(s.mesh.position, 1.0)) {
+              s.hitSet.add(monster);
+              this.damageMonster(monster, 35, '🌀 -35', '#7bed9f', s.mesh.position);
+            }
+          }
+          if (this.particles && Math.random() < 0.5) {
+            this.particles.emitElementalParticles(s.mesh.position, 1, [0x7bed9f, 0xffffff], [0.2, 0.8], 0.25, 0, 0.35);
+          }
+        }
+
+        if (elapsed >= duration + 0.5) {
+          for (const s of swords) this.scene.remove(s.mesh);
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // --- KIẾM CHIÊU 4: THIÊN KIẾM LẠC ---
+  // Mưa kiếm trút xuống vùng mục tiêu, cuối cùng kiếm khí trấn áp đóng băng yêu ma
+  castSwordRain(targetPos, monsters) {
+    const cx = targetPos.x;
+    const cz = targetPos.z;
+    const cy = getTerrainHeight(cx, cz);
+    const center = new THREE.Vector3(cx, cy, cz);
+    const areaRadius = 7.5;
+    const swordCount = 28;
+
+    this.spawnTelegraph(center, 0x48dbfb, 2.8, areaRadius);
+
+    const swords = [];
+    for (let i = 0; i < swordCount; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * areaRadius;
+      const x = cx + Math.cos(a) * r;
+      const z = cz + Math.sin(a) * r;
+      swords.push({
+        mesh: null,
+        target: new THREE.Vector3(x, getTerrainHeight(x, z), z),
+        delay: 0.5 + (i / swordCount) * 2.0,
+        state: 'waiting', // waiting → falling → embedded
+        embedLife: 0.6,
       });
     }
 
-    // 6. Bụi đất mù mịt
-    this.particles.emitSmoke(hitPos, 16, 0x795548, 1.5);
-    this.particles.emitElementalParticles(hitPos, 40, [0xe67e22, 0xd35400, 0x8d5b4c], [5, 14], 0.85, 14.0, 1.2);
+    let elapsed = 0;
+    let sealed = false;
 
-    // 7. Đẩy lùi và gây sát thương khủng khiếp
-    this.dealDamageAOE(hitPos, 14.0, 180, '💥 -180 SMASH!', '#e67e22', monsters, 'knockback', 'earth');
-
-    let quakeLife = 1.8;
     this.activeEffects.push({
       update: (delta) => {
-        quakeLife -= delta;
-        for (const r of flyingRocks) {
-          r.mesh.position.addScaledVector(r.vel, delta);
-          r.vel.y -= 22 * delta;
-          r.mesh.rotation.x += r.rotVel * delta;
-          r.mesh.rotation.y += r.rotVel * delta;
+        elapsed += delta;
+        let alive = false;
+
+        for (const s of swords) {
+          if (s.state === 'waiting') {
+            alive = true;
+            if (elapsed < s.delay) continue;
+            s.mesh = createSword(1.5);
+            s.mesh.rotation.x = Math.PI; // Mũi kiếm chĩa xuống đất
+            s.mesh.position.set(s.target.x, s.target.y + 16, s.target.z);
+            this.scene.add(s.mesh);
+            s.state = 'falling';
+          } else if (s.state === 'falling') {
+            alive = true;
+            s.mesh.position.y -= 42 * delta;
+            if (this.particles && Math.random() < 0.3) {
+              this.particles.emitElementalParticles(s.mesh.position, 1, [0x48dbfb, 0xffffff], [0.2, 0.8], 0.25, 0, 0.35);
+            }
+            if (s.mesh.position.y <= s.target.y + 0.9) {
+              s.mesh.position.y = s.target.y + 0.9;
+              s.state = 'embedded';
+              sound.playSwordSlash();
+              this.particles.emitHitSparkles(s.target, 6);
+              this.particles.emitShockwave(s.target, 0x48dbfb, 2.4, 0.2);
+              for (const monster of monsters) {
+                if (monster.isDead) continue;
+                const d = Math.hypot(monster.position.x - s.target.x, monster.position.z - s.target.z);
+                if (d <= monster.hitRadius + 2.0) {
+                  this.damageMonster(monster, 20, '🌧️ -20', '#48dbfb', s.target);
+                }
+              }
+            }
+          } else if (s.state === 'embedded') {
+            s.embedLife -= delta;
+            if (s.embedLife < 0.25) s.mesh.scale.multiplyScalar(0.9);
+            if (s.embedLife <= 0) {
+              this.scene.remove(s.mesh);
+              s.state = 'done';
+            } else {
+              alive = true;
+            }
+          }
         }
 
-        if (quakeLife <= 0.5) {
-          slabGroup.scale.multiplyScalar(0.96);
+        // Kiếm khí trấn áp toàn vùng sau đợt kiếm cuối
+        if (!sealed && elapsed >= 2.8) {
+          sealed = true;
+          if (this.onScreenFlash) this.onScreenFlash('sword');
+          if (this.controller) this.controller.addTrauma(0.4);
+          this.particles.emitShockwave(center, 0x48dbfb, areaRadius * 1.6, 0.6);
+          this.particles.emitElementalParticles(center, 30, [0x48dbfb, 0xffffff, 0x7efff5], [4, 10], 0.7, 4, 1.0);
+          this.dealDamageAOE(center, areaRadius, 40, '❄️ -40 TRẤN ÁP', '#48dbfb', monsters, 'freeze', 'ice');
         }
 
-        if (quakeLife <= 0) {
-          for (const r of flyingRocks) this.scene.remove(r.mesh);
-          this.scene.remove(slabGroup);
-          return false;
+        return alive || !sealed;
+      }
+    });
+  }
+
+  // --- TUYỆT KỸ KIẾM NỘ: ĐẠI CANH KIẾM TRẬN ---
+  // 12 lôi kiếm truy sát liên tục mọi quái trong 50m quanh người suốt 10 giây.
+  // Mỗi thanh tự chọn mục tiêu, chém xuyên qua rồi vòng lại chém tiếp, kéo theo vệt sét lập loè.
+  castDaiCanhSwordArray(character, monsters) {
+    const SWORD_COUNT = 12;
+    const RANGE = 50;
+    const DURATION = 10;
+    const HUNT_SPEED = 30;
+    const IDLE_SPEED = 16;
+    const TURN_RATE = 7;
+    const DAMAGE = 18;
+    const HIT_INTERVAL = 0.5; // một thanh kiếm chém lại cùng một con sau ít nhất 0.5s
+    const TRAIL_POINTS = 14;
+    const up = new THREE.Vector3(0, 1, 0);
+
+    sound.playSwordSummon();
+    if (this.onScreenFlash) this.onScreenFlash('lightning');
+    if (this.controller) this.controller.addTrauma(0.5);
+    this.spawnTelegraph(character.position.clone(), 0xa29bfe, 1.2, RANGE);
+
+    // Vòng ranh giới kiếm trận 50m đi theo người
+    const borderMat = new THREE.MeshBasicMaterial({
+      color: 0xa29bfe,
+      transparent: true,
+      opacity: 0.3,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    const borderGeo = new THREE.RingGeometry(RANGE - 0.5, RANGE, 96);
+    borderGeo.rotateX(-Math.PI / 2);
+    const border = new THREE.Mesh(borderGeo, borderMat);
+    this.scene.add(border);
+
+    // Vệt sét: hai sợi lập loè (lõi trắng + viền tím) bám theo lịch sử vị trí kiếm
+    const coreMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
+    const glowMat = new THREE.LineBasicMaterial({ color: 0x8c7ae6, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+    const makeStrand = (mat) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_POINTS * 3), 3));
+      geo.setDrawRange(0, 0);
+      const line = new THREE.Line(geo, mat);
+      line.frustumCulled = false;
+      this.scene.add(line);
+      return line;
+    };
+
+    const swords = [];
+    for (let i = 0; i < SWORD_COUNT; i++) {
+      const angle = (i / SWORD_COUNT) * Math.PI * 2;
+      const out = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+      const mesh = createSword(1.3);
+      mesh.position.copy(character.position).addScaledVector(out, 1.5);
+      mesh.position.y += 1.5;
+      this.scene.add(mesh);
+      swords.push({
+        mesh,
+        // Bung lên trời toả ra bốn phía rồi mới lao đi săn
+        vel: out.clone().multiplyScalar(8).add(new THREE.Vector3(0, 14, 0)),
+        target: null,
+        retarget: 0.4 + Math.random() * 0.4,
+        overshoot: 0,
+        hitTimers: new Map(),
+        history: [],
+        strands: [makeStrand(coreMat), makeStrand(glowMat)],
+        orbitPhase: angle,
+      });
+    }
+
+    const updateTrail = (s) => {
+      s.history.unshift(s.mesh.position.clone());
+      if (s.history.length > TRAIL_POINTS) s.history.pop();
+      for (let k = 0; k < s.strands.length; k++) {
+        const attr = s.strands[k].geometry.attributes.position;
+        for (let j = 0; j < s.history.length; j++) {
+          // Đuôi càng xa càng giật mạnh tạo hình tia sét zigzag
+          const amp = j === 0 ? 0 : (0.12 + (j / TRAIL_POINTS) * 0.45) * (k === 0 ? 0.6 : 1.0);
+          const p = s.history[j];
+          attr.setXYZ(j, p.x + (Math.random() - 0.5) * amp, p.y + (Math.random() - 0.5) * amp, p.z + (Math.random() - 0.5) * amp);
+        }
+        attr.needsUpdate = true;
+        s.strands[k].geometry.setDrawRange(0, s.history.length);
+      }
+    };
+
+    const pickTarget = (center) => {
+      const candidates = monsters.filter((m) => !m.isDead && Math.hypot(m.position.x - center.x, m.position.z - center.z) <= RANGE);
+      return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+    };
+
+    let elapsed = 0;
+    let lastHitSound = -1;
+    const desiredPoint = new THREE.Vector3();
+    const desiredVel = new THREE.Vector3();
+
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        const center = character.position;
+        border.position.set(center.x, center.y + 0.1, center.z);
+        borderMat.opacity = 0.2 + Math.sin(elapsed * 8) * 0.08;
+
+        // Hết giờ: lôi kiếm vút lên trời tan biến
+        if (elapsed >= DURATION) {
+          const t = elapsed - DURATION;
+          for (const s of swords) {
+            s.vel.lerp(new THREE.Vector3(0, 40, 0), Math.min(1, delta * 6));
+            s.mesh.position.addScaledVector(s.vel, delta);
+            s.mesh.quaternion.setFromUnitVectors(up, s.vel.clone().normalize());
+            s.mesh.scale.multiplyScalar(0.94);
+            updateTrail(s);
+          }
+          coreMat.opacity = glowMat.opacity = Math.max(0, 0.9 - t * 1.5);
+          if (t >= 0.6) {
+            for (const s of swords) {
+              this.scene.remove(s.mesh);
+              for (const line of s.strands) {
+                this.scene.remove(line);
+                line.geometry.dispose();
+              }
+            }
+            coreMat.dispose();
+            glowMat.dispose();
+            this.scene.remove(border);
+            borderGeo.dispose();
+            borderMat.dispose();
+            return false;
+          }
+          return true;
+        }
+
+        for (let i = 0; i < swords.length; i++) {
+          const s = swords[i];
+          for (const [m, timer] of s.hitTimers) s.hitTimers.set(m, timer - delta);
+
+          if (s.overshoot > 0) {
+            // Vừa chém xuyên qua: giữ đà lao thẳng một nhịp rồi mới vòng lại
+            s.overshoot -= delta;
+          } else {
+            s.retarget -= delta;
+            const lost = !s.target || s.target.isDead ||
+              Math.hypot(s.target.position.x - center.x, s.target.position.z - center.z) > RANGE;
+            if (lost || s.retarget <= 0) {
+              s.target = pickTarget(center);
+              s.retarget = 2 + Math.random() * 1.5;
+            }
+
+            let speed;
+            if (s.target) {
+              desiredPoint.copy(s.target.position);
+              desiredPoint.y += s.target.hitHeight * 0.45;
+              speed = HUNT_SPEED;
+            } else {
+              // Không còn yêu ma: lượn vòng hộ vệ quanh người
+              const a = elapsed * 1.6 + s.orbitPhase;
+              desiredPoint.set(center.x + Math.cos(a) * 6, center.y + 3.5 + Math.sin(elapsed * 3 + i) * 0.6, center.z + Math.sin(a) * 6);
+              speed = IDLE_SPEED;
+            }
+            desiredVel.subVectors(desiredPoint, s.mesh.position).normalize().multiplyScalar(speed);
+            s.vel.lerp(desiredVel, Math.min(1, TURN_RATE * delta)).setLength(speed);
+          }
+
+          s.mesh.position.addScaledVector(s.vel, delta);
+          // Không cắm xuống đất
+          const groundY = getTerrainHeight(s.mesh.position.x, s.mesh.position.z) + 0.6;
+          if (s.mesh.position.y < groundY) {
+            s.mesh.position.y = groundY;
+            s.vel.y = Math.abs(s.vel.y);
+          }
+          s.mesh.quaternion.setFromUnitVectors(up, s.vel.clone().normalize());
+          updateTrail(s);
+
+          if (this.particles && Math.random() < 0.35) {
+            this.particles.emitElementalParticles(s.mesh.position, 1, [0xa29bfe, 0xffffff, 0x74b9ff], [0.3, 1.2], 0.2, 0, 0.3);
+          }
+
+          for (const monster of monsters) {
+            if (monster.isDead || (s.hitTimers.get(monster) || 0) > 0) continue;
+            if (monster.checkCollision(s.mesh.position, 0.9)) {
+              s.hitTimers.set(monster, HIT_INTERVAL);
+              s.overshoot = 0.3;
+              this.damageMonster(monster, DAMAGE, `⚡ -${DAMAGE}`, '#a29bfe', s.mesh.position);
+              if (this.particles) this.particles.emitShockwave(s.mesh.position, 0xa29bfe, 2.2, 0.2);
+              if (elapsed - lastHitSound > 0.07) {
+                lastHitSound = elapsed;
+                sound.playSwordSlash();
+                if (this.controller) this.controller.addTrauma(0.03);
+              }
+            }
+          }
         }
         return true;
       }
@@ -928,51 +834,8 @@ export class PixelFXManager {
     this.spawnTelegraph(hitPos, 0xffd700, 1.8, 14.0);
     this.spawnGroundDecalEffect('sword', new THREE.Vector3(impactX, impactY + 0.14, impactZ), 20, 2.8);
 
-    // 2. Tạo hình học thanh kiếm tiên (Xianxia Flying Sword)
-    const swordBladeMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0xffd700,
-      emissiveIntensity: 0.9,
-      metalness: 0.8,
-      roughness: 0.2,
-      flatShading: true,
-    });
-    const swordHiltMat = new THREE.MeshStandardMaterial({
-      color: 0xd63031,
-      roughness: 0.5,
-    });
-    const swordGuardMat = new THREE.MeshStandardMaterial({
-      color: 0xf1c40f,
-      metalness: 0.9,
-      roughness: 0.1,
-    });
-
-    const createSwordMesh = (scale = 1.0) => {
-      const g = new THREE.Group();
-      // Lưỡi kiếm 2 mang sắc bén
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.14 * scale, 2.2 * scale, 0.05 * scale), swordBladeMat);
-      blade.position.y = 1.1 * scale;
-      blade.castShadow = true;
-      g.add(blade);
-
-      // Mũi kiếm nhọn
-      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.11 * scale, 0.45 * scale, 4), swordBladeMat);
-      tip.position.y = 2.4 * scale;
-      tip.rotation.y = Math.PI / 4;
-      g.add(tip);
-
-      // Chuôi kiếm
-      const guard = new THREE.Mesh(new THREE.BoxGeometry(0.55 * scale, 0.08 * scale, 0.12 * scale), swordGuardMat);
-      guard.position.y = 0.02 * scale;
-      g.add(guard);
-
-      // Cán kiếm
-      const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * scale, 0.05 * scale, 0.6 * scale, 5), swordHiltMat);
-      hilt.position.y = -0.32 * scale;
-      g.add(hilt);
-
-      return g;
-    };
+    // 2. Tiên kiếm ngọc bích dùng chung (dài ~2.4 đơn vị ở scale 1, như kiếm trận cũ)
+    const createSwordMesh = (scale = 1.0) => createSword(scale * 1.9);
 
     // 3. Khởi tạo 32 thanh kiếm bay lơ lửng xoay tròn trên không trung (Sword Mandala Formation)
     const swordCount = 32;

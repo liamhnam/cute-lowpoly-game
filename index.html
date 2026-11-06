@@ -203,6 +203,7 @@
 
     .pixel-bar-label.hp { color: #d63031; }
     .pixel-bar-label.mp { color: #0984e3; }
+    .pixel-bar-label.rage { color: #6c5ce7; }
 
     .pixel-bar-outer {
       flex: 1;
@@ -225,6 +226,21 @@
 
     .pixel-bar-inner.mp {
       background: repeating-linear-gradient(90deg, #00d2d3, #00d2d3 8px, #54a0ff 8px, #54a0ff 12px);
+    }
+
+    .pixel-bar-inner.rage {
+      background: repeating-linear-gradient(90deg, #6c5ce7, #6c5ce7 8px, #a29bfe 8px, #a29bfe 12px);
+    }
+
+    /* Nộ đầy: thanh nộ chớp sét */
+    .pixel-bar-inner.rage.full {
+      background: repeating-linear-gradient(90deg, #a29bfe, #a29bfe 8px, #ffffff 8px, #ffffff 12px);
+      animation: rageCrackle 0.3s steps(2) infinite;
+    }
+
+    @keyframes rageCrackle {
+      0% { filter: brightness(1); }
+      100% { filter: brightness(1.6); }
     }
 
     .pixel-bar-num {
@@ -430,6 +446,50 @@
     .skill-slot#skill-slot-5 .skill-key {
       background: #00d2d3;
       color: #1e272e;
+    }
+
+    /* Ô Kỹ năng 6: Đại Canh Kiếm Trận - chỉ dùng được khi đầy Nộ */
+    .skill-slot#skill-slot-6 {
+      width: 72px;
+      height: 84px;
+      background: linear-gradient(180deg, #f3f0ff 0%, #d6ccff 100%);
+      box-shadow:
+        0 -2px 0 0 #6c5ce7,
+        0 2px 0 0 #6c5ce7,
+        -2px 0 0 0 #6c5ce7,
+        2px 0 0 0 #6c5ce7,
+        inset 0 0 0 2px #a29bfe;
+    }
+
+    .skill-slot#skill-slot-6 .skill-talisman-tag {
+      background: #6c5ce7;
+    }
+
+    .skill-slot#skill-slot-6 .skill-key {
+      background: #a29bfe;
+      color: #1e272e;
+    }
+
+    /* Lớp phủ tối thu dần theo lượng Nộ tích được */
+    .skill-rage-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(30, 39, 46, 0.78);
+      transition: height 0.15s steps(5);
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .skill-slot#skill-slot-6.rage-ready {
+      animation: rageReady 0.6s steps(3) infinite alternate;
+    }
+
+    @keyframes rageReady {
+      0% { filter: brightness(1) drop-shadow(0 0 0 #a29bfe); }
+      100% { filter: brightness(1.25) drop-shadow(0 0 10px #a29bfe); }
     }
 
     /* Hiệu ứng Cooldown đen mờ */
@@ -1292,7 +1352,7 @@
     <div class="top-bar">
       <div class="title-card">
         <h1>🐻 Cổ Đô Trường An <span>🏮 Hoàng Thành</span></h1>
-        <p>Chu Tước Đại Đạo • Tửu Lầu Phố Cổ • Phím [1-5/E] xuất Đạo Pháp trảm yêu bảo vệ kinh thành!</p>
+        <p>Chu Tước Đại Đạo • Tửu Lầu Phố Cổ • Phím [1-5/E] xuất Đạo Pháp, đầy Kiếm Nộ bấm [R] mở Đại Canh Kiếm Trận!</p>
 
         <!-- Thanh Khí Huyết & Linh Lực -->
         <div class="status-bars-container">
@@ -1308,6 +1368,13 @@
             <div class="pixel-bar-outer">
               <div class="pixel-bar-inner mp" id="bar-mp" style="width: 100%;"></div>
               <span class="pixel-bar-num" id="text-mp">100/100</span>
+            </div>
+          </div>
+          <div class="pixel-bar-row">
+            <span class="pixel-bar-label rage">KIẾM NỘ</span>
+            <div class="pixel-bar-outer">
+              <div class="pixel-bar-inner rage" id="bar-rage" style="width: 0%;"></div>
+              <span class="pixel-bar-num" id="text-rage">0/100</span>
             </div>
           </div>
         </div>
@@ -1335,42 +1402,42 @@
 
     <!-- THANH KỸ NĂNG ĐẠO PHÙ PIXEL (TALISMAN SKILL BAR) -->
     <div class="skill-bar-container">
-      <!-- Skill 1: Xích Viêm Thiên Hỏa -->
-      <div class="skill-slot" id="skill-slot-1" title="Phím 1: Xích Viêm Thiên Hỏa ☄️ (-15 Linh Lực, tạo hố dung nham 110 ST)">
+      <!-- Skill 1: Phi Kiếm Thuật -->
+      <div class="skill-slot" id="skill-slot-1" title="Phím 1: Phi Kiếm Thuật 🗡️ (-15 Linh Lực, phóng kiếm xuyên quái 60 ST rồi bay về 40 ST)">
         <span class="skill-key">1</span>
-        <span class="skill-talisman-tag">HỎA</span>
-        <span class="skill-icon">☄️</span>
-        <span class="skill-name">Xích Viêm</span>
+        <span class="skill-talisman-tag">PHI</span>
+        <span class="skill-icon">🗡️</span>
+        <span class="skill-name">Phi Kiếm</span>
         <div class="skill-cd-overlay" id="skill-cd-1"></div>
         <span class="skill-cd-text" id="skill-text-1">1</span>
       </div>
 
-      <!-- Skill 2: Cửu Thiên Huyền Lôi -->
-      <div class="skill-slot" id="skill-slot-2" title="Phím 2: Cửu Thiên Huyền Lôi ⚡ (-20 Linh Lực, lôi đình giáng thế 140 ST)">
+      <!-- Skill 2: Thuấn Bộ Trảm -->
+      <div class="skill-slot" id="skill-slot-2" title="Phím 2: Thuấn Bộ Trảm 💨 (-20 Linh Lực, lướt 10m chém xuyên 70 ST + kiếm ngân 40 ST)">
         <span class="skill-key">2</span>
-        <span class="skill-talisman-tag">LÔI</span>
-        <span class="skill-icon">⚡</span>
-        <span class="skill-name">Huyền Lôi</span>
+        <span class="skill-talisman-tag">THUẤN</span>
+        <span class="skill-icon">💨</span>
+        <span class="skill-name">Thuấn Bộ</span>
         <div class="skill-cd-overlay" id="skill-cd-2"></div>
         <span class="skill-cd-text" id="skill-text-2">2</span>
       </div>
 
-      <!-- Skill 3: Huyền Băng Tuyệt Vực -->
-      <div class="skill-slot" id="skill-slot-3" title="Phím 3: Huyền Băng Tuyệt Vực ❄️ (-20 Linh Lực, đóng băng yêu ma)">
+      <!-- Skill 3: Kiếm Trận Hộ Thể -->
+      <div class="skill-slot" id="skill-slot-3" title="Phím 3: Kiếm Trận Hộ Thể 🌀 (-25 Linh Lực, 6 kiếm xoay quanh người 6 giây rồi bắn tung ra)">
         <span class="skill-key">3</span>
-        <span class="skill-talisman-tag">BĂNG</span>
-        <span class="skill-icon">❄️</span>
-        <span class="skill-name">Huyền Băng</span>
+        <span class="skill-talisman-tag">TRẬN</span>
+        <span class="skill-icon">🌀</span>
+        <span class="skill-name">Kiếm Trận</span>
         <div class="skill-cd-overlay" id="skill-cd-3"></div>
         <span class="skill-cd-text" id="skill-text-3">3</span>
       </div>
 
-      <!-- Skill 4: Hám Địa Thần Thông -->
-      <div class="skill-slot" id="skill-slot-4" title="Phím 4: Hám Địa Thần Thông 🌍 (-25 Linh Lực, sụp đổ địa hình 170 ST)">
+      <!-- Skill 4: Thiên Kiếm Lạc -->
+      <div class="skill-slot" id="skill-slot-4" title="Phím 4: Thiên Kiếm Lạc 🌧️ (-25 Linh Lực, mưa kiếm 28 thanh rồi trấn áp đóng băng cả vùng)">
         <span class="skill-key">4</span>
-        <span class="skill-talisman-tag">THỔ</span>
-        <span class="skill-icon">🌍</span>
-        <span class="skill-name">Hám Địa</span>
+        <span class="skill-talisman-tag">THIÊN</span>
+        <span class="skill-icon">🌧️</span>
+        <span class="skill-name">Thiên Kiếm</span>
         <div class="skill-cd-overlay" id="skill-cd-4"></div>
         <span class="skill-cd-text" id="skill-text-4">4</span>
       </div>
@@ -1383,6 +1450,17 @@
         <span class="skill-name">Vạn Kiếm</span>
         <div class="skill-cd-overlay" id="skill-cd-5"></div>
         <span class="skill-cd-text" id="skill-text-5">5</span>
+      </div>
+
+      <!-- Skill 6: Đại Canh Kiếm Trận (cần đầy Kiếm Nộ) -->
+      <div class="skill-slot" id="skill-slot-6" title="Phím R hoặc 6: Đại Canh Kiếm Trận ⚡ (cần đầy Kiếm Nộ, 12 lôi kiếm truy sát mọi yêu ma trong 50m suốt 10 giây)">
+        <span class="skill-key">6/R</span>
+        <span class="skill-talisman-tag">NỘ</span>
+        <span class="skill-icon">⚡</span>
+        <span class="skill-name">Đại Canh</span>
+        <div class="skill-rage-overlay" id="skill-rage-6"></div>
+        <div class="skill-cd-overlay" id="skill-cd-6"></div>
+        <span class="skill-cd-text" id="skill-text-6">6</span>
       </div>
     </div>
 

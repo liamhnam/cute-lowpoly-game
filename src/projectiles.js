@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import { sound } from './audio.js';
 import { getTerrainHeight } from './world.js';
 
-const MELEE_DAMAGE = 40;
-const MELEE_RANGE = 3.4;
-const MELEE_ARC_COS = Math.cos(Math.PI / 3); // nửa góc 60° → cung chém 120°
+// Kiểu đòn cận chiến: chém ngang (nhát 1, 2 combo) và đâm tới (nhát 3)
+const MELEE_STYLES = {
+  sweep: { damage: 35, range: 3.4, halfAngle: Math.PI / 3, knockback: 0, color: 0xc8ffe0 },  // cung 120°
+  thrust: { damage: 70, range: 5.2, halfAngle: Math.PI / 7, knockback: 10, color: 0xffffff }, // mũi đâm ~50°
+};
 const QI_MIN_DAMAGE = 30;  // kiếm khí vừa bắt đầu tụ
 const QI_MAX_DAMAGE = 120; // kiếm khí tụ đầy lực
 
@@ -15,10 +17,15 @@ export class ProjectileSystem {
     this.world = world;
     this.projectiles = [];
     this.slashArcs = [];
+    this.onMonsterHit = null; // (source: 'sweep' | 'thrust' | 'qi') → dùng để tích Kiếm Nộ
 
-    // Vòng cung chém cận chiến (nằm ngang, cung 120° hướng về +x trước khi xoay)
-    this.slashArcGeo = new THREE.RingGeometry(1.0, MELEE_RANGE, 18, 1, -Math.PI / 3, (Math.PI * 2) / 3);
-    this.slashArcGeo.rotateX(-Math.PI / 2);
+    // Hình quạt vệt chém của từng kiểu đòn (nằm ngang, hướng về +x trước khi xoay)
+    this.slashGeos = {};
+    for (const [name, s] of Object.entries(MELEE_STYLES)) {
+      const geo = new THREE.RingGeometry(name === 'thrust' ? 0.8 : 1.0, s.range, 18, 1, -s.halfAngle, s.halfAngle * 2);
+      geo.rotateX(-Math.PI / 2);
+      this.slashGeos[name] = geo;
+    }
     this.slashArcMat = new THREE.MeshBasicMaterial({
       color: 0xe0fbfc,
       transparent: true,
@@ -48,11 +55,15 @@ export class ProjectileSystem {
     return Math.atan2(-dir.z, dir.x);
   }
 
-  // Chém vòng cung trước mặt: trúng mọi quái trong hình quạt 120°, tầm MELEE_RANGE
-  slash(center, direction, monsters) {
+  // Đòn cận chiến trước mặt: trúng mọi quái trong hình quạt của kiểu đòn styleName
+  slash(center, direction, monsters, styleName = 'sweep') {
+    const style = MELEE_STYLES[styleName];
     const dir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+    const arcCos = Math.cos(style.halfAngle);
 
-    const arc = new THREE.Mesh(this.slashArcGeo, this.slashArcMat.clone());
+    const arcMat = this.slashArcMat.clone();
+    arcMat.color.setHex(style.color);
+    const arc = new THREE.Mesh(this.slashGeos[styleName], arcMat);
     arc.position.set(center.x, center.y - 0.3, center.z);
     arc.rotation.y = ProjectileSystem.yawFor(dir);
     this.scene.add(arc);
@@ -64,28 +75,30 @@ export class ProjectileSystem {
       const dx = monster.position.x - center.x;
       const dz = monster.position.z - center.z;
       const dist = Math.hypot(dx, dz);
-      if (dist - monster.hitRadius > MELEE_RANGE) continue;
+      if (dist - monster.hitRadius > style.range) continue;
       if (center.y < monster.position.y - 1.0 || center.y > monster.position.y + monster.hitHeight) continue;
-      // Đứng sát (trong thân quái) thì luôn trúng, còn lại phải nằm trong cung chém
-      if (dist > monster.hitRadius && (dx * dir.x + dz * dir.z) / dist < MELEE_ARC_COS) continue;
+      // Đứng sát (trong thân quái) thì luôn trúng, còn lại phải nằm trong hình quạt
+      if (dist > monster.hitRadius && (dx * dir.x + dz * dir.z) / dist < arcCos) continue;
 
       const hitPos = new THREE.Vector3(
         monster.position.x - (dx / Math.max(dist, 0.001)) * Math.min(dist, monster.hitRadius),
         center.y,
         monster.position.z - (dz / Math.max(dist, 0.001)) * Math.min(dist, monster.hitRadius)
       );
-      monster.takeDamage(MELEE_DAMAGE, hitPos);
+      monster.takeDamage(style.damage, hitPos);
+      if (style.knockback > 0) monster.knockback(center, style.knockback);
+      if (this.onMonsterHit) this.onMonsterHit(styleName);
       if (this.particles) {
         this.particles.emitHitSparkles(hitPos, 14);
-        this.particles.emitShockwave(hitPos, 0xe0fbfc, 2.5, 0.25);
+        this.particles.emitShockwave(hitPos, style.color, 2.5, 0.25);
       }
       hitAny = true;
     }
 
     // Chém vỡ vật thể môi trường phía trước
     if (this.world) {
-      const worldHitPos = center.clone().addScaledVector(dir, MELEE_RANGE * 0.6);
-      const hitWorldObj = this.world.checkBulletCollision(worldHitPos, 1.4, MELEE_DAMAGE);
+      const worldHitPos = center.clone().addScaledVector(dir, style.range * 0.6);
+      const hitWorldObj = this.world.checkBulletCollision(worldHitPos, 1.4, style.damage);
       if (hitWorldObj && hitWorldObj.hit) hitAny = true;
     }
 
@@ -179,6 +192,7 @@ export class ProjectileSystem {
           if (monster.checkCollision(pos, p.radius)) {
             monster.takeDamage(p.damage, pos);
             p.hitMonsters.add(monster);
+            if (this.onMonsterHit) this.onMonsterHit('qi');
             if (this.particles) {
               this.particles.emitHitSparkles(pos, 12);
               this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);

@@ -456,9 +456,9 @@ export class MobileControlsManager {
     }
   }
 
-  // Tối ưu hóa 5 ô Kỹ Năng Đạo Phù cho cảm ứng tuyệt đối chính xác
+  // Tối ưu hóa 6 ô Kỹ Năng Đạo Phù cho cảm ứng tuyệt đối chính xác
   bindSkillSlotsTouch() {
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 6; i++) {
       const slot = document.getElementById(`skill-slot-${i}`);
       if (slot) {
         let lastCast = 0;
