@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { sound } from './audio.js';
 import { getTerrainHeight } from './world.js';
 import { createSword } from './sword.js';
-import { createDragon, DRAGON_LENGTH } from './dragon.js';
+import { createDragon } from './dragon.js';
 
 // --- PIXEL ART PROCEDURAL TEXTURE GENERATOR (Theo cảm hứng từ patch-gg/pixelfx) ---
 // Vẽ các frame hiệu ứng pixel art trực tiếp lên canvas 2D nhỏ (nearest-neighbor)
@@ -150,7 +150,7 @@ export class PixelFXManager {
 
     // Thời gian hồi chiêu của 5 kiếm chiêu (giây)
     this.cooldowns = {
-      1: { current: 0, max: 6.0, name: 'Phi Kiếm Thuật', icon: '🗡️' },
+      1: { current: 0, max: 6.0, name: 'Chân Long Bảo Thuật', icon: '🐉' },
       2: { current: 0, max: 5.0, name: 'Thuấn Bộ Trảm', icon: '💨' },
       3: { current: 0, max: 10.0, name: 'Kiếm Trận Hộ Thể', icon: '🌀' },
       4: { current: 0, max: 7.0, name: 'Thiên Kiếm Lạc', icon: '🌧️' },
@@ -267,18 +267,23 @@ export class PixelFXManager {
     return dir.lengthSq() > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 0, -1);
   }
 
-  // --- KIẾM CHIÊU 1: PHI KIẾM THUẬT · SONG LONG HỘ KIẾM ---
-  // Phóng tiên kiếm bay thẳng 50m, hai thần long xoắn quanh thân kiếm như dây xoắn kép.
+  // --- KIẾM CHIÊU 1: CHÂN LONG BẢO THUẬT ---
+  // Phóng tiên kiếm bay thẳng 50m, một thần long bay theo sau mũi kiếm, thân uốn lượn hình chữ S như rồng bay.
   // Kiếm và rồng tông trúng quái nào là gây sát thương; hết tầm thì kiếm phát nổ, kiếm hiện lại trên tay.
   castFlyingSword(targetPos, character, monsters) {
     const RANGE = 50;
-    const SPEED = 30;
+    const SPEED = 16;
     const SWORD_DAMAGE = 50;
-    const DRAGON_DAMAGE = 30;
+    const DRAGON_DAMAGE = 70;
     const BLAST_RADIUS = 8;
     const BLAST_DAMAGE = 80;
-    const HELIX_RADIUS = 2.2;
-    const DRAGON_SCALE = 1.1;
+    const DRAGON_THICK = 1.7;  // độ to thân rồng
+    const BODY_SPAN = 8.0;     // thân rồng trải dài 8m dọc đường bay
+    const HEAD_LEAD = -0.6;    // đầu rồng bám ngay sau mũi kiếm
+    const SWAY_SIDE = 1.3;     // biên độ lượn ngang ở đuôi (m)
+    const SWAY_UP = 0.35;      // biên độ nhấp nhô dọc (m)
+    const WAVE_COUNT = 1.1;    // số bước sóng chữ S dọc thân
+    const WAVE_SPEED = 3.5;    // sóng chạy từ đầu xuống đuôi (rad/s)
 
     const dir = PixelFXManager.flatDirection(character.position, targetPos);
     const right = new THREE.Vector3(dir.z, 0, -dir.x);
@@ -288,13 +293,10 @@ export class PixelFXManager {
     sword.visible = false;
     this.scene.add(sword);
 
-    // Hai rồng lệch pha nửa vòng xoắn
-    const dragons = [0, Math.PI].map((phase) => {
-      const d = createDragon(DRAGON_SCALE);
-      d.object.visible = false;
-      this.scene.add(d.object);
-      return { ...d, phase, hitSet: new Set() };
-    });
+    const dragon = createDragon(DRAGON_THICK);
+    dragon.object.visible = false;
+    this.scene.add(dragon.object);
+    const dragonHits = new Set();
 
     const start = new THREE.Vector3();
     const pos = new THREE.Vector3();
@@ -303,13 +305,19 @@ export class PixelFXManager {
     let flight = 0; // quãng đường kiếm đã bay
     let launched = false;
 
-    // Vị trí đầu rồng trên vòng xoắn quanh đường kiếm, ở quãng bay dist và thời điểm t
-    const helixPoint = (dist, t, phase) => {
-      const a = t * 5 + phase;
-      return start.clone()
-        .addScaledVector(dir, dist - 1.2)
-        .addScaledVector(right, Math.cos(a) * HELIX_RADIUS)
-        .addScaledVector(up, Math.sin(a) * HELIX_RADIUS * 0.6);
+    // Điểm trên thân rồng ở s (0 = đầu, 1 = đuôi): nằm trên đường kiếm, lệch ngang/dọc theo sóng chữ S
+    // chạy từ đầu xuống đuôi. Đầu lượn nhẹ, càng về đuôi càng lượn rộng; lúc mới phóng thì biên độ nở dần.
+    // Phần thân chưa ra khỏi điểm phóng thì dồn ở đó, như rồng đang trườn ra.
+    const bodyPoint = (s) => {
+      const u = Math.max(0, flight + HEAD_LEAD - s * BODY_SPAN);
+      const sway = (0.2 + 0.8 * Math.min(1, s * 2.5)) * Math.min(1, elapsed / 0.4);
+      const phase = s * WAVE_COUNT * Math.PI * 2 - elapsed * WAVE_SPEED;
+      const p = start.clone()
+        .addScaledVector(dir, u)
+        .addScaledVector(right, Math.sin(phase) * SWAY_SIDE * sway)
+        .addScaledVector(up, Math.cos(phase) * SWAY_UP * sway);
+      p.y = Math.max(p.y, getTerrainHeight(p.x, p.z) + 0.4);
+      return p;
     };
 
     const hitMonsters = (point, radius, hitSet, damage, text, color) => {
@@ -326,7 +334,7 @@ export class PixelFXManager {
 
     const cleanup = () => {
       this.scene.remove(sword);
-      for (const d of dragons) this.scene.remove(d.object);
+      this.scene.remove(dragon.object);
     };
 
     this.activeEffects.push({
@@ -339,9 +347,10 @@ export class PixelFXManager {
           launched = true;
           elapsed = 0;
           character.setSwordThrown(true);
-          start.copy(character.position).add(new THREE.Vector3(0, 1.2, 0)).addScaledVector(dir, 0.8);
+          // Bay cao hơn kiếm thường để thân rồng nhấp nhô không quệt đất
+          start.copy(character.position).add(new THREE.Vector3(0, 1.8, 0)).addScaledVector(dir, 0.8);
           sword.visible = true;
-          for (const d of dragons) d.object.visible = true;
+          dragon.object.visible = true;
           sound.playSwordSummon();
           if (this.particles) this.particles.emitElementalParticles(start, 20, [0xe84118, 0xf1c40f, 0xffffff], [2, 5], 0.4, 0, 0.6);
         }
@@ -356,32 +365,23 @@ export class PixelFXManager {
         sword.rotateY(Math.sin(elapsed * 30) * 0.3);
         hitMonsters(pos, 1.2, swordHits, SWORD_DAMAGE, `🗡️ -${SWORD_DAMAGE}`, '#1dd1a1');
 
-        // Rồng hiện dần, xoắn quanh kiếm, đầu luôn hướng theo đường bay của chính nó
-        const grow = Math.min(1, elapsed / 0.3);
-        for (const d of dragons) {
-          const head = helixPoint(flight, elapsed, d.phase);
-          head.y = Math.max(head.y, getTerrainHeight(head.x, head.z) + 0.6);
-          d.object.position.copy(head);
-          d.object.lookAt(helixPoint(flight + SPEED * 0.05, elapsed + 0.05, d.phase));
-          d.object.scale.setScalar(DRAGON_SCALE * grow);
-          d.update(elapsed + d.phase);
-          d.object.updateMatrixWorld();
+        // Thân rồng uốn theo sóng chữ S sau mũi kiếm
+        dragon.pose(bodyPoint);
 
-          // Va chạm ở đầu và giữa thân rồng
-          const mid = d.object.localToWorld(new THREE.Vector3(0, 0, -DRAGON_LENGTH * 0.5));
-          hitMonsters(head, 1.4, d.hitSet, DRAGON_DAMAGE, `🐉 -${DRAGON_DAMAGE}`, '#e84118');
-          hitMonsters(mid, 1.4, d.hitSet, DRAGON_DAMAGE, `🐉 -${DRAGON_DAMAGE}`, '#e84118');
+        // Va chạm ở đầu, một phần ba và hai phần ba thân
+        for (const s of [0, 0.33, 0.66]) {
+          hitMonsters(bodyPoint(s), 1.5, dragonHits, DRAGON_DAMAGE, `🐉 -${DRAGON_DAMAGE}`, '#f9ca24');
+        }
 
-          if (this.particles && Math.random() < 0.5) {
-            this.particles.emitElementalParticles(mid, 1, [0xe84118, 0xf1c40f, 0xffffff], [0.3, 1.0], 0.3, 0, 0.4);
-          }
+        if (this.particles && Math.random() < 0.6) {
+          this.particles.emitElementalParticles(bodyPoint(Math.random()), 1, [0x1c1c22, 0x2d3436, 0xf9ca24], [0.3, 1.0], 0.3, 0, 0.4);
         }
 
         if (this.particles && Math.random() < 0.7) {
           this.particles.emitElementalParticles(pos, 1, [0x1dd1a1, 0x7bed9f, 0xffffff], [0.2, 0.8], 0.3, 0, 0.4);
         }
 
-        // Hết 50m: kiếm và song long nổ tung
+        // Hết 50m: kiếm và thần long nổ tung
         if (flight >= RANGE) {
           cleanup();
           sound.playGiantSwordImpact();

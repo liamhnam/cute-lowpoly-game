@@ -109,7 +109,7 @@ class Game {
     // 3. Nhân vật Bé Gấu Tu Tiên mang hồ lô và pháp bảo
     this.character = new Character(this.scene, this.particles);
     loadSwordModel(); // Nạp tiên kiếm GLB nếu có, kiếm trên tay & kiếm chiêu tự đổi theo
-    loadDragonModel(); // Nạp thần long GLB nếu có cho chiêu Phi Kiếm
+    loadDragonModel(); // Nạp thần long GLB nếu có cho chiêu Chân Long Bảo Thuật
 
     // 4. Hệ thống chém kiếm & kiếm khí có vệt sáng & tương tác vật thể
     this.projectiles = new ProjectileSystem(this.scene, this.particles, this.world);
@@ -187,7 +187,7 @@ class Game {
           this.playerMp -= cost;
 
           const names = {
-            1: 'Phi Kiếm Thuật 🗡️',
+            1: 'Chân Long Bảo Thuật 🐉',
             2: 'Thuấn Bộ Trảm 💨',
             3: 'Kiếm Trận Hộ Thể 🌀',
             4: 'Thiên Kiếm Lạc 🌧️',
@@ -507,7 +507,7 @@ class Game {
         state = 'Đạp Vân Phi Hành 🦘';
       } else if (this.character.isCasting) {
         const skillNames = {
-          1: 'Phi Kiếm 🗡️',
+          1: 'Chân Long 🐉',
           2: 'Thuấn Bộ 💨',
           3: 'Kiếm Trận 🌀',
           4: 'Thiên Kiếm 🌧️',

@@ -574,7 +574,7 @@ export class Character {
     this.drawSword();
 
     const colors = {
-      1: 0x1dd1a1, // Phi Kiếm - ngọc bích
+      1: 0x1dd1a1, // Chân Long Bảo Thuật - ngọc bích
       2: 0x00d2d3, // Thuấn Bộ Trảm - thanh lam
       3: 0x7bed9f, // Kiếm Trận Hộ Thể - lục ngọc
       4: 0x48dbfb, // Thiên Kiếm Lạc - thiên thanh
@@ -720,7 +720,7 @@ export class Character {
       // Từng dáng thi triển đặc trưng cho các kiếm chiêu:
       this.rightArm.rotation.y = 0;
       if (this.castSkill === 1) {
-        // [1] Phi Kiếm: vung kiếm qua đầu rồi phóng thẳng về phía trước
+        // [1] Chân Long Bảo Thuật: vung kiếm qua đầu rồi phóng thẳng về phía trước
         this.sword.rotation.x = Math.PI - 0.25;
         this.rightArm.rotation.z = 0;
         if (castProgress < 0.35) {
