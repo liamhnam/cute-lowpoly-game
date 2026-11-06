@@ -244,6 +244,17 @@ class Game {
         }
       }
     };
+
+    this.controller.onEscape = () => {
+      const settingsModal = document.getElementById('settings-modal');
+      if (settingsModal) {
+        if (settingsModal.style.display === 'flex') {
+          settingsModal.style.display = 'none';
+        } else {
+          settingsModal.style.display = 'flex';
+        }
+      }
+    };
   }
 
   // Đột phá Cảnh Giới Tu Vi theo chiến tích
@@ -577,22 +588,41 @@ class Game {
     }
 
     // Nút Bắn ảo
-    const shootBtn = document.getElementById('btn-shoot');
-    if (shootBtn) {
-      shootBtn.addEventListener('click', (e) => {
+    // Nút mở/đóng Modal Cài Đặt (Settings)
+    const settingsBtn = document.getElementById('btn-settings');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettingsBtn = document.getElementById('btn-close-settings');
+
+    if (settingsBtn && settingsModal) {
+      settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.controller.triggerShoot();
+        this.controller.exitLock();
+        settingsModal.style.display = 'flex';
+      });
+
+      if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          settingsModal.style.display = 'none';
+        });
+      }
+
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+          settingsModal.style.display = 'none';
+        }
       });
     }
 
     // Nút Âm thanh
     const soundBtn = document.getElementById('btn-sound');
+    const soundTag = document.getElementById('sound-status-tag');
     if (soundBtn) {
       soundBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         sound.init();
         const isMuted = sound.toggleMute();
-        soundBtn.innerHTML = isMuted ? '🔇 Linh Âm: Tắt' : '🔊 Linh Âm: Bật';
+        if (soundTag) soundTag.textContent = isMuted ? 'TẮT' : 'BẬT';
         soundBtn.classList.toggle('active', !isMuted);
       });
     }

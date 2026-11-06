@@ -354,7 +354,10 @@ export class ThirdPersonController {
         }
         break;
       case 'Escape':
-        if (isDown) this.exitLock();
+        if (isDown) {
+          this.exitLock();
+          if (this.onEscape) this.onEscape();
+        }
         break;
 
       // CÁC PHÍM KỸ NĂNG: [1], [2], [3] (hỗ trợ thêm [Q] cho 1, [E] cho 3)
