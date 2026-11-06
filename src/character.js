@@ -72,9 +72,20 @@ export class Character {
       { name: 'Bạch Hạc Chân Nhân (Bạch Ngọc)', clothes: 0xf5f6fa, hat: 0x00d2d3 },
     ];
 
+    // Chỉ số Khí Huyết & Multiplayer PvP (2000 Máu)
+    this.name = 'Gấu Hiệp Sĩ';
+    this.hp = 2000;
+    this.maxHp = 2000;
+    this.isDead = false;
+    this.kills = 0;
+    this.deaths = 0;
+    this.hitFlashTimer = 0;
+    this.lastHitTimer = 0;
+
     this.buildMesh();
     this.buildCastAura();
     this.buildContactShadow();
+    this.buildBillboard();
     this.scene.add(this.group);
   }
 
@@ -89,6 +100,133 @@ export class Character {
     });
     this.contactShadow = new THREE.Mesh(geo, this.shadowMat);
     this.scene.add(this.contactShadow);
+  }
+
+  buildBillboard() {
+    this.bbCanvas = document.createElement('canvas');
+    this.bbCanvas.width = 300;
+    this.bbCanvas.height = 90;
+    this.bbCtx = this.bbCanvas.getContext('2d');
+
+    this.bbTexture = new THREE.CanvasTexture(this.bbCanvas);
+    this.bbTexture.minFilter = THREE.LinearFilter;
+    this.bbTexture.magFilter = THREE.LinearFilter;
+
+    const spriteMat = new THREE.SpriteMaterial({
+      map: this.bbTexture,
+      transparent: true,
+      depthTest: false,
+    });
+    this.billboardSprite = new THREE.Sprite(spriteMat);
+    this.billboardSprite.scale.set(2.4, 0.72, 1);
+    this.billboardSprite.position.set(0, 2.35, 0);
+    this.group.add(this.billboardSprite);
+
+    this.updateBillboard();
+  }
+
+  updateBillboard() {
+    if (!this.bbCtx) return;
+    const ctx = this.bbCtx;
+    const w = this.bbCanvas.width;
+    const h = this.bbCanvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 1. Khung nền nametag
+    ctx.fillStyle = 'rgba(20, 26, 36, 0.85)';
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(10, 8, w - 20, h - 16, 10);
+    ctx.fill();
+    ctx.stroke();
+
+    // 2. Tên người chơi
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.shadowColor = '#000000';
+    ctx.shadowBlur = 4;
+    ctx.fillText(`👑 ${this.name}`, w / 2, 14);
+
+    // 3. Thanh Máu (Health bar)
+    const barX = 24;
+    const barY = 46;
+    const barW = w - 48;
+    const barH = 18;
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = '#2f3542';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(barX, barY, barW, barH);
+
+    const ratio = Math.max(0, Math.min(1, this.hp / this.maxHp));
+    let barColor = '#2ed573';
+    if (ratio < 0.3) {
+      barColor = '#ff4757';
+    } else if (ratio < 0.6) {
+      barColor = '#ffa502';
+    }
+
+    ctx.fillStyle = barColor;
+    ctx.fillRect(barX + 2, barY + 2, Math.max(0, (barW - 4) * ratio), barH - 4);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.shadowBlur = 3;
+    ctx.fillText(`${Math.round(this.hp)} / ${this.maxHp} HP`, w / 2, barY + barH / 2 + 1);
+
+    this.bbTexture.needsUpdate = true;
+  }
+
+  setName(name) {
+    this.name = (name || 'Gấu Hiệp Sĩ').trim().substring(0, 18);
+    this.updateBillboard();
+  }
+
+  setOutfit(index) {
+    this.outfitIndex = index % this.outfits.length;
+    const current = this.outfits[this.outfitIndex];
+    this.clothesMat.color.setHex(current.clothes);
+    this.hatMat.color.setHex(current.hat);
+    return current.name;
+  }
+
+  takeDamage(amount, attackerName = null, hitPos = null) {
+    if (this.isDead) return;
+    this.hp = Math.max(0, this.hp - amount);
+    this.lastHitTimer = 0;
+    this.updateBillboard();
+
+    // Chớp đỏ
+    this.hitFlashTimer = 0.25;
+    this.furMat.color.setHex(0xff3838);
+    this.clothesMat.color.setHex(0xff4757);
+
+    if (this.particles) {
+      const pos = hitPos || this.position.clone().add(new THREE.Vector3(0, 0.8, 0));
+      this.particles.emitHitSparkles(pos, 16);
+    }
+
+    sound.playHit();
+  }
+
+  respawn(spawnPos) {
+    this.isDead = false;
+    this.hp = this.maxHp;
+    this.position.set(spawnPos.x, spawnPos.y || 0, spawnPos.z);
+    this.group.position.copy(this.position);
+    this.group.visible = true;
+    this.updateBillboard();
+
+    if (this.particles) {
+      this.particles.emitShockwave(this.position, 0x00d2d3, 4.5, 0.45);
+      this.particles.emitElementalParticles(this.position, 25, [0x00d2d3, 0xffd700, 0xffffff], [1, 5], 0.6, 6.0, 0.9);
+    }
   }
 
   buildCastAura() {
@@ -631,6 +769,23 @@ export class Character {
   }
 
   update(delta, inputVector, isSprinting) {
+    if (this.isDead) return;
+
+    this.lastHitTimer += delta;
+    if (this.lastHitTimer > 5.0 && this.hp < this.maxHp) {
+      this.hp = Math.min(this.maxHp, this.hp + delta * 30);
+      this.updateBillboard();
+    }
+
+    if (this.hitFlashTimer > 0) {
+      this.hitFlashTimer -= delta;
+      if (this.hitFlashTimer <= 0) {
+        this.furMat.color.setHex(0xdf9a57);
+        const current = this.outfits[this.outfitIndex];
+        this.clothesMat.color.setHex(current.clothes);
+      }
+    }
+
     this.isSprinting = isSprinting;
     const moveLen = inputVector.length();
     this.isMoving = moveLen > 0.05;

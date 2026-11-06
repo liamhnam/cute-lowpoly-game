@@ -242,7 +242,7 @@ export class ThirdPersonController {
 
   // Đòn đánh thường: combo 3 nhát chém kiếm theo hướng camera
   triggerShoot() {
-    if (this.attackCooldown > 0) return;
+    if (this.character.isDead || this.attackCooldown > 0) return;
 
     const step = this.comboTimer > 0 ? (this.comboStep + 1) % 3 : 0;
     this.comboStep = step;
@@ -261,7 +261,7 @@ export class ThirdPersonController {
 
   // Nhấn giữ nút tấn công (chuột trái / F / J / nút Pháp Kích)
   beginAttackHold() {
-    if (this.isAttackHeld) return; // bỏ qua auto-repeat của phím
+    if (this.isAttackHeld || this.character.isDead) return; // bỏ qua auto-repeat của phím
     this.isAttackHeld = true;
     this.attackHoldTime = 0;
   }
@@ -297,6 +297,7 @@ export class ThirdPersonController {
 
   // KÍCH HOẠT KỸ NĂNG VÀ TÍNH ĐIỂM RƠI MỤC TIÊU PHÍA TRƯỚC
   triggerSkill(skillNum) {
+    if (this.character.isDead) return;
     const forward = new THREE.Vector3(
       -Math.sin(this.yaw),
       0,
@@ -401,15 +402,17 @@ export class ThirdPersonController {
     }
 
     const moveInput = new THREE.Vector2(0, 0);
-    if (this.keys.forward) moveInput.y += 1;
-    if (this.keys.backward) moveInput.y -= 1;
-    if (this.keys.left) moveInput.x -= 1;
-    if (this.keys.right) moveInput.x += 1;
+    if (!this.character.isDead) {
+      if (this.keys.forward) moveInput.y += 1;
+      if (this.keys.backward) moveInput.y -= 1;
+      if (this.keys.left) moveInput.x -= 1;
+      if (this.keys.right) moveInput.x += 1;
 
-    // Tích hợp vector di chuyển từ Cần gạt ảo Mobile (Analog Joystick)
-    if (this.joystickInput.lengthSq() > 0) {
-      moveInput.x += this.joystickInput.x;
-      moveInput.y += this.joystickInput.y;
+      // Tích hợp vector di chuyển từ Cần gạt ảo Mobile (Analog Joystick)
+      if (this.joystickInput.lengthSq() > 0) {
+        moveInput.x += this.joystickInput.x;
+        moveInput.y += this.joystickInput.y;
+      }
     }
 
     let worldMoveVector = new THREE.Vector3(0, 0, 0);

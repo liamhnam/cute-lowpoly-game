@@ -98,6 +98,9 @@ export class World {
     this.createCourtyardTrees();      // Liễu rủ & đào tiên
     this.createStreetFlora();         // Chậu hoa cúc & sen nước
     this.createCitySkyClouds();       // Mây trời kinh thành
+
+    // 7. Cập nhật toàn bộ toạ độ AABB thế giới cho mọi khối công trình phá hủy được
+    this.refreshBuildingPartsBounds();
   }
 
   // --- 1. MẶT SÀN KINH THÀNH RỘNG LỚN (IMPERIAL GROUND 300m x 300m) ---
@@ -194,33 +197,75 @@ export class World {
       bridgeFloor.position.y = 0.25;
       bridgeFloor.receiveShadow = true;
       bridgeGroup.add(bridgeFloor);
+      this.registerBuildingPart(bridgeFloor, 160, 'wall', 'masonry', `bridge_${bx}`);
 
       for (const side of [-bWidth / 2, bWidth / 2]) {
         const railMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.75, 9.0), railingMat);
         railMesh.position.set(side, 0.7, 0);
         railMesh.castShadow = true;
         bridgeGroup.add(railMesh);
+        this.registerBuildingPart(railMesh, 70, 'wall', 'masonry', `bridge_${bx}_rail_${side > 0 ? 'r' : 'l'}`);
 
         for (const zOffset of [-4.2, -1.4, 1.4, 4.2]) {
+          const postGroup = new THREE.Group();
+          postGroup.position.set(side, 0.75, zOffset);
+
           const post = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.1, 0.42), stoneMat);
-          post.position.set(side, 0.75, zOffset);
           post.castShadow = true;
-          bridgeGroup.add(post);
+          postGroup.add(post);
 
           const sphereCap = new THREE.Mesh(new THREE.DodecahedronGeometry(0.16, 0), stoneMat);
-          sphereCap.position.set(side, 1.38, zOffset);
-          bridgeGroup.add(sphereCap);
+          sphereCap.position.y = 0.63;
+          postGroup.add(sphereCap);
+
+          bridgeGroup.add(postGroup);
 
           this.fences.push({
-            mesh: post,
+            group: postGroup,
+            mesh: postGroup,
             pos: new THREE.Vector3(bx + side, 0.75, -16 + zOffset),
-            radius: 0.8,
+            radius: 1.0,
+            hp: 40,
             isBroken: false,
           });
         }
       }
 
       this.scene.add(bridgeGroup);
+    }
+  }
+
+  // --- TẠO TƯỜNG PHÂN ĐOẠN CÓ THỂ BỊ BẮN SẬP TỪNG MẢNG (MODULAR SEGMENTED WALL) ---
+  buildSegmentedWall(parentGroup, x1, z1, x2, z2, wallH, wallThick, segLength, wallMat, buildingId, hp = 140) {
+    const dx = x2 - x1;
+    const dz = z2 - z1;
+    const totalDist = Math.hypot(dx, dz);
+    const numSegs = Math.max(1, Math.round(totalDist / segLength));
+    const segLen = totalDist / numSegs;
+    const angle = Math.atan2(dz, dx);
+
+    for (let i = 0; i < numSegs; i++) {
+      const t = (i + 0.5) / numSegs;
+      const px = x1 + dx * t;
+      const pz = z1 + dz * t;
+
+      const segMesh = new THREE.Mesh(new THREE.BoxGeometry(segLen * 0.98, wallH, wallThick), wallMat);
+      segMesh.position.set(px, wallH / 2, pz);
+      segMesh.rotation.y = -angle;
+      segMesh.castShadow = true;
+      segMesh.receiveShadow = true;
+
+      // 2 đao xỉ tường (lỗ châu mai) gắn liền vào đỉnh từng phân đoạn để khi tường sập thì lỗ châu mai sập theo
+      for (const mxOffset of [-segLen * 0.25, segLen * 0.25]) {
+        const merlon = new THREE.Mesh(new THREE.BoxGeometry(segLen * 0.38, 1.2, 0.8), wallMat);
+        merlon.position.set(mxOffset, wallH / 2 + 0.6, wallThick / 2 - 0.4);
+        merlon.castShadow = true;
+        segMesh.add(merlon);
+      }
+
+      parentGroup.add(segMesh);
+
+      this.registerBuildingPart(segMesh, hp, 'wall', 'masonry', `${buildingId}_seg_${i}`);
     }
   }
 
@@ -238,33 +283,27 @@ export class World {
     const W = 126; // Tọa độ viền map bao bọc (+/- 126m)
 
     // 1. TƯỜNG THÀNH PHÍA NAM (Z = -126) & CHU TƯỚC ĐẠI MÔN (SOUTH GATE)
-    const southWallWest = new THREE.Mesh(new THREE.BoxGeometry(112, wallH, wallThick), wallMat);
-    southWallWest.position.set(-69, wallH / 2, -W);
-    southWallWest.castShadow = true;
-    southWallWest.receiveShadow = true;
-    this.perimeterWallGroup.add(southWallWest);
-
-    const southWallEast = new THREE.Mesh(new THREE.BoxGeometry(112, wallH, wallThick), wallMat);
-    southWallEast.position.set(69, wallH / 2, -W);
-    southWallEast.castShadow = true;
-    southWallEast.receiveShadow = true;
-    this.perimeterWallGroup.add(southWallEast);
+    this.buildSegmentedWall(this.perimeterWallGroup, -125, -W, -13, -W, wallH, wallThick, 14, wallMat, 'south_wall_w', 150);
+    this.buildSegmentedWall(this.perimeterWallGroup, 13, -W, 125, -W, wallH, wallThick, 14, wallMat, 'south_wall_e', 150);
 
     // Vòm Cổng Nam (Chu Tước Môn rộng 20m)
     const sGateL = new THREE.Mesh(new THREE.BoxGeometry(6.0, wallH + 1.5, wallThick + 2.0), wallMat);
     sGateL.position.set(-10, (wallH + 1.5) / 2, -W);
     sGateL.castShadow = true;
     this.perimeterWallGroup.add(sGateL);
+    this.registerBuildingPart(sGateL, 160, 'wall', 'masonry', 'south_gate');
 
     const sGateR = new THREE.Mesh(new THREE.BoxGeometry(6.0, wallH + 1.5, wallThick + 2.0), wallMat);
     sGateR.position.set(10, (wallH + 1.5) / 2, -W);
     sGateR.castShadow = true;
     this.perimeterWallGroup.add(sGateR);
+    this.registerBuildingPart(sGateR, 160, 'wall', 'masonry', 'south_gate');
 
     const sGateArch = new THREE.Mesh(new THREE.BoxGeometry(26, 4.2, wallThick + 2.0), wallMat);
     sGateArch.position.set(0, wallH + 1.0, -W);
     sGateArch.castShadow = true;
     this.perimeterWallGroup.add(sGateArch);
+    this.registerBuildingPart(sGateArch, 180, 'eave', 'masonry', 'south_gate');
 
     // Cánh cửa thành son đỏ Nam Môn
     const sDoorL = new THREE.Mesh(new THREE.BoxGeometry(6.2, 8.2, 0.5), woodGateMat);
@@ -272,12 +311,14 @@ export class World {
     sDoorL.rotation.y = 0.4;
     sDoorL.castShadow = true;
     this.perimeterWallGroup.add(sDoorL);
+    this.registerBuildingPart(sDoorL, 90, 'gate', 'wood', 'south_gate');
 
     const sDoorR = new THREE.Mesh(new THREE.BoxGeometry(6.2, 8.2, 0.5), woodGateMat);
     sDoorR.position.set(3.8, 4.1, -W - 0.4);
     sDoorR.rotation.y = -0.4;
     sDoorR.castShadow = true;
     this.perimeterWallGroup.add(sDoorR);
+    this.registerBuildingPart(sDoorR, 90, 'gate', 'wood', 'south_gate');
 
     // Thành Lầu Cổng Nam 2 tầng uy nghiêm
     const sTowerBase = new THREE.Mesh(new THREE.BoxGeometry(22, 4.5, 9.5), woodGateMat);
@@ -295,6 +336,7 @@ export class World {
     const sTowerUpper = new THREE.Mesh(new THREE.BoxGeometry(16, 3.8, 7.5), woodGateMat);
     sTowerUpper.position.set(0, wallH + 10.4, -W);
     this.perimeterWallGroup.add(sTowerUpper);
+    this.registerBuildingPart(sTowerUpper, 120, 'wall', 'wood', 'south_gate_tower');
 
     const sRoof2 = new THREE.Mesh(new THREE.BoxGeometry(20, 1.6, 11.5), roofMat);
     sRoof2.position.set(0, wallH + 12.8, -W);
@@ -307,29 +349,23 @@ export class World {
     this.perimeterWallGroup.add(sSign);
 
     // 2. TƯỜNG THÀNH PHÍA BẮC (Z = +126) & HUYỀN VŨ ĐẠI MÔN (NORTH GATE)
-    const northWallWest = new THREE.Mesh(new THREE.BoxGeometry(112, wallH, wallThick), wallMat);
-    northWallWest.position.set(-69, wallH / 2, W);
-    northWallWest.castShadow = true;
-    northWallWest.receiveShadow = true;
-    this.perimeterWallGroup.add(northWallWest);
-
-    const northWallEast = new THREE.Mesh(new THREE.BoxGeometry(112, wallH, wallThick), wallMat);
-    northWallEast.position.set(69, wallH / 2, W);
-    northWallEast.castShadow = true;
-    northWallEast.receiveShadow = true;
-    this.perimeterWallGroup.add(northWallEast);
+    this.buildSegmentedWall(this.perimeterWallGroup, -125, W, -13, W, wallH, wallThick, 14, wallMat, 'north_wall_w', 150);
+    this.buildSegmentedWall(this.perimeterWallGroup, 13, W, 125, W, wallH, wallThick, 14, wallMat, 'north_wall_e', 150);
 
     const nGateL = new THREE.Mesh(new THREE.BoxGeometry(6.0, wallH + 1.5, wallThick + 2.0), wallMat);
     nGateL.position.set(-10, (wallH + 1.5) / 2, W);
     this.perimeterWallGroup.add(nGateL);
+    this.registerBuildingPart(nGateL, 160, 'wall', 'masonry', 'north_gate');
 
     const nGateR = new THREE.Mesh(new THREE.BoxGeometry(6.0, wallH + 1.5, wallThick + 2.0), wallMat);
     nGateR.position.set(10, (wallH + 1.5) / 2, W);
     this.perimeterWallGroup.add(nGateR);
+    this.registerBuildingPart(nGateR, 160, 'wall', 'masonry', 'north_gate');
 
     const nGateArch = new THREE.Mesh(new THREE.BoxGeometry(26, 4.2, wallThick + 2.0), wallMat);
     nGateArch.position.set(0, wallH + 1.0, W);
     this.perimeterWallGroup.add(nGateArch);
+    this.registerBuildingPart(nGateArch, 180, 'eave', 'masonry', 'north_gate');
 
     const nTower = new THREE.Mesh(new THREE.BoxGeometry(20, 5.0, 9.0), woodGateMat);
     nTower.position.set(0, wallH + 5.5, W);
@@ -346,19 +382,13 @@ export class World {
     this.perimeterWallGroup.add(nSign);
 
     // 3. TƯỜNG THÀNH PHÍA TÂY (X = -126) & BẠCH HỔ THỦY MÔN (WEST WATER GATE)
-    const westWallSouth = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, 103), wallMat);
-    westWallSouth.position.set(-W, wallH / 2, -74.5);
-    westWallSouth.castShadow = true;
-    this.perimeterWallGroup.add(westWallSouth);
-
-    const westWallNorth = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, 135), wallMat);
-    westWallNorth.position.set(-W, wallH / 2, 58.5);
-    westWallNorth.castShadow = true;
-    this.perimeterWallGroup.add(westWallNorth);
+    this.buildSegmentedWall(this.perimeterWallGroup, -W, -125, -W, -24, wallH, wallThick, 14, wallMat, 'west_wall_s', 150);
+    this.buildSegmentedWall(this.perimeterWallGroup, -W, -8, -W, 125, wallH, wallThick, 14, wallMat, 'west_wall_n', 150);
 
     const wWaterArch = new THREE.Mesh(new THREE.BoxGeometry(wallThick + 1.5, 4.5, 18), wallMat);
     wWaterArch.position.set(-W, wallH + 1.0, -16);
     this.perimeterWallGroup.add(wWaterArch);
+    this.registerBuildingPart(wWaterArch, 180, 'eave', 'masonry', 'west_water_gate');
 
     const wWaterTower = new THREE.Mesh(new THREE.BoxGeometry(8.5, 4.0, 16), woodGateMat);
     wWaterTower.position.set(-W, wallH + 5.0, -16);
@@ -371,19 +401,13 @@ export class World {
     this.registerBuildingPart(wWaterRoof, 130, 'eave', 'tile', 'west_water_tower');
 
     // 4. TƯỜNG THÀNH PHÍA ĐÔNG (X = +126) & THANH LONG THỦY MÔN (EAST WATER GATE)
-    const eastWallSouth = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, 103), wallMat);
-    eastWallSouth.position.set(W, wallH / 2, -74.5);
-    eastWallSouth.castShadow = true;
-    this.perimeterWallGroup.add(eastWallSouth);
-
-    const eastWallNorth = new THREE.Mesh(new THREE.BoxGeometry(wallThick, wallH, 135), wallMat);
-    eastWallNorth.position.set(W, wallH / 2, 58.5);
-    eastWallNorth.castShadow = true;
-    this.perimeterWallGroup.add(eastWallNorth);
+    this.buildSegmentedWall(this.perimeterWallGroup, W, -125, W, -24, wallH, wallThick, 14, wallMat, 'east_wall_s', 150);
+    this.buildSegmentedWall(this.perimeterWallGroup, W, -8, W, 125, wallH, wallThick, 14, wallMat, 'east_wall_n', 150);
 
     const eWaterArch = new THREE.Mesh(new THREE.BoxGeometry(wallThick + 1.5, 4.5, 18), wallMat);
     eWaterArch.position.set(W, wallH + 1.0, -16);
     this.perimeterWallGroup.add(eWaterArch);
+    this.registerBuildingPart(eWaterArch, 180, 'eave', 'masonry', 'east_water_gate');
 
     const eWaterTower = new THREE.Mesh(new THREE.BoxGeometry(8.5, 4.0, 16), woodGateMat);
     eWaterTower.position.set(W, wallH + 5.0, -16);
@@ -411,6 +435,7 @@ export class World {
       bBase.position.y = (wallH + 2.0) / 2;
       bBase.castShadow = true;
       bastionGroup.add(bBase);
+      this.registerBuildingPart(bBase, 180, 'wall', 'masonry', `corner_${cc.x}_${cc.z}_base`);
 
       for (let t = 0; t < 2; t++) {
         const rad = 5.6 - t * 1.2;
@@ -432,36 +457,8 @@ export class World {
       this.perimeterWallGroup.add(bastionGroup);
     }
 
-    // 6. ĐAO XỈ TƯỜNG (CRENELLATIONS / MERLONS) DÙNG INSTANCED MESH (1 DRAW CALL THAY VÌ 180 MESHES!)
-    const merlonGeo = new THREE.BoxGeometry(2.2, 1.2, 0.7);
-    const merlonTransforms = [];
-
-    // Tường Nam & Bắc
-    for (let mx = -120; mx <= 120; mx += 4.8) {
-      if (Math.abs(mx) < 16) continue;
-      const mSouth = new THREE.Matrix4().setPosition(mx, wallH + 0.6, -W - wallThick / 2 + 0.35);
-      merlonTransforms.push(mSouth);
-      const mNorth = new THREE.Matrix4().setPosition(mx, wallH + 0.6, W + wallThick / 2 - 0.35);
-      merlonTransforms.push(mNorth);
-    }
-
-    // Tường Tây & Đông
-    const rotY90 = new THREE.Matrix4().makeRotationY(Math.PI / 2);
-    for (let mz = -120; mz <= 120; mz += 4.8) {
-      if (Math.abs(mz - (-16)) < 12) continue;
-      const mWest = new THREE.Matrix4().setPosition(-W - wallThick / 2 + 0.35, wallH + 0.6, mz).multiply(rotY90);
-      merlonTransforms.push(mWest);
-      const mEast = new THREE.Matrix4().setPosition(W + wallThick / 2 - 0.35, wallH + 0.6, mz).multiply(rotY90);
-      merlonTransforms.push(mEast);
-    }
-
-    const instancedMerlons = new THREE.InstancedMesh(merlonGeo, wallMat, merlonTransforms.length);
-    for (let i = 0; i < merlonTransforms.length; i++) {
-      instancedMerlons.setMatrixAt(i, merlonTransforms[i]);
-    }
-    instancedMerlons.instanceMatrix.needsUpdate = true;
-    instancedMerlons.castShadow = true;
-    this.perimeterWallGroup.add(instancedMerlons);
+    // 6. Đao xỉ tường (lỗ châu mai) đã được tích hợp trực tiếp vào từng phân đoạn trong buildSegmentedWall
+    // để khi tường sập thì các lỗ châu mai tự động vỡ vụn và nổ theo, không bị lơ lửng trên trời.
 
     // 7. THÁP CANH TRUNG ĐOẠN (8 INTERMEDIATE BASTION TOWERS)
     const midTowerSpots = [
@@ -479,6 +476,7 @@ export class World {
       mtBase.position.y = (wallH + 1.0) / 2;
       mtBase.castShadow = true;
       midTower.add(mtBase);
+      this.registerBuildingPart(mtBase, 150, 'wall', 'masonry', `mid_tower_${mt.x}_${mt.z}_base`);
 
       const mtRoom = new THREE.Mesh(new THREE.BoxGeometry(7.0, 3.2, 7.0), woodGateMat);
       mtRoom.position.y = wallH + 2.6;
@@ -507,35 +505,30 @@ export class World {
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, flatShading: true, roughness: 0.5 });
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.8, roughness: 0.3 });
 
-    // Đoạn tường thành bên Tây (-x) dài 110m
-    const wallWest = new THREE.Mesh(new THREE.BoxGeometry(110, 8.5, 6.0), wallMat);
-    wallWest.position.set(-63, 4.25, wallZ);
-    wallWest.castShadow = true;
-    wallWest.receiveShadow = true;
-    this.wallGroup.add(wallWest);
+    // Đoạn tường thành bên Tây (-x) dài 110m phân đoạn
+    this.buildSegmentedWall(this.wallGroup, -118, wallZ, -8, wallZ, 8.5, 6.0, 14, wallMat, 'inner_wall_w', 130);
 
-    // Đoạn tường thành bên Đông (+x) dài 110m
-    const wallEast = new THREE.Mesh(new THREE.BoxGeometry(110, 8.5, 6.0), wallMat);
-    wallEast.position.set(63, 4.25, wallZ);
-    wallEast.castShadow = true;
-    wallEast.receiveShadow = true;
-    this.wallGroup.add(wallEast);
+    // Đoạn tường thành bên Đông (+x) dài 110m phân đoạn
+    this.buildSegmentedWall(this.wallGroup, 8, wallZ, 118, wallZ, 8.5, 6.0, 14, wallMat, 'inner_wall_e', 130);
 
     // Cổng Thành Chính ở giữa (rộng 16m)
     const gatePostW = new THREE.Mesh(new THREE.BoxGeometry(4.5, 9.5, 7.0), wallMat);
     gatePostW.position.set(-7.5, 4.75, wallZ);
     gatePostW.castShadow = true;
     this.wallGroup.add(gatePostW);
+    this.registerBuildingPart(gatePostW, 140, 'wall', 'masonry', 'inner_gate');
 
     const gatePostE = new THREE.Mesh(new THREE.BoxGeometry(4.5, 9.5, 7.0), wallMat);
     gatePostE.position.set(7.5, 4.75, wallZ);
     gatePostE.castShadow = true;
     this.wallGroup.add(gatePostE);
+    this.registerBuildingPart(gatePostE, 140, 'wall', 'masonry', 'inner_gate');
 
     const archTop = new THREE.Mesh(new THREE.BoxGeometry(19.0, 3.5, 7.0), wallMat);
     archTop.position.set(0, 8.0, wallZ);
     archTop.castShadow = true;
     this.wallGroup.add(archTop);
+    this.registerBuildingPart(archTop, 150, 'eave', 'masonry', 'inner_gate');
 
     // 2 Cánh cửa gỗ son lớn sơn đỏ hé mở
     const doorL = new THREE.Mesh(new THREE.BoxGeometry(4.4, 6.2, 0.4), woodGateMat);
@@ -543,33 +536,39 @@ export class World {
     doorL.rotation.y = 0.45;
     doorL.castShadow = true;
     this.wallGroup.add(doorL);
+    this.registerBuildingPart(doorL, 80, 'gate', 'wood', 'inner_gate');
 
     const doorR = new THREE.Mesh(new THREE.BoxGeometry(4.4, 6.2, 0.4), woodGateMat);
     doorR.position.set(3.2, 3.1, wallZ - 0.5);
     doorR.rotation.y = -0.45;
     doorR.castShadow = true;
     this.wallGroup.add(doorR);
+    this.registerBuildingPart(doorR, 80, 'gate', 'wood', 'inner_gate');
 
     // Thành Lầu 2 tầng uy nghiêm
     const towerPillars = new THREE.Mesh(new THREE.BoxGeometry(15.0, 3.8, 5.5), wallMat);
     towerPillars.position.set(0, 11.4, wallZ);
     towerPillars.castShadow = true;
     this.wallGroup.add(towerPillars);
+    this.registerBuildingPart(towerPillars, 120, 'wall', 'wood', 'inner_gate_tower');
 
     const roof1 = new THREE.Mesh(new THREE.BoxGeometry(18.0, 1.0, 7.5), roofMat);
     roof1.position.y = 13.8;
     roof1.position.z = wallZ;
     roof1.castShadow = true;
     this.wallGroup.add(roof1);
+    this.registerBuildingPart(roof1, 100, 'eave', 'tile', 'inner_gate_tower');
 
     const towerTop = new THREE.Mesh(new THREE.BoxGeometry(11.0, 3.0, 4.5), woodGateMat);
     towerTop.position.set(0, 15.6, wallZ);
     this.wallGroup.add(towerTop);
+    this.registerBuildingPart(towerTop, 100, 'wall', 'wood', 'inner_gate_tower');
 
     const roof2 = new THREE.Mesh(new THREE.BoxGeometry(14.0, 1.0, 6.5), roofMat);
     roof2.position.set(0, 17.5, wallZ);
     roof2.castShadow = true;
     this.wallGroup.add(roof2);
+    this.registerBuildingPart(roof2, 100, 'eave', 'tile', 'inner_gate_tower');
 
     const signBoard = new THREE.Mesh(new THREE.BoxGeometry(4.5, 1.2, 0.15), goldMat);
     signBoard.position.set(0, 8.8, wallZ + 3.6);
@@ -599,12 +598,14 @@ export class World {
       step.position.y = 0.3 + l * 0.6;
       step.receiveShadow = true;
       this.palaceGroup.add(step);
+      this.registerBuildingPart(step, 180, 'wall', 'masonry', `palace_step_${l}`);
     }
 
     const stairs = new THREE.Mesh(new THREE.BoxGeometry(10.0, 1.8, 5.0), stoneMat);
     stairs.position.set(0, 0.9, -11.5);
     stairs.rotation.x = 0.35;
     this.palaceGroup.add(stairs);
+    this.registerBuildingPart(stairs, 150, 'wall', 'masonry', 'palace_stairs');
 
     // Cột trụ sơn son đỏ
     for (let c = -5; c <= 5; c += 2) {
@@ -612,27 +613,32 @@ export class World {
       colFront.position.set(c * 2.3, 4.8, -8.0);
       colFront.castShadow = true;
       this.palaceGroup.add(colFront);
+      this.registerBuildingPart(colFront, 85, 'pillar', 'wood', 'palace_main');
     }
 
     const palaceWalls = new THREE.Mesh(new THREE.BoxGeometry(24.0, 6.4, 15.0), redColMat);
     palaceWalls.position.set(0, 4.8, 0);
     palaceWalls.castShadow = true;
     this.palaceGroup.add(palaceWalls);
+    this.registerBuildingPart(palaceWalls, 160, 'wall', 'masonry', 'palace_main');
 
     // Mái ngói hoàng kim
     const eaveLower = new THREE.Mesh(new THREE.BoxGeometry(28.0, 1.4, 19.0), goldRoofMat);
     eaveLower.position.y = 8.5;
     eaveLower.castShadow = true;
     this.palaceGroup.add(eaveLower);
+    this.registerBuildingPart(eaveLower, 140, 'eave', 'tile', 'palace_main');
 
     const upperWall = new THREE.Mesh(new THREE.BoxGeometry(18.0, 3.0, 12.0), redColMat);
     upperWall.position.y = 10.4;
     this.palaceGroup.add(upperWall);
+    this.registerBuildingPart(upperWall, 120, 'wall', 'masonry', 'palace_main');
 
     const eaveUpper = new THREE.Mesh(new THREE.BoxGeometry(22.0, 2.0, 16.0), goldRoofMat);
     eaveUpper.position.y = 12.6;
     eaveUpper.castShadow = true;
     this.palaceGroup.add(eaveUpper);
+    this.registerBuildingPart(eaveUpper, 140, 'eave', 'tile', 'palace_main');
 
     // Cặp Sư Tử Đá Hộ Vệ (Stone Lions) trước thềm
     const lionMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6, flatShading: true });
@@ -702,6 +708,22 @@ export class World {
 
     this.buildingParts.push(part);
     return part;
+  }
+
+  // Cập nhật lại bounding box và bán kính cho mọi bộ phận sau khi toàn bộ nhóm đối tượng đã add vào Scene
+  refreshBuildingPartsBounds() {
+    this.scene.updateMatrixWorld(true);
+    for (let i = 0; i < this.buildingParts.length; i++) {
+      const part = this.buildingParts[i];
+      if (part.mesh && !part.isBroken) {
+        part.mesh.updateMatrixWorld(true);
+        part.box.setFromObject(part.mesh);
+        part.box.getCenter(part.center);
+        const size = new THREE.Vector3();
+        part.box.getSize(size);
+        part.radius = Math.max(size.x, size.y, size.z) * 0.55;
+      }
+    }
   }
 
   // --- 5. TỬU LẦU NGUYỆT LAI PHÂN RÃ THEO MODULE (MODULAR DESTRUCTIBLE TAVERN) ---
@@ -792,14 +814,15 @@ export class World {
     const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3.8, 5), woodDarkMat);
     flagPole.position.set(4.5, 3.5, 5.2);
     flagPole.rotation.z = -0.3;
-    this.tavernGroup.add(flagPole);
 
     this.wineFlag = new THREE.Mesh(
       new THREE.PlaneGeometry(1.4, 0.9),
       new THREE.MeshStandardMaterial({ color: 0xee5253, side: THREE.DoubleSide })
     );
-    this.wineFlag.position.set(5.3, 4.4, 5.2);
-    this.tavernGroup.add(this.wineFlag);
+    this.wineFlag.position.set(0.8, 0.9, 0);
+    flagPole.add(this.wineFlag);
+    this.tavernGroup.add(flagPole);
+    this.registerBuildingPart(flagPole, 35, 'pillar', 'wood', 'tavern_flag');
 
     const tavernLight = new THREE.PointLight(0xff7722, 1.8, 14, 1.8);
     tavernLight.position.set(2.5, 3.2, 5.0);
@@ -940,6 +963,7 @@ export class World {
     const base = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.8, 1.6, 8), stoneBaseMat);
     base.position.y = 0.8;
     this.bellTower.add(base);
+    this.registerBuildingPart(base, 150, 'wall', 'masonry', 'bell_base');
 
     for (let l = 0; l < 3; l++) {
       const radius = 4.2 - l * 0.8;
@@ -975,6 +999,7 @@ export class World {
       const base = new THREE.Mesh(new THREE.BoxGeometry(14, 1.2, 11), stoneMat);
       base.position.y = 0.6;
       pav.add(base);
+      this.registerBuildingPart(base, 150, 'wall', 'masonry', `noancac_${side}_base`);
 
       for (const cx of [-5.5, 0, 5.5]) {
         for (const cz of [-4.2, 4.2]) {
@@ -1003,6 +1028,7 @@ export class World {
     const royalAvenue = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.35, 38), stoneMat);
     royalAvenue.position.set(0, 0.18, 98);
     this.rearCourtsGroup.add(royalAvenue);
+    this.registerBuildingPart(royalAvenue, 180, 'wall', 'masonry', 'royal_avenue');
 
     this.scene.add(this.rearCourtsGroup);
   }
@@ -1095,6 +1121,7 @@ export class World {
       awning.position.set(0, 2.2, pZ + 1.0);
       awning.rotation.x = -0.22;
       group.add(awning);
+      this.registerBuildingPart(awning, 45, 'eave', 'wood', id);
     }
 
     this.scene.add(group);
@@ -1147,6 +1174,7 @@ export class World {
     const table = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.75, 8), tableMat);
     table.position.set(0, 0.38, 0);
     compound.add(table);
+    this.registerBuildingPart(table, 60, 'wall', 'masonry', `${id}_table`);
 
     this.scene.add(compound);
   }
@@ -1183,6 +1211,7 @@ export class World {
     const upperWall = new THREE.Mesh(new THREE.BoxGeometry(13, 2.8, 8.5), redMat);
     upperWall.position.set(0, 7.6, -8);
     academy.add(upperWall);
+    this.registerBuildingPart(upperWall, 100, 'wall', 'masonry', id);
 
     const upperRoof = new THREE.Mesh(new THREE.BoxGeometry(16, 1.4, 11), tealRoof);
     upperRoof.position.set(0, 9.4, -8);
@@ -1193,6 +1222,7 @@ export class World {
     const sign = new THREE.Mesh(new THREE.BoxGeometry(6.5, 1.5, 0.2), goldMat);
     sign.position.set(0, 4.6, -1.8);
     academy.add(sign);
+    this.registerBuildingPart(sign, 50, 'wall', 'wood', id);
 
     for (let i = 0; i < 4; i++) {
       const dummyX = -5.0 + i * 3.3;
@@ -1215,9 +1245,10 @@ export class World {
       academy.add(dummyGroup);
 
       this.fences.push({
+        group: dummyGroup,
         mesh: post,
         pos: new THREE.Vector3(cx + dummyX, 1.1, cz + 7.5),
-        radius: 1.0,
+        radius: 1.2,
         hp: 40,
         isBroken: false,
       });
@@ -1257,6 +1288,7 @@ export class World {
     const topRoom = new THREE.Mesh(new THREE.BoxGeometry(12, 2.8, 7.5), stoneMat);
     topRoom.position.set(0, 8.0, 0);
     library.add(topRoom);
+    this.registerBuildingPart(topRoom, 90, 'wall', 'masonry', id);
 
     const topRoof = new THREE.Mesh(new THREE.BoxGeometry(15, 1.4, 10), blueRoofMat);
     topRoof.position.set(0, 9.8, 0);
@@ -1279,6 +1311,7 @@ export class World {
     const base = new THREE.Mesh(new THREE.CylinderGeometry(5.0, 5.5, 1.5, 8), stoneBaseMat);
     base.position.y = 0.75;
     tower.add(base);
+    this.registerBuildingPart(base, 140, 'wall', 'masonry', `${id}_base`);
 
     for (let l = 0; l < tiers; l++) {
       const radius = 4.2 - l * 0.75;
@@ -1321,6 +1354,7 @@ export class World {
     const deck = new THREE.Mesh(new THREE.BoxGeometry(8.2, 0.35, 6.2), woodMat);
     deck.position.y = 1.9;
     stiltHouse.add(deck);
+    this.registerBuildingPart(deck, 80, 'wall', 'wood', id);
 
     const hut = new THREE.Mesh(new THREE.BoxGeometry(6.5, 3.0, 4.8), woodMat);
     hut.position.set(0, 3.4, 0);
@@ -1337,6 +1371,7 @@ export class World {
     boat.position.set(3.8, -0.2, 2.0);
     boat.rotation.y = 0.3;
     stiltHouse.add(boat);
+    this.registerBuildingPart(boat, 60, 'wall', 'wood', `${id}_boat`);
 
     this.scene.add(stiltHouse);
   }
@@ -1554,9 +1589,10 @@ export class World {
         this.lanternGroup.add(poleGroup);
 
         this.fences.push({
+          group: poleGroup,
           mesh: pole,
           pos: new THREE.Vector3(side, 1.9, z),
-          radius: 0.9,
+          radius: 1.4,
           isBroken: false,
           isLantern: true,
         });
@@ -1618,9 +1654,10 @@ export class World {
       }
 
       this.fences.push({
+        group: stall,
         mesh: table,
-        pos: new THREE.Vector3(spot.x, 0.5, spot.z),
-        radius: 1.5,
+        pos: new THREE.Vector3(spot.x, 0.8, spot.z),
+        radius: 2.4,
         hp: 35,
         isBroken: false,
       });
@@ -1667,9 +1704,10 @@ export class World {
       this.rackGroup.add(rack);
 
       this.fences.push({
+        group: rack,
         mesh: frame,
         pos: new THREE.Vector3(rs.x, 0.8, rs.z),
-        radius: 1.2,
+        radius: 1.8,
         hp: 30,
         isBroken: false,
       });
@@ -1985,11 +2023,11 @@ export class World {
   }
 
   // --- VẬT LÝ MẢNH VỠ BAY TỨ TUNG (DEBRIS PHYSICS CÓ ĐỘ NẢY RESTITUTION & MA SÁT) ---
-  addDebris(mesh, impulseDir, speed, gravity = 20, life = 3.2, restitution = 0.52) {
+  addDebris(mesh, impulseDir, speed, gravity = 20, life = 3.6, restitution = 0.52, isBurning = false) {
     mesh.castShadow = false; // Tắt shadow cho mảnh vỡ để bảo vệ FPS tối đa
 
-    // Giới hạn mảnh vỡ tối đa 45 mảnh
-    while (this.debris.length >= 45) {
+    // Giới hạn mảnh vỡ tối đa 160 mảnh
+    while (this.debris.length >= 160) {
       const old = this.debris.shift();
       this.scene.remove(old.mesh);
     }
@@ -2003,76 +2041,111 @@ export class World {
       vel,
       gravity,
       restitution,
+      isBurning,
+      burnTimer: 0,
       rotVel: new THREE.Vector3(
-        (Math.random() - 0.5) * 16,
-        (Math.random() - 0.5) * 16,
-        (Math.random() - 0.5) * 16
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 18,
+        (Math.random() - 0.5) * 18
       ),
       life,
       maxLife: life,
     });
   }
 
+  // HÀM XÓA OBJECT AN TOÀN TRUY TÌM ĐÚNG PARENT VÀ ẨN NGAY LẬP TỨC
+  safeRemoveObject(obj) {
+    if (!obj) return;
+    obj.visible = false;
+    if (obj.parent) {
+      obj.parent.remove(obj);
+    } else {
+      this.scene.remove(obj);
+    }
+  }
+
   // --- PHÁ HỦY TỪNG BỘ PHẬN NHÀ (MODULAR BUILDING DESTRUCTION SYSTEM) ---
-  breakBuildingPart(part, epicenter, force) {
+  breakBuildingPart(part, epicenter, force, isFire = false) {
     if (part.isBroken) return;
     part.isBroken = true;
 
     // 1. Tách hoặc ẩn mesh bộ phận
-    if (part.mesh.parent) {
-      part.mesh.parent.remove(part.mesh);
-    } else {
-      this.scene.remove(part.mesh);
-    }
+    this.safeRemoveObject(part.mesh);
 
     const impulseDir = part.center.clone().sub(epicenter).normalize();
     if (impulseDir.lengthSq() < 0.001) {
       impulseDir.set((Math.random() - 0.5) * 2, 0.6, (Math.random() - 0.5) * 2).normalize();
     }
 
+    const isHugeBlast = force >= 35 || isFire;
+    const debrisMultiplier = isHugeBlast ? 2.2 : 1.0;
+    const launchSpeed = isHugeBlast ? force * 1.25 + 8 : force * 0.9 + 4;
+
     // 2. Âm thanh & Mảnh vỡ tùy loại vật liệu (Ngói, Gạch vôi, Gỗ)
     if (part.debrisType === 'tile') {
       sound.playRockShatter();
-      const tileMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, flatShading: true, roughness: 0.4 });
-      for (let i = 0; i < 7; i++) {
+      const tileColor = isHugeBlast ? 0x221105 : 0x2c3e50;
+      const tileMat = new THREE.MeshStandardMaterial({
+        color: tileColor,
+        emissive: isHugeBlast ? 0xff4757 : 0x000000,
+        emissiveIntensity: isHugeBlast ? 0.35 : 0.0,
+        flatShading: true,
+        roughness: 0.4
+      });
+      const count = Math.round(7 * debrisMultiplier);
+      for (let i = 0; i < count; i++) {
         const tile = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.08, 0.75), tileMat);
         tile.position.copy(part.center);
-        tile.position.add(new THREE.Vector3((Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 1.2));
-        tile.castShadow = true;
+        tile.position.add(new THREE.Vector3((Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 1.4));
         const dir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.6, 0.6, (Math.random() - 0.5) * 1.6)).normalize();
-        this.addDebris(tile, dir, force * 0.85 + 4, 22, 3.8, 0.42);
+        this.addDebris(tile, dir, launchSpeed * (0.8 + Math.random() * 0.35), 22, 3.8, 0.42, isHugeBlast);
       }
       if (this.particles) {
-        this.particles.emitSmoke(part.center, 5, 0x7f8c8d);
+        this.particles.emitSmoke(part.center, isHugeBlast ? 12 : 5, isHugeBlast ? 0x222222 : 0x7f8c8d, 1.3, isHugeBlast);
         this.particles.emitDust(part.center);
       }
     } else if (part.debrisType === 'masonry') {
       sound.playRockShatter();
-      const masonryMat = new THREE.MeshStandardMaterial({ color: 0xdcdde1, flatShading: true, roughness: 0.8 });
-      for (let i = 0; i < 8; i++) {
-        const brick = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45 + Math.random() * 0.35, 0), masonryMat);
+      const brickColor = isHugeBlast ? 0x4a3c31 : 0xdcdde1;
+      const masonryMat = new THREE.MeshStandardMaterial({
+        color: brickColor,
+        emissive: isHugeBlast ? 0xff3838 : 0x000000,
+        emissiveIntensity: isHugeBlast ? 0.4 : 0.0,
+        flatShading: true,
+        roughness: 0.8
+      });
+      const count = Math.round(8 * debrisMultiplier);
+      for (let i = 0; i < count; i++) {
+        const brick = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45 + Math.random() * 0.4, 0), masonryMat);
         brick.position.copy(part.center);
-        brick.position.add(new THREE.Vector3((Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.0, (Math.random() - 0.5) * 1.5));
-        brick.castShadow = true;
-        const dir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.8, 0.8, (Math.random() - 0.5) * 1.8)).normalize();
-        this.addDebris(brick, dir, force * 0.95 + 5, 20, 4.0, 0.55);
+        brick.position.add(new THREE.Vector3((Math.random() - 0.5) * 1.8, (Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.8));
+        const dir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.8, 0.85, (Math.random() - 0.5) * 1.8)).normalize();
+        this.addDebris(brick, dir, launchSpeed * (0.85 + Math.random() * 0.4), 20, 4.2, 0.55, isHugeBlast);
       }
       if (this.particles) {
-        this.particles.emitSmoke(part.center, 8, 0x95a5a6, 1.4);
-        this.particles.emitShockwave(part.center, 0xdcdde1, 3.0, 0.4);
+        this.particles.emitSmoke(part.center, isHugeBlast ? 16 : 8, isHugeBlast ? 0x111111 : 0x95a5a6, 1.5, isHugeBlast);
+        this.particles.emitShockwave(part.center, isHugeBlast ? 0xff4757 : 0xdcdde1, isHugeBlast ? 6.5 : 3.0, 0.4);
       }
     } else if (part.debrisType === 'wood') {
       sound.playWoodBreak();
-      const woodMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, flatShading: true });
-      for (let i = 0; i < 6; i++) {
-        const plank = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 1.4 + Math.random() * 0.6), woodMat);
+      const woodColor = isHugeBlast ? 0x2b1d0c : 0x6d4c41;
+      const woodMat = new THREE.MeshStandardMaterial({
+        color: woodColor,
+        emissive: isHugeBlast ? 0xff6b4a : 0x000000,
+        emissiveIntensity: isHugeBlast ? 0.3 : 0.0,
+        flatShading: true
+      });
+      const count = Math.round(6 * debrisMultiplier);
+      for (let i = 0; i < count; i++) {
+        const plank = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.25, 1.4 + Math.random() * 0.8), woodMat);
         plank.position.copy(part.center);
-        plank.castShadow = true;
-        const dir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.8, 0.9, (Math.random() - 0.5) * 1.8)).normalize();
-        this.addDebris(plank, dir, force * 0.9 + 5, 18, 3.5, 0.45);
+        plank.position.add(new THREE.Vector3((Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 1.2));
+        const dir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.8, 0.95, (Math.random() - 0.5) * 1.8)).normalize();
+        this.addDebris(plank, dir, launchSpeed * (0.9 + Math.random() * 0.35), 18, 3.6, 0.45, isHugeBlast);
       }
       if (this.particles) {
         this.particles.emitDust(part.center);
+        if (isHugeBlast) this.particles.emitSmoke(part.center, 8, 0x222222, 1.2, true);
       }
 
       // Phản ứng dây chuyền: Nếu phá sập CỘT CHỊU LỰC, làm sập các mảng mái ngói phía trên nó!
@@ -2080,11 +2153,26 @@ export class World {
         for (const otherPart of this.buildingParts) {
           if (!otherPart.isBroken && otherPart.buildingId === part.buildingId && otherPart.partType === 'eave') {
             const hDist = Math.hypot(otherPart.center.x - part.center.x, otherPart.center.z - part.center.z);
-            if (hDist < 4.2 && otherPart.center.y > part.center.y) {
-              otherPart.hp -= 45;
+            if (hDist < 5.0 && otherPart.center.y > part.center.y) {
+              otherPart.hp -= 55;
               if (otherPart.hp <= 0) {
-                this.breakBuildingPart(otherPart, part.center, force * 0.8);
+                this.breakBuildingPart(otherPart, part.center, force * 0.85, isFire);
               }
+            }
+          }
+        }
+      }
+    }
+
+    // Sập dây chuyền mảng lớn nếu lực nổ cực đại
+    if (isHugeBlast) {
+      for (const otherPart of this.buildingParts) {
+        if (!otherPart.isBroken && otherPart.buildingId === part.buildingId && otherPart !== part) {
+          const d = otherPart.center.distanceTo(part.center);
+          if (d < 6.8) {
+            otherPart.hp -= 40;
+            if (otherPart.hp <= 0) {
+              this.breakBuildingPart(otherPart, part.center, force * 0.75, isFire);
             }
           }
         }
@@ -2115,7 +2203,7 @@ export class World {
     trunkLog.position.copy(tree.pos);
     trunkLog.position.y += 1.3;
     trunkLog.castShadow = true;
-    this.addDebris(trunkLog, impulseDir, force * 0.95 + 4, 18, 3.8, 0.48);
+    this.addDebris(trunkLog, impulseDir, force * 0.95 + 4, 18, 3.8, 0.48, force >= 35);
 
     for (const canopy of tree.canopies) {
       const worldPos = new THREE.Vector3();
@@ -2130,15 +2218,15 @@ export class World {
         new THREE.Vector3((Math.random() - 0.5) * 1.2, Math.random() * 0.8, (Math.random() - 0.5) * 1.2)
       ).normalize();
 
-      this.addDebris(chunk, scatterDir, force * 1.1 + 5, 14, 3.2, 0.35);
+      this.addDebris(chunk, scatterDir, force * 1.1 + 5, 14, 3.2, 0.35, force >= 35);
     }
 
     if (this.particles) {
-      this.particles.emitElementalParticles(tree.pos, 'ice', 16);
+      this.particles.emitElementalParticles(tree.pos, force >= 35 ? 'fire' : 'ice', 18);
       this.particles.emitDust(tree.pos);
     }
 
-    this.scene.remove(tree.group);
+    this.safeRemoveObject(tree.group);
   }
 
   // PHÁ HỦY / BỂ VÒ RƯỢU NỮ NHI HỒNG & SƯ TỬ ĐÁ
@@ -2151,36 +2239,38 @@ export class World {
     const impulseDir = rock.pos.clone().sub(epicenter).normalize();
     if (impulseDir.lengthSq() < 0.001) impulseDir.set(0, 1, 0);
 
-    const shardCount = 8;
+    const shardCount = force >= 35 ? 14 : 8;
     const shardMat = new THREE.MeshStandardMaterial({
       color: rock.isWineUrn ? 0x8b3a1a : 0x95a5a6,
       roughness: 0.6,
       flatShading: true,
+      emissive: force >= 35 ? 0xff4757 : 0x000000,
+      emissiveIntensity: force >= 35 ? 0.4 : 0.0,
     });
 
     for (let i = 0; i < shardCount; i++) {
       const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), shardMat);
       shard.position.copy(rock.pos);
-      shard.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4));
+      shard.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6));
       shard.castShadow = true;
 
       const sDir = impulseDir.clone().add(
         new THREE.Vector3((Math.random() - 0.5) * 1.8, Math.random() * 1.2, (Math.random() - 0.5) * 1.8)
       ).normalize();
 
-      this.addDebris(shard, sDir, force * 1.1 + 6, 22, 3.2, 0.6);
+      this.addDebris(shard, sDir, force * 1.1 + 6, 22, 3.2, 0.6, force >= 35);
     }
 
     if (this.particles) {
       if (rock.isWineUrn && this.particles.emitWineSplash) {
         this.particles.emitWineSplash(rock.pos, 22);
       } else {
-        this.particles.emitElementalParticles(rock.pos, 'fire', 12);
+        this.particles.emitElementalParticles(rock.pos, 'fire', 16);
       }
-      this.particles.emitShockwave(rock.pos, 0xd35400, 2.4, 0.45);
+      this.particles.emitShockwave(rock.pos, 0xd35400, 3.2, 0.45);
     }
 
-    this.scene.remove(rock.mesh);
+    this.safeRemoveObject(rock.mesh);
   }
 
   // PHÁ HỦY QUẦY SẠP CHỢ, CỘT ĐÈN LỒNG & THÙNG GỖ
@@ -2193,21 +2283,33 @@ export class World {
     const impulseDir = fence.pos.clone().sub(epicenter).normalize();
     if (impulseDir.lengthSq() < 0.001) impulseDir.set(0, 1, 0);
 
-    const fMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, flatShading: true });
-    for (let i = 0; i < 3; i++) {
-      const chunk = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.45, 0.2), fMat);
+    const fMat = new THREE.MeshStandardMaterial({
+      color: 0x8b5a2b,
+      flatShading: true,
+      emissive: force >= 35 ? 0xff6b4a : 0x000000,
+      emissiveIntensity: force >= 35 ? 0.35 : 0.0,
+    });
+    const chunkCount = force >= 35 ? 8 : 4;
+    for (let i = 0; i < chunkCount; i++) {
+      const chunk = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.25), fMat);
       chunk.position.copy(fence.pos);
+      chunk.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6));
       chunk.castShadow = true;
-      const cDir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.5, 0.8, (Math.random() - 0.5) * 1.5)).normalize();
-      this.addDebris(chunk, cDir, force * 0.9 + 5, 20, 2.8, 0.45);
+      const cDir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.6, 0.85, (Math.random() - 0.5) * 1.6)).normalize();
+      this.addDebris(chunk, cDir, force * 0.95 + 5, 20, 3.2, 0.45, force >= 35);
     }
 
     if (fence.isLantern && this.particles) {
-      this.particles.emitElementalParticles(fence.pos, 'fire', 16);
+      this.particles.emitElementalParticles(fence.pos, 'fire', 18);
       this.particles.emitDust(fence.pos);
     }
 
-    this.scene.remove(fence.mesh);
+    // Xóa triệt để toàn bộ nhóm đạo cụ (Group)
+    const target = fence.group || fence.mesh;
+    this.safeRemoveObject(target);
+    if (fence.mesh && fence.mesh !== target) {
+      this.safeRemoveObject(fence.mesh);
+    }
   }
 
   // PHÁ HỦY CHẬU HOA CÚC
@@ -2216,22 +2318,24 @@ export class World {
     flower.isBroken = true;
 
     if (this.particles) {
-      this.particles.emitElementalParticles(flower.pos, 'ice', 10);
+      this.particles.emitElementalParticles(flower.pos, force >= 35 ? 'fire' : 'ice', 12);
     }
 
-    this.scene.remove(flower.group);
+    this.safeRemoveObject(flower.group);
   }
 
   // TƯƠNG TÁC TÀN PHÁ TRONG BÁN KÍNH (HỖ TRỢ PHÁ NHÀ TỪNG PHẦN)
   interactWithArea(epicenter, radius, force = 12, elementType = 'neutral') {
     const ex = epicenter.x, ey = epicenter.y, ez = epicenter.z;
+    const isExtreme = force >= 35;
+    const effRadius = isExtreme ? radius * 1.45 : radius;
 
     // 1. Phá hủy từng bộ phận nhà (Modular Building Parts) với AABB pre-filter siêu tốc
     for (let i = 0; i < this.buildingParts.length; i++) {
       const part = this.buildingParts[i];
       if (part.isBroken) continue;
 
-      const totalR = radius + part.radius;
+      const totalR = effRadius + part.radius;
       if (Math.abs(part.center.x - ex) > totalR ||
           Math.abs(part.center.z - ez) > totalR ||
           Math.abs(part.center.y - ey) > totalR) {
@@ -2240,10 +2344,30 @@ export class World {
 
       const d = part.center.distanceTo(epicenter);
       if (d < totalR) {
-        const dmg = force * (1 - Math.min(1, d / totalR)) * 8.5;
+        const distRatio = Math.min(1, d / totalR);
+        const dmg = isExtreme
+          ? force * 22.0 * Math.max(0.4, 1.0 - distRatio * 0.7) // Cực mạnh, quét sạch mọi công trình trúng đòn
+          : force * (1.0 - distRatio) * 8.5;
         part.hp -= dmg;
+
+        // Cơ chế hư hại từng phần / Cháy xém trước khi sập
+        if (part.hp > 0 && (elementType === 'fire' || isExtreme) && !part.isScorched) {
+          part.isScorched = true;
+          if (part.mesh && part.mesh.material) {
+            try {
+              part.mesh.material = part.mesh.material.clone();
+              part.mesh.material.emissive = new THREE.Color(0x771a00);
+              part.mesh.material.emissiveIntensity = 0.75;
+              part.mesh.material.roughness = 0.95;
+            } catch (e) {}
+          }
+          if (this.particles) {
+            this.particles.emitSmoke(part.center, 5, 0x111111, 1.3, true);
+          }
+        }
+
         if (part.hp <= 0) {
-          this.breakBuildingPart(part, epicenter, force * (1 - d / totalR) + 4);
+          this.breakBuildingPart(part, epicenter, force * (1 - distRatio) + 6, elementType === 'fire' || isExtreme);
         }
       }
     }
@@ -2252,12 +2376,12 @@ export class World {
     for (const tree of this.trees) {
       if (!tree.isBroken) {
         const d = tree.pos.distanceTo(epicenter);
-        if (d < radius) {
-          this.breakTree(tree, epicenter, force * (1 - d / radius) + 4, elementType);
-        } else if (d < radius * 1.45) {
+        if (d < effRadius) {
+          this.breakTree(tree, epicenter, force * (1 - d / effRadius) + 6, elementType);
+        } else if (d < effRadius * 1.5) {
           const pushDir = tree.pos.clone().sub(epicenter).normalize();
           tree.wobbleAxis.crossVectors(pushDir, new THREE.Vector3(0, 1, 0)).normalize();
-          tree.wobbleVel = (1 - d / (radius * 1.45)) * 0.45;
+          tree.wobbleVel = (1 - d / (effRadius * 1.5)) * 0.6;
         }
       }
     }
@@ -2266,8 +2390,8 @@ export class World {
     for (const rock of this.rocks) {
       if (!rock.isBroken) {
         const d = rock.pos.distanceTo(epicenter);
-        if (d < radius) {
-          this.breakRock(rock, epicenter, force * (1 - d / radius) + 4, elementType);
+        if (d < effRadius) {
+          this.breakRock(rock, epicenter, force * (1 - d / effRadius) + 6, elementType);
         }
       }
     }
@@ -2276,8 +2400,8 @@ export class World {
     for (const fence of this.fences) {
       if (!fence.isBroken) {
         const d = fence.pos.distanceTo(epicenter);
-        if (d < radius * 0.95) {
-          this.breakFence(fence, epicenter, force * 0.8 + 4);
+        if (d < effRadius) {
+          this.breakFence(fence, epicenter, force * 0.95 + 6);
         }
       }
     }
@@ -2286,8 +2410,8 @@ export class World {
     for (const flower of this.flowers) {
       if (!flower.isBroken) {
         const d = flower.pos.distanceTo(epicenter);
-        if (d < radius * 1.1) {
-          this.breakFlower(flower, epicenter, force * 0.6);
+        if (d < effRadius * 1.15) {
+          this.breakFlower(flower, epicenter, force * 0.8 + 4);
         }
       }
     }
@@ -2444,6 +2568,17 @@ export class World {
         d.vel.x *= 0.78;
         d.vel.z *= 0.78;
         d.rotVel.multiplyScalar(0.75);
+      }
+
+      // Mảnh vỡ cháy bốc tàn lửa than hồng và khói mỏng
+      if (d.isBurning && this.particles) {
+        d.burnTimer = (d.burnTimer || 0) + delta;
+        if (d.burnTimer > 0.14) {
+          d.burnTimer = 0;
+          if (Math.random() < 0.6) {
+            this.particles.emitElementalParticles(d.mesh.position, 1, [0xff4757, 0xffa502], [2, 5], 0.35, 0, 0.4);
+          }
+        }
       }
 
       const fadeRatio = d.life / d.maxLife;

@@ -159,6 +159,9 @@ export class PixelFXManager {
     };
 
     this.onCooldownUpdate = null;
+    this.remotePlayers = [];
+    this.onHitPlayer = null;
+    this.localCharacter = null; // nhân vật của chính mình, dùng để biết chiêu nào do mình ra
   }
 
   // VÒNG CHỈ ĐIỂM MA PHÁP DƯỚI ĐẤT (TARGETING TELEGRAPH RUNE)
@@ -223,10 +226,13 @@ export class PixelFXManager {
   // KÍCH HOẠT KỸ NĂNG THEO PHÍM SỐ [1], [2], [3], [4], [5]
   castSkill(skillIndex, targetPos, character, monsters) {
     const skill = this.cooldowns[skillIndex];
-    if (!skill || skill.current > 0) return false;
+    if (!skill) return false;
 
-    // Kích hoạt thời gian hồi chiêu
-    skill.current = skill.max;
+    // Hồi chiêu chỉ áp cho chiêu của chính mình; chiêu của người chơi khác chỉ được dựng lại hiệu ứng
+    if (character === this.localCharacter) {
+      if (skill.current > 0) return false;
+      skill.current = skill.max;
+    }
 
     switch (skillIndex) {
       case 1:
@@ -239,10 +245,10 @@ export class PixelFXManager {
         this.castSwordBarrier(character, monsters);
         break;
       case 4:
-        this.castSwordRain(targetPos, monsters);
+        this.castSwordRain(targetPos, character, monsters);
         break;
       case 5:
-        this.castWanJianGuiZong(targetPos, monsters);
+        this.castWanJianGuiZong(targetPos, character, monsters);
         break;
       case 6:
         this.castDaiCanhSwordArray(character, monsters);
@@ -250,6 +256,30 @@ export class PixelFXManager {
     }
 
     return true;
+  }
+
+  // PvP: chỉ máy của người ra chiêu mới báo sát thương lên người chơi khác,
+  // skill của người khác được chạy lại trên máy mình chỉ để hiện hiệu ứng → không báo trùng
+  canHitPlayers(caster) {
+    return Boolean(caster && caster === this.localCharacter && this.onHitPlayer);
+  }
+
+  // Gây sát thương lên mọi người chơi khác trong bán kính radius quanh point.
+  // hitSet (tuỳ chọn) chứa id đã trúng để mỗi đòn chỉ tính một lần. Trả về danh sách người bị trúng.
+  damagePlayersNear(point, radius, amount, text, textColor, caster, hitSet = null) {
+    const hit = [];
+    if (!this.canHitPlayers(caster)) return hit;
+    for (const rp of this.remotePlayers) {
+      if (rp.isDead || (hitSet && hitSet.has(rp.id))) continue;
+      if (!rp.checkBulletCollision(point, radius)) continue;
+      if (hitSet) hitSet.add(rp.id);
+      const hitPos = rp.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+      this.onHitPlayer(rp.id, amount, hitPos, 'sword');
+      this.damageTexts.spawn(text, hitPos.clone().add(new THREE.Vector3(0, 0.6, 0)), textColor);
+      if (this.particles) this.particles.emitHitSparkles(hitPos, 14);
+      hit.push(rp);
+    }
+    return hit;
   }
 
   // Gây sát thương lên một con quái kèm số sát thương nhảy lên
@@ -320,6 +350,7 @@ export class PixelFXManager {
       return p;
     };
 
+    // hitSet chứa cả quái lẫn id người chơi đã trúng để mỗi thứ chỉ trúng một lần
     const hitMonsters = (point, radius, hitSet, damage, text, color) => {
       for (const monster of monsters) {
         if (monster.isDead || hitSet.has(monster)) continue;
@@ -330,6 +361,7 @@ export class PixelFXManager {
           if (this.controller) this.controller.addTrauma(0.06);
         }
       }
+      this.damagePlayersNear(point, radius, damage, text, color, character, hitSet);
     };
 
     const cleanup = () => {
@@ -392,7 +424,7 @@ export class PixelFXManager {
             this.particles.emitShockwave(pos, 0xe84118, BLAST_RADIUS * 1.4, 0.45);
             this.particles.emitElementalParticles(pos, 45, [0xe84118, 0xf1c40f, 0x1dd1a1, 0xffffff], [6, 14], 0.9, 4, 1.2);
           }
-          this.dealDamageAOE(pos, BLAST_RADIUS, BLAST_DAMAGE, `🐉 -${BLAST_DAMAGE} LONG BẠO`, '#f1c40f', monsters, 'knockback', 'fire');
+          this.dealDamageAOE(pos, BLAST_RADIUS, BLAST_DAMAGE, `🐉 -${BLAST_DAMAGE} LONG BẠO`, '#f1c40f', monsters, 'knockback', 'fire', null, character);
           character.setSwordThrown(false);
           return false;
         }
@@ -428,6 +460,8 @@ export class PixelFXManager {
     this.scene.add(streak);
 
     const hitMonsters = [];
+    const hitPlayerIds = new Set();
+    const hitPlayers = [];
     let elapsed = 0;
     let echoed = false;
 
@@ -453,6 +487,8 @@ export class PixelFXManager {
               sound.playHit();
             }
           }
+          const bodyPos = character.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+          hitPlayers.push(...this.damagePlayersNear(bodyPos, 1.6, 70, '💨 -70', '#7efff5', character, hitPlayerIds));
         } else {
           streakMat.opacity = Math.max(0, 0.9 - (elapsed - dashDuration) * 1.6);
         }
@@ -460,9 +496,17 @@ export class PixelFXManager {
         // Kiếm ngân: đợt nổ trễ trên mọi quái vừa bị chém qua
         if (!echoed && elapsed >= dashDuration + 0.35) {
           echoed = true;
-          if (hitMonsters.length > 0) {
+          if (hitMonsters.length > 0 || hitPlayers.length > 0) {
             sound.playSwordSlash();
             if (this.controller) this.controller.addTrauma(0.25);
+          }
+          // hitPlayers chỉ có phần tử khi chiêu là của chính mình (damagePlayersNear đã kiểm tra)
+          for (const rp of hitPlayers) {
+            if (rp.isDead) continue;
+            const p = rp.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+            this.particles.emitShockwave(p, 0x7efff5, 4.0, 0.3);
+            this.onHitPlayer(rp.id, 40, p, 'sword');
+            this.damageTexts.spawn('✦ -40 KIẾM NGÂN', p.clone().add(new THREE.Vector3(0, 0.6, 0)), '#ffffff');
           }
           for (const monster of hitMonsters) {
             if (monster.isDead) continue;
@@ -549,6 +593,8 @@ export class PixelFXManager {
                 sound.playHit();
               }
             }
+            const ringCenter = center.clone().add(new THREE.Vector3(0, 1.0, 0));
+            this.damagePlayersNear(ringCenter, radius + 0.4, 15, '🌀 -15', '#7bed9f', character);
           }
           return true;
         }
@@ -575,6 +621,7 @@ export class PixelFXManager {
               this.damageMonster(monster, 35, '🌀 -35', '#7bed9f', s.mesh.position);
             }
           }
+          this.damagePlayersNear(s.mesh.position, 1.0, 35, '🌀 -35', '#7bed9f', character, s.hitSet);
           if (this.particles && Math.random() < 0.5) {
             this.particles.emitElementalParticles(s.mesh.position, 1, [0x7bed9f, 0xffffff], [0.2, 0.8], 0.25, 0, 0.35);
           }
@@ -591,7 +638,7 @@ export class PixelFXManager {
 
   // --- KIẾM CHIÊU 4: THIÊN KIẾM LẠC ---
   // Mưa kiếm trút xuống vùng mục tiêu, cuối cùng kiếm khí trấn áp đóng băng yêu ma
-  castSwordRain(targetPos, monsters) {
+  castSwordRain(targetPos, character, monsters) {
     const cx = targetPos.x;
     const cz = targetPos.z;
     const cy = getTerrainHeight(cx, cz);
@@ -652,6 +699,7 @@ export class PixelFXManager {
                   this.damageMonster(monster, 20, '🌧️ -20', '#48dbfb', s.target);
                 }
               }
+              this.damagePlayersNear(s.target.clone().add(new THREE.Vector3(0, 0.8, 0)), 2.0, 20, '🌧️ -20', '#48dbfb', character);
             }
           } else if (s.state === 'embedded') {
             s.embedLife -= delta;
@@ -672,7 +720,7 @@ export class PixelFXManager {
           if (this.controller) this.controller.addTrauma(0.4);
           this.particles.emitShockwave(center, 0x48dbfb, areaRadius * 1.6, 0.6);
           this.particles.emitElementalParticles(center, 30, [0x48dbfb, 0xffffff, 0x7efff5], [4, 10], 0.7, 4, 1.0);
-          this.dealDamageAOE(center, areaRadius, 40, '❄️ -40 TRẤN ÁP', '#48dbfb', monsters, 'freeze', 'ice');
+          this.dealDamageAOE(center, areaRadius, 40, '❄️ -40 TRẤN ÁP', '#48dbfb', monsters, 'freeze', 'ice', null, character);
         }
 
         return alive || !sealed;
@@ -843,6 +891,13 @@ export class PixelFXManager {
               }
             }
           }
+
+          // PvP: người chơi đang trong thời gian chờ của thanh kiếm này thì bỏ qua (hitTimers khoá theo id)
+          const cooling = new Set();
+          for (const [key, timer] of s.hitTimers) if (timer > 0) cooling.add(key);
+          for (const rp of this.damagePlayersNear(s.mesh.position, 0.9, DAMAGE, `⚡ -${DAMAGE}`, '#a29bfe', character, cooling)) {
+            s.hitTimers.set(rp.id, HIT_INTERVAL);
+          }
         }
         return true;
       }
@@ -850,7 +905,7 @@ export class PixelFXManager {
   }
 
   // --- KỸ NĂNG 5: VẠN KIẾM QUY TÔNG (WAN JIAN GUI ZONG) ---
-  castWanJianGuiZong(targetPos, monsters) {
+  castWanJianGuiZong(targetPos, character, monsters) {
     const impactX = targetPos.x;
     const impactZ = targetPos.z;
     const impactY = getTerrainHeight(impactX, impactZ);
@@ -966,7 +1021,7 @@ export class PixelFXManager {
               }
 
               // Sát thương rỉa liên hoàn nhiều đợt
-              this.dealDamageAOE(s.targetPos, 3.5, 25, '⚔️ -25', '#ffd700', monsters, null, 'lightning');
+              this.dealDamageAOE(s.targetPos, 3.5, 25, '⚔️ -25', '#ffd700', monsters, null, 'lightning', null, character);
             }
           } else if (s.embedded) {
             s.embedLife -= delta;
@@ -1020,7 +1075,7 @@ export class PixelFXManager {
             this.particles.emitElementalParticles(hitPos, 50, [0xffd700, 0xffffff, 0xff9f43], [8, 18], 0.95, 6, 1.6);
 
             // Sát thương cực đại kết liễu
-            this.dealDamageAOE(hitPos, 14.5, 240, '⚔️ -240 VẠN KIẾM!', '#ffd700', monsters, 'knockback', 'lightning');
+            this.dealDamageAOE(hitPos, 14.5, 240, '⚔️ -240 VẠN KIẾM!', '#ffd700', monsters, 'knockback', 'lightning', null, character);
           }
         }
 
@@ -1085,11 +1140,33 @@ export class PixelFXManager {
   }
 
   // XỬ LÝ SÁT THƯƠNG DIỆN RỘNG (AOE), TƯƠNG TÁC MÔI TRƯỜNG & HIỆU ỨNG TRẠNG THÁI
-  dealDamageAOE(epicenter, radius, amount, text, textColor, monsters, statusEffect = null, elementType = 'neutral') {
-    // 1. Tương tác với Vật thể môi trường (Làm văng, gãy cây, bể đá, bung hàng rào, nát hoa cỏ)
+  // caster: nhân vật ra chiêu; chỉ chiêu của chính mình mới gây sát thương PvP (xem canHitPlayers)
+  dealDamageAOE(epicenter, radius, amount, text, textColor, monsters, statusEffect = null, elementType = 'neutral', customForce = null, caster = null) {
+    // 1. Tương tác với Vật thể môi trường (Làm văng, gãy cây, bể đá, bung hàng rào, sập tường, vỡ ngói)
     if (this.world && this.world.interactWithArea) {
-      const force = amount >= 150 ? 24 : (amount >= 120 ? 19 : 14);
+      const force = customForce !== null ? customForce : (amount >= 200 ? 55 : (amount >= 150 ? 25 : (amount >= 120 ? 19 : 14)));
       this.world.interactWithArea(epicenter, radius * 1.15, force, elementType);
+    }
+
+    // 2. Gây sát thương PvP diện rộng lên người chơi khác
+    if (this.canHitPlayers(caster) && this.remotePlayers.length > 0) {
+      for (const rp of this.remotePlayers) {
+        if (!rp.isDead) {
+          const dist = rp.position.distanceTo(epicenter);
+          if (dist <= radius + 0.85) {
+            if (this.onHitPlayer) {
+              this.onHitPlayer(rp.id, amount, rp.position.clone().add(new THREE.Vector3(0, 1.2, 0)), elementType);
+            }
+            if (this.damageTexts) {
+              const hitPos = rp.position.clone().add(new THREE.Vector3(0, 1.8, 0));
+              this.damageTexts.spawn(text, hitPos, textColor);
+            }
+            if (this.particles) {
+              this.particles.emitHitSparkles(rp.position, 16);
+            }
+          }
+        }
+      }
     }
 
     if (!monsters) return;

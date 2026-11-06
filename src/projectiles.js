@@ -9,6 +9,7 @@ const MELEE_STYLES = {
 };
 const QI_MIN_DAMAGE = 30;  // kiếm khí vừa bắt đầu tụ
 const QI_MAX_DAMAGE = 120; // kiếm khí tụ đầy lực
+const PLAYER_HIT_RADIUS = 0.85; // bán kính thân người chơi khác khi tính trúng đòn
 
 export class ProjectileSystem {
   constructor(scene, particles, world = null) {
@@ -53,8 +54,9 @@ export class ProjectileSystem {
     return Math.atan2(-dir.z, dir.x);
   }
 
-  // Đòn cận chiến trước mặt: trúng mọi quái trong hình quạt của kiểu đòn styleName
-  slash(center, direction, monsters, styleName = 'sweep') {
+  // Đòn cận chiến trước mặt: trúng mọi quái trong hình quạt của kiểu đòn styleName.
+  // remotePlayers/onHitPlayer chỉ truyền cho đòn của chính mình, để mỗi đòn PvP chỉ được báo một lần.
+  slash(center, direction, monsters, styleName = 'sweep', remotePlayers = [], onHitPlayer = null) {
     const style = MELEE_STYLES[styleName];
     const dir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
     const arcCos = Math.cos(style.halfAngle);
@@ -84,7 +86,25 @@ export class ProjectileSystem {
         monster.position.z - (dz / Math.max(dist, 0.001)) * Math.min(dist, monster.hitRadius)
       );
       monster.takeDamage(style.damage, hitPos);
-      if (style.knockback > 0) monster.knockback(center, style.knockback);      if (this.particles) {
+      if (style.knockback > 0) monster.knockback(center, style.knockback);
+      if (this.particles) {
+        this.particles.emitHitSparkles(hitPos, 14);
+        this.particles.emitShockwave(hitPos, style.color, 2.5, 0.25);
+      }
+      hitAny = true;
+    }
+
+    // PvP: người chơi khác trong cùng hình quạt
+    for (const rp of remotePlayers) {
+      if (rp.isDead) continue;
+      const dx = rp.position.x - center.x;
+      const dz = rp.position.z - center.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist - PLAYER_HIT_RADIUS > style.range) continue;
+      if (dist > PLAYER_HIT_RADIUS && (dx * dir.x + dz * dir.z) / dist < arcCos) continue;
+      const hitPos = rp.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+      if (onHitPlayer) onHitPlayer(rp.id, style.damage, hitPos, 'sword');
+      if (this.particles) {
         this.particles.emitHitSparkles(hitPos, 14);
         this.particles.emitShockwave(hitPos, style.color, 2.5, 0.25);
       }
@@ -102,8 +122,9 @@ export class ProjectileSystem {
     return hitAny;
   }
 
-  // Phóng kiếm khí bay ngang theo hướng direction; power 0..1 là lực tụ
-  spawnSwordQi(origin, direction, power = 0) {
+  // Phóng kiếm khí bay ngang theo hướng direction; power 0..1 là lực tụ.
+  // isLocal = kiếm khí của chính mình (chỉ loại này mới báo sát thương PvP)
+  spawnSwordQi(origin, direction, power = 0, isLocal = true) {
     const dir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
     const isFull = power >= 1;
     const size = 1.0 + power * 1.5;
@@ -127,6 +148,8 @@ export class ProjectileSystem {
       // Đầy lực: xuyên qua quái, mỗi con chỉ trúng một lần
       pierce: isFull,
       hitMonsters: new Set(),
+      hitPlayers: new Set(),
+      isLocal,
       color: isFull ? 0xffd700 : 0x00f2fe,
       trailTimer: 0,
     });
@@ -137,7 +160,7 @@ export class ProjectileSystem {
     }
   }
 
-  update(delta, monsters) {
+  update(delta, monsters, remotePlayers = [], onHitPlayer = null) {
     for (let i = this.slashArcs.length - 1; i >= 0; i--) {
       const s = this.slashArcs[i];
       s.life -= delta;
@@ -181,13 +204,36 @@ export class ProjectileSystem {
 
       let hit = false;
 
-      // 1. Kiểm tra va chạm với Quái vật
-      if (monsters && monsters.length > 0) {
+      // 1. Kiểm tra va chạm PvP với các người chơi khác (chỉ kiếm khí của chính mình mới báo sát thương)
+      if (p.isLocal && remotePlayers && remotePlayers.length > 0) {
+        for (const rp of remotePlayers) {
+          if (rp.isDead || p.hitPlayers.has(rp.id)) continue;
+          if (rp.checkBulletCollision(pos, p.radius)) {
+            p.hitPlayers.add(rp.id);
+            if (onHitPlayer) {
+              onHitPlayer(rp.id, p.damage, pos, 'sword_qi');
+            }
+            if (this.particles) {
+              this.particles.emitHitSparkles(pos, 14);
+              this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
+            }
+            sound.playHit();
+            if (!p.pierce) {
+              hit = true;
+              break;
+            }
+          }
+        }
+      }
+
+      // 2. Kiểm tra va chạm với Quái vật
+      if (!hit && monsters && monsters.length > 0) {
         for (const monster of monsters) {
           if (monster.isDead || p.hitMonsters.has(monster)) continue;
           if (monster.checkCollision(pos, p.radius)) {
             monster.takeDamage(p.damage, pos);
-            p.hitMonsters.add(monster);            if (this.particles) {
+            p.hitMonsters.add(monster);
+            if (this.particles) {
               this.particles.emitHitSparkles(pos, 12);
               this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
             }

@@ -57,21 +57,30 @@ Lấy cảm hứng từ thư viện mã nguồn mở **PixelFX** ([patch-gg/pixe
 - **Khủng Long Béo Ngai Vàng (*King Chomper*)**: Thân tím múp míp, đội vương miện nhỏ xíu, đuôi ngoe nguẩy.
 - Thanh máu 3D Billboard luôn hướng về camera; quái tự động hồi sinh sau 9s khi bị hạ.
 
+### 7. 🌐 Đấu Trường Online Realtime PvP (Multiplayer)
+- **Đăng nhập siêu nhanh**: Chỉ cần nhập **User Name (Tên Đại Hiệp)**, không cần mật khẩu rườm rà.
+- **Thanh Máu 2000 HP dày dặn**: Giúp các pha giao tranh kéo dài kịch tính, tránh bị one-hit kết liễu quá nhanh; tích hợp hồi phục thụ động khi ngoài giao tranh.
+- **PvP toàn diện**: Người chơi có thể bắn đạn Blaster và tung trọn bộ 5 kỹ năng PixelFX gây sát thương lẫn nhau.
+- **Nametag & Healthbar 3D Billboard**: Bảng tên và thanh máu hiển thị ngay trên đỉnh đầu nhân vật xoay theo góc nhìn camera.
+- **Kill Feed & Bảng Phong Thần (Leaderboard)**: Bảng thông báo hạ gục tức thời ở góc phải và bảng xếp hạng mở bằng phím `Tab`.
+- **Hồi sinh tự động**: Đếm ngược 4.5s và hồi sinh tại các điểm spawn an toàn trên bản đồ Kinh Thành.
+
 ---
 
 ## 🎮 Bảng điều khiển chi tiết
 
 | Thao tác | Phím tắt | Tác dụng |
 | :--- | :---: | :--- |
-| **KỸ NĂNG PIXELFX** | **`1` `2` `3` `4`** | Kích hoạt Thiên Thạch, Sấm Sét, Bão Băng, Địa Chấn |
+| **KỸ NĂNG PIXELFX** | **`1` `2` `3` `4` `5` (`E`)** | Kích hoạt 5 tuyệt kỹ Đạo Pháp & Vạn Kiếm Quy Tông |
 | **BẮN SÚNG** | **Click Chuột Trái** hoặc **`F` / `J`** | Bắn đạn Blaster năng lượng |
+| **BẢNG XẾP HẠNG (BXH)** | **`Tab`** | Xem danh sách người chơi online, Kills, Deaths, Khí Huyết |
 | **XOAY CAMERA** | **Di chuyển chuột** | Xoay 360° tự do quanh nhân vật |
 | **HIỆN CON TRỎ CHUỘT** | **`ESC`** | Nhả chuột để bấm các nút trên giao diện |
 | **KHÓA CHUỘT LẠI** | **Nhấp chuột vào màn hình** | Tiếp tục di chuột xoay camera |
-| **Di chuyển** | **`W` `A` `S` `D`** | Chạy khắp đồng cỏ |
+| **Di chuyển** | **`W` `A` `S` `D`** | Chạy khắp kinh thành |
 | **Nhảy cao** | **`Space`** hoặc **Nút NHẢY 🦘** | Bật nhảy né đòn |
 | **Chạy nhanh** | **`Shift`** | Chạy nước rút (Sprint) |
-| **Đổi Trang Phục** | **`C`** | Đổi 4 màu áo & mũ |
+| **Đổi Trang Phục** | **`C`** | Đổi 4 màu áo & mũ môn phái |
 | **Zoom Camera** | **Cuộn chuột (Wheel)** | Thu phóng gần / xa |
 
 ---
@@ -86,11 +95,15 @@ cd cute-lowpoly-game
 # 2. Cài đặt dependencies
 npm install
 
-# 3. Chạy môi trường phát triển
+# 3. Chạy WebSocket Server cho chế độ Online Multiplayer
+npm run server
+# Máy chủ mở tại ws://localhost:3000
+
+# 4. Chạy Client Vite (mở tab khác)
 npm run dev
 ```
 
-Mở trình duyệt truy cập: `http://localhost:5173/` hoặc `http://localhost:5174/`.
+Mở trình duyệt truy cập: `http://localhost:5173/`. Nhập Username và tham gia chiến đấu cùng bạn bè trong mạng LAN hoặc qua Server!
 
 ---
 

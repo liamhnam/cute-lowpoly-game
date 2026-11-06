@@ -1289,9 +1289,427 @@
         height: 42px;
       }
     }
+
+    /* MULTIPLAYER LOGIN MODAL */
+    #login-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(10, 15, 25, 0.88);
+      backdrop-filter: blur(6px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-box {
+      background: #1e272e;
+      border: 4px solid #f1c40f;
+      box-shadow: 0 0 25px rgba(241, 196, 15, 0.4), inset 0 0 15px rgba(0, 210, 211, 0.15);
+      padding: 24px 30px;
+      max-width: 520px;
+      width: 100%;
+      color: #fff;
+      font-family: 'VT323', monospace;
+      animation: modalPop 0.3s ease-out;
+    }
+
+    @keyframes modalPop {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-box h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1.05rem;
+      color: #f1c40f;
+      text-align: center;
+      margin-bottom: 8px;
+      line-height: 1.4;
+      text-shadow: 2px 2px #000;
+    }
+
+    .modal-box p.modal-desc {
+      text-align: center;
+      font-size: 1.15rem;
+      color: #70a1ff;
+      margin-bottom: 20px;
+    }
+
+    .modal-field {
+      margin-bottom: 16px;
+    }
+
+    .modal-field label {
+      display: block;
+      font-size: 1.25rem;
+      color: #00d2d3;
+      margin-bottom: 6px;
+    }
+
+    .modal-field input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0f141d;
+      border: 2px solid #576574;
+      color: #f5f6fa;
+      font-family: 'VT323', monospace;
+      font-size: 1.35rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .modal-field input[type="text"]:focus {
+      border-color: #00d2d3;
+      box-shadow: 0 0 10px rgba(0, 210, 211, 0.4);
+    }
+
+    .outfit-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .outfit-card {
+      padding: 8px 10px;
+      background: #2f3640;
+      border: 2px solid #718093;
+      cursor: pointer;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s;
+    }
+
+    .outfit-card:hover {
+      border-color: #f1c40f;
+      background: #353b48;
+    }
+
+    .outfit-card.active {
+      border-color: #f1c40f;
+      background: #4b4b4b;
+      box-shadow: 0 0 8px rgba(241, 196, 15, 0.5);
+    }
+
+    .outfit-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 1px solid #fff;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .btn-modal-primary {
+      flex: 1.5;
+      padding: 14px;
+      background: #10ac84;
+      border: 3px solid #1dd1a1;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.72rem;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #076d54;
+      transition: all 0.15s;
+    }
+
+    .btn-modal-primary:hover {
+      background: #1dd1a1;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #076d54;
+    }
+
+    .btn-modal-primary:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #076d54;
+    }
+
+    .btn-modal-secondary {
+      flex: 1;
+      padding: 14px;
+      background: #576574;
+      border: 3px solid #8395a7;
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #222f3e;
+      transition: all 0.15s;
+    }
+
+    .btn-modal-secondary:hover {
+      background: #8395a7;
+      transform: translateY(-2px);
+    }
+
+    /* KILL FEED (GÓC PHẢI) */
+    #kill-feed {
+      position: absolute;
+      top: 90px;
+      right: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+      z-index: 1050;
+      max-width: 320px;
+    }
+
+    .kill-feed-item {
+      background: rgba(18, 24, 38, 0.88);
+      border-left: 4px solid #ff4757;
+      color: #fff;
+      padding: 7px 12px;
+      font-size: 1.25rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      animation: feedSlideIn 0.25s ease-out, feedFadeOut 0.4s ease-in 4.6s forwards;
+    }
+
+    .kill-feed-item.self-kill {
+      border-left-color: #2ed573;
+    }
+
+    .kill-feed-item.self-victim {
+      border-left-color: #ff3838;
+      background: rgba(60, 10, 20, 0.92);
+    }
+
+    @keyframes feedSlideIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes feedFadeOut {
+      from { opacity: 1; transform: translateX(0); }
+      to { opacity: 0; transform: translateX(30px); }
+    }
+
+    /* RESPAWN SCREEN */
+    #respawn-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(30, 0, 10, 0.85);
+      z-index: 99990;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    #respawn-screen.show {
+      display: flex;
+    }
+
+    .respawn-box {
+      background: #1e272e;
+      border: 4px solid #ff4757;
+      padding: 30px 45px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(255, 71, 87, 0.6);
+      animation: modalPop 0.3s ease-out;
+    }
+
+    .respawn-box h2 {
+      font-family: 'Press Start 2P', monospace;
+      color: #ff4757;
+      font-size: 1.4rem;
+      margin-bottom: 12px;
+      text-shadow: 3px 3px #000;
+    }
+
+    .respawn-box p.killer-info {
+      font-size: 1.4rem;
+      color: #f1c40f;
+      margin-bottom: 20px;
+    }
+
+    .respawn-countdown {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 2.2rem;
+      color: #00d2d3;
+      text-shadow: 2px 2px #000;
+    }
+
+    /* LEADERBOARD MODAL */
+    #leaderboard-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 99995;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    #leaderboard-modal.show {
+      display: flex;
+    }
+
+    .leaderboard-box {
+      background: #1e272e;
+      border: 4px solid #ffd32a;
+      box-shadow: 0 0 25px rgba(255, 211, 42, 0.5);
+      padding: 24px 30px;
+      max-width: 600px;
+      width: 100%;
+      color: #fff;
+      font-family: 'VT323', monospace;
+      position: relative;
+    }
+
+    .leaderboard-box h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1.1rem;
+      color: #ffd32a;
+      text-align: center;
+      margin-bottom: 16px;
+      text-shadow: 2px 2px #000;
+    }
+
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 1.35rem;
+      margin-bottom: 16px;
+    }
+
+    .leaderboard-table th {
+      background: #2f3640;
+      color: #00d2d3;
+      padding: 8px 12px;
+      text-align: left;
+      border-bottom: 2px solid #576574;
+    }
+
+    .leaderboard-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #353b48;
+    }
+
+    .leaderboard-table tr.self-row {
+      background: rgba(241, 196, 15, 0.18);
+      font-weight: bold;
+      color: #f1c40f;
+    }
+
+    .leaderboard-close {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      background: none;
+      border: none;
+      color: #ff4757;
+      font-size: 1.6rem;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
+  <!-- MODAL ĐĂNG NHẬP MULTIPLAYER (KHÔNG CẦN MẬT KHẨU) -->
+  <div id="login-modal">
+    <div class="modal-box">
+      <h2>⚔️ ĐẤU TRƯỜNG CỔ ĐÔ ⚔️</h2>
+      <p class="modal-desc">Multiplayer Realtime PvP • Nhập Username để tham chiến!</p>
+
+      <div class="modal-field">
+        <label for="input-player-name">Tên Đại Hiệp (User Name):</label>
+        <input type="text" id="input-player-name" maxlength="18" placeholder="Nhập tên nhân vật..." value="Gấu Hiệp Sĩ" autofocus />
+      </div>
+
+      <div class="modal-field">
+        <label>Chọn Tiên Bào (Môn Phái):</label>
+        <div class="outfit-selector" id="modal-outfits">
+          <div class="outfit-card active" data-index="0">
+            <span class="outfit-dot" style="background: #f6c344;"></span>
+            <span>Hoàng Bào Đạo Sĩ</span>
+          </div>
+          <div class="outfit-card" data-index="1">
+            <span class="outfit-dot" style="background: #54a0ff;"></span>
+            <span>Thanh Vân Tiên Bào</span>
+          </div>
+          <div class="outfit-card" data-index="2">
+            <span class="outfit-dot" style="background: #8854d0;"></span>
+            <span>Tử Tiêu Kiếm Tông</span>
+          </div>
+          <div class="outfit-card" data-index="3">
+            <span class="outfit-dot" style="background: #eb3b5a;"></span>
+            <span>Hồng Trần Ma Tu</span>
+          </div>
+          <div class="outfit-card" data-index="4">
+            <span class="outfit-dot" style="background: #f5f6fa;"></span>
+            <span>Bạch Hạc Chân Nhân</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-field">
+        <label for="input-server-url">Địa Chỉ Máy Chủ (Server URL):</label>
+        <input type="text" id="input-server-url" placeholder="ws://localhost:3000" />
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modal-primary" id="btn-join-online">🚀 XUẤT THẾ (ONLINE)</button>
+        <button class="btn-modal-secondary" id="btn-play-offline">🗡️ CHƠI ĐƠN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KILL FEED (BẢNG THÔNG BÁO HẠ GỤC REALTIME) -->
+  <div id="kill-feed"></div>
+
+  <!-- MÀN HÌNH ĐẾM NGƯỢC HỒI SINH (RESPAWN SCREEN) -->
+  <div id="respawn-screen">
+    <div class="respawn-box">
+      <h2>💀 BẠN ĐÃ TỬ TRẬN!</h2>
+      <p class="killer-info" id="respawn-killer-text">Đã bị tiêu diệt trong trận chiến...</p>
+      <div class="respawn-countdown" id="respawn-timer-text">4.5s</div>
+      <p style="margin-top: 14px; color: #a4b0be; font-size: 1.15rem;">Đang tái tạo thần thể tại điểm an toàn...</p>
+    </div>
+  </div>
+
+  <!-- BẢNG XẾP HẠNG PHONG THẦN (LEADERBOARD) -->
+  <div id="leaderboard-modal">
+    <div class="leaderboard-box">
+      <button class="leaderboard-close" id="btn-close-leaderboard">✕</button>
+      <h2>🏆 BẢNG PHONG THẦN TRƯỜNG AN 🏆</h2>
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Hạng</th>
+            <th>Đại Hiệp</th>
+            <th>Hạ Gục</th>
+            <th>Tử Trận</th>
+            <th>Khí Huyết</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+      <p style="text-align: center; color: #70a1ff; font-size: 1.1rem;">Bấm phím [Tab] hoặc [✕] để đóng</p>
+    </div>
+  </div>
+
   <canvas id="webgl-canvas"></canvas>
   <div id="screen-flash"></div>
 
@@ -1319,7 +1737,7 @@
             <span class="pixel-bar-label hp">KHÍ HUYẾT</span>
             <div class="pixel-bar-outer">
               <div class="pixel-bar-inner hp" id="bar-hp" style="width: 100%;"></div>
-              <span class="pixel-bar-num" id="text-hp">100/100</span>
+              <span class="pixel-bar-num" id="text-hp">2000/2000</span>
             </div>
           </div>
           <div class="pixel-bar-row">
@@ -1335,11 +1753,14 @@
           <span class="badge" id="hud-state">Đang Tĩnh Tọa (Idle)</span>
           <span class="badge" id="hud-speed">0.0 km/h</span>
           <span class="badge badge-kills" id="hud-kills">🎯 Trảm Yêu: 0</span>
+          <span class="badge" id="hud-online" style="color: #00d2d3; border-color: rgba(0, 210, 211, 0.4);">🌐 Online: Đang kết nối...</span>
+          <span class="badge" id="hud-ping" style="color: #ffd32a; border-color: rgba(255, 211, 42, 0.4);">📶 0ms</span>
           <span class="badge" id="hud-fps" style="color: #2ed573; font-weight: bold; border-color: rgba(46, 213, 115, 0.4);">⚡ 60 FPS</span>
         </div>
       </div>
 
       <div class="top-actions">
+        <button class="action-btn" id="btn-leaderboard" title="Bảng xếp hạng (Tab)">🏆 BXH (Tab)</button>
         <button class="action-btn" id="btn-mobile-toggle" title="Bật/Tắt Phím Ảo Mobile">📱 Phím Ảo</button>
         <button class="action-btn" id="btn-outfit" title="Phím tắt: C">🎨 Hoán Y (C)</button>
         <button class="action-btn active" id="btn-sound">🔊 Linh Âm: Bật</button>
