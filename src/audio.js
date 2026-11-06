@@ -271,6 +271,116 @@ class SoundManager {
     osc.stop(now + 0.11);
   }
 
+  // Tiếng súng trường quân đội tác chiến (Đoàng! Đoàng!)
+  playGunshot() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // 1. Transient click / snap
+    const snapOsc = this.ctx.createOscillator();
+    const snapGain = this.ctx.createGain();
+    snapOsc.type = 'triangle';
+    snapOsc.frequency.setValueAtTime(3200, now);
+    snapOsc.frequency.exponentialRampToValueAtTime(150, now + 0.04);
+    snapGain.gain.setValueAtTime(0.35, now);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    snapOsc.connect(snapGain);
+    snapGain.connect(this.ctx.destination);
+    snapOsc.start(now);
+    snapOsc.stop(now + 0.05);
+
+    // 2. Gunshot blast noise
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.18);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(2400, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(300, now + 0.18);
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.3, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.ctx.destination);
+    noise.start(now);
+    noise.stop(now + 0.18);
+
+    // 3. Sub punch
+    const kick = this.ctx.createOscillator();
+    const kickGain = this.ctx.createGain();
+    kick.type = 'sine';
+    kick.frequency.setValueAtTime(180, now);
+    kick.frequency.exponentialRampToValueAtTime(45, now + 0.15);
+    kickGain.gain.setValueAtTime(0.4, now);
+    kickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+    kick.connect(kickGain);
+    kickGain.connect(this.ctx.destination);
+    kick.start(now);
+    kick.stop(now + 0.16);
+  }
+
+  // Tiếng thả rắm siêu thanh (vừa giòn vừa rền vang hài hước)
+  playFartSound() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const duration = 0.55;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+
+    // Rung lắc tần số mô phỏng tiếng rắm phập phồng
+    osc.frequency.setValueAtTime(95, now);
+    for (let t = 0.05; t < duration; t += 0.04) {
+      osc.frequency.setValueAtTime(70 + Math.random() * 60, now + t);
+    }
+    osc.frequency.exponentialRampToValueAtTime(40, now + duration);
+
+    gain.gain.setValueAtTime(0.38, now);
+    gain.gain.linearRampToValueAtTime(0.42, now + 0.15);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, now);
+    filter.frequency.linearRampToValueAtTime(250, now + duration);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + duration);
+  }
+
+  // Tiếng nước bắn tóe / mưa ngập
+  playWaterSplash() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600 + Math.random() * 200, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.12);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
   // Tiếng Thiên Kiếm khổng lồ cắm phập xuống đất rền vang
   playGiantSwordImpact() {
     if (this.muted || !this.ctx) return;

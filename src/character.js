@@ -91,6 +91,24 @@ export const SECT_STATS = [
     pro: 'Đánh thường tầm xa (Phi Vũ), tốc chạy nhanh nhất (+22%), sấm sét giật',
     con: 'Máu mỏng nhất (1600 HP), kính pháo nhận thêm +18% sát thương',
   },
+  {
+    id: 5,
+    name: 'Chiến Sĩ NAMCAM',
+    maxHp: 2100,
+    speed: 6.0,
+    sprintSpeed: 10.8,
+    damageMult: 1.15,
+    defenseMult: 0.95,
+    cdMult: 0.95,
+    slashColor: 0xffd32a,
+    slashSpeedMult: 1.25,
+    projectileSpeed: 68,
+    dashDist: 0.2,
+    isGun: true,
+    isRangedBasic: true,
+    pro: 'Súng trường liên thanh, Mưa ngập tràn, Kiosk DVC tê liệt 5s, Rắm độc diệt thế',
+    con: 'Phái ẩn huyền thoại (chỉ xuất thế khi mang danh NAMCAM)',
+  },
 ];
 
 export class Character {
@@ -163,6 +181,7 @@ export class Character {
       { id: 'kiem_tong', name: 'Tử Tiêu Kiếm Tông (Vạn Kiếm Tông)', sectName: 'Tử Tiêu Kiếm Tông', clothes: 0x8854d0, hat: 0xf1c40f, icon: '⚔️' },
       { id: 'ma_tu', name: 'Hồng Trần Ma Tu (Hồng Trần Ma Tông)', sectName: 'Hồng Trần Ma Tu', clothes: 0xeb3b5a, hat: 0x2d3436, icon: '🩸' },
       { id: 'bach_hac', name: 'Bạch Hạc Chân Nhân (Bạch Hạc Tiên Tông)', sectName: 'Bạch Hạc Chân Nhân', clothes: 0xf5f6fa, hat: 0x00d2d3, icon: '🪶' },
+      { id: 'namcam', name: 'Chiến Sĩ NAMCAM (Bộ Đội Cụ Hồ)', sectName: 'Chiến Sĩ NAMCAM', clothes: 0x2e4a2b, hat: 0x2e4a2b, icon: '🇻🇳' },
     ];
 
     // Chỉ số Khí Huyết & Môn Phái
@@ -288,6 +307,18 @@ export class Character {
     this.clothesMat.color.setHex(current.clothes);
     this.hatMat.color.setHex(current.hat);
     this.sectStats = SECT_STATS[this.outfitIndex] || SECT_STATS[0];
+
+    const isNamCam = this.outfitIndex === 5;
+    if (this.boDoiHatGroup) this.boDoiHatGroup.visible = isNamCam;
+    if (this.hatGroup) this.hatGroup.visible = !isNamCam;
+    if (this.namCamFace) this.namCamFace.visible = isNamCam;
+    if (this.snout) this.snout.visible = !isNamCam;
+    if (this.nose) this.nose.visible = !isNamCam;
+    if (this.blushL) this.blushL.visible = !isNamCam;
+    if (this.blushR) this.blushR.visible = !isNamCam;
+    if (this.gunGroup) this.gunGroup.visible = isNamCam;
+    if (this.swordModel) this.swordModel.visible = !isNamCam;
+    if (this.sheath) this.sheath.visible = !isNamCam;
 
     const prevMax = this.maxHp || 2000;
     const ratio = Math.max(0.1, this.hp / prevMax);
@@ -540,11 +571,13 @@ export class Character {
     snout.scale.set(1.1, 0.85, 1.0);
     snout.position.set(0, -0.08, 0.48);
     this.head.add(snout);
+    this.snout = snout;
 
     // Mũi đen nhỏ
     const nose = new THREE.Mesh(new THREE.DodecahedronGeometry(0.08, 0), noseMat);
     nose.position.set(0, -0.02, 0.7);
     this.head.add(nose);
+    this.nose = nose;
 
     // Đôi mắt to tròn
     const createEye = (side) => {
@@ -568,6 +601,8 @@ export class Character {
     blushR.rotation.y = Math.PI / 6;
     this.head.add(blushL);
     this.head.add(blushR);
+    this.blushL = blushL;
+    this.blushR = blushR;
 
     // Đôi tai tròn vểnh
     this.ears = [];
@@ -632,7 +667,17 @@ export class Character {
     taiji.add(taijiRim);
     hatGroup.add(taiji);
 
-    this.head.add(hatGroup);
+    this.hatGroup = hatGroup;
+    this.head.add(this.hatGroup);
+
+    // Mũ cối Quân Đội Nhân Dân Việt Nam (phái ẩn NAMCAM)
+    this.boDoiHatGroup = this.buildBoDoiHat();
+    this.head.add(this.boDoiHatGroup);
+
+    // Mặt người dùng NAMCAM
+    this.namCamFace = this.buildNamCamFace();
+    this.head.add(this.namCamFace);
+
     this.body.add(this.head);
 
     // 3. BA LÔ
@@ -725,6 +770,10 @@ export class Character {
     this.bladeAura.visible = false;
     this.sword.add(this.bladeAura);
 
+    // Súng trường quân đội (phái ẩn NAMCAM)
+    this.gunGroup = this.buildGunModel();
+    this.rightArm.add(this.gunGroup);
+
     this.rightArm.add(this.sword);
     this.body.add(this.rightArm);
 
@@ -785,6 +834,175 @@ export class Character {
     this.group.add(this.model);
   }
 
+  // Mũ Cối Bộ Đội Cụ Hồ (xanh rêu, vành rộng, sao vàng trên nền đỏ)
+  buildBoDoiHat() {
+    const group = new THREE.Group();
+    group.position.set(0, 0.42, 0.02);
+    group.rotation.x = -0.08;
+
+    const helmetMat = new THREE.MeshStandardMaterial({
+      color: 0x2e4a2b,
+      roughness: 0.65,
+      flatShading: true,
+    });
+
+    // Chóp mũ cối tròn
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2), helmetMat);
+    dome.position.y = 0.05;
+    dome.scale.set(1.0, 0.85, 1.15);
+    dome.castShadow = true;
+    group.add(dome);
+
+    // Gờ gân trên sống mũ cối
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.65), helmetMat);
+    ridge.position.set(0, 0.28, 0);
+    group.add(ridge);
+
+    // Vành mũ cối xoè tròn rộng che mưa nắng
+    const brimGeo = new THREE.CylinderGeometry(0.56, 0.46, 0.08, 16, 1, true);
+    const brim = new THREE.Mesh(brimGeo, helmetMat);
+    brim.position.y = 0.02;
+    brim.scale.set(1.0, 1.0, 1.18);
+    group.add(brim);
+
+    // Đai quai mũ da nâu quanh vành
+    const strapMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.8 });
+    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.40, 0.40, 0.04, 16), strapMat);
+    band.position.y = 0.08;
+    band.scale.set(1.0, 1.0, 1.15);
+    group.add(band);
+
+    // Huy hiệu Sao Vàng Năm Cánh trên nền đỏ
+    const badgeGroup = new THREE.Group();
+    badgeGroup.position.set(0, 0.16, 0.44);
+    badgeGroup.rotation.x = 0.22;
+
+    const redBacking = new THREE.Mesh(
+      new THREE.CircleGeometry(0.065, 16),
+      new THREE.MeshBasicMaterial({ color: 0xd63031 })
+    );
+    badgeGroup.add(redBacking);
+
+    const goldBorder = new THREE.Mesh(
+      new THREE.RingGeometry(0.062, 0.072, 16),
+      new THREE.MeshBasicMaterial({ color: 0xf1c40f })
+    );
+    badgeGroup.add(goldBorder);
+
+    // Sao vàng năm cánh
+    const starShape = new THREE.Shape();
+    const outerR = 0.045;
+    const innerR = 0.018;
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const a = (i * Math.PI) / 5 - Math.PI / 2;
+      const x = Math.cos(a) * r;
+      const y = -Math.sin(a) * r;
+      if (i === 0) starShape.moveTo(x, y);
+      else starShape.lineTo(x, y);
+    }
+    starShape.closePath();
+    const starGeo = new THREE.ShapeGeometry(starShape);
+    const starMesh = new THREE.Mesh(starGeo, new THREE.MeshBasicMaterial({ color: 0xffd700 }));
+    starMesh.position.z = 0.002;
+    badgeGroup.add(starMesh);
+
+    group.add(badgeGroup);
+    group.visible = false;
+    return group;
+  }
+
+  // Khuôn mặt người dùng NAMCAM
+  buildNamCamFace() {
+    const group = new THREE.Group();
+    group.position.set(0, -0.02, 0.49);
+
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load('./images/namcam_face.png');
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+
+    // Mặt kính / ảnh khuôn mặt người dùng
+    const faceGeo = new THREE.PlaneGeometry(0.64, 0.75);
+    const faceMat = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+    });
+    const faceMesh = new THREE.Mesh(faceGeo, faceMat);
+    group.add(faceMesh);
+
+    // Khung viền nhẹ tôn lên khuôn mặt
+    const borderMat = new THREE.MeshBasicMaterial({ color: 0x2e4a2b });
+    const frame = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.35, 24), borderMat);
+    group.add(frame);
+
+    group.visible = false;
+    return group;
+  }
+
+  // Súng trường quân đội tác chiến
+  buildGunModel() {
+    const gun = new THREE.Group();
+    gun.position.set(0.05, -0.15, 0.25);
+    gun.rotation.x = -Math.PI / 2; // Nòng súng chĩa thẳng về phía trước theo tay
+
+    const metalMat = new THREE.MeshStandardMaterial({
+      color: 0x2d3436,
+      roughness: 0.4,
+      metalness: 0.8,
+      flatShading: true,
+    });
+    const woodMat = new THREE.MeshStandardMaterial({
+      color: 0x6e2c00,
+      roughness: 0.7,
+      flatShading: true,
+    });
+
+    // Thân súng (Receiver)
+    const receiver = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.42), metalMat);
+    gun.add(receiver);
+
+    // Báng súng gỗ (Stock)
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.14, 0.28), woodMat);
+    stock.position.set(0, -0.04, -0.32);
+    stock.rotation.x = -0.12;
+    gun.add(stock);
+
+    // Nòng súng (Barrel)
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.48, 6), metalMat);
+    barrel.position.set(0, 0.03, 0.42);
+    barrel.rotation.x = Math.PI / 2;
+    gun.add(barrel);
+
+    // Ống trích khí phía trên nòng
+    const gasTube = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.32, 6), woodMat);
+    gasTube.position.set(0, 0.07, 0.35);
+    gasTube.rotation.x = Math.PI / 2;
+    gun.add(gasTube);
+
+    // Đầu ruồi / nòng giảm giật
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.08, 6), metalMat);
+    muzzle.position.set(0, 0.03, 0.68);
+    muzzle.rotation.x = Math.PI / 2;
+    gun.add(muzzle);
+
+    // Băng đạn cong (Curved Banana Magazine)
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.24, 0.1), metalMat);
+    mag.position.set(0, -0.16, 0.06);
+    mag.rotation.x = 0.25;
+    gun.add(mag);
+
+    // Tay cầm súng
+    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.06), woodMat);
+    grip.position.set(0, -0.11, -0.12);
+    grip.rotation.x = -0.35;
+    gun.add(grip);
+
+    gun.visible = false;
+    return gun;
+  }
+
   jump() {
     if (this.isGrounded) {
       this.jumpVelocity = 9.8;
@@ -800,6 +1018,12 @@ export class Character {
   // Rút kiếm từ vỏ ra tay (nếu đang tra vỏ) và hoãn việc tra kiếm lại
   drawSword() {
     this.sheatheTimer = SHEATHE_DELAY;
+    if (this.outfitIndex === 5) {
+      if (this.gunGroup) this.gunGroup.visible = true;
+      if (this.swordModel) this.swordModel.visible = false;
+      if (this.sheath) this.sheath.visible = false;
+      return;
+    }
     if (this.isSwordDrawn) return;
     this.isSwordDrawn = true;
     this.sword.add(this.swordModel);
@@ -810,10 +1034,22 @@ export class Character {
   }
 
   sheatheSword() {
+    if (this.outfitIndex === 5) {
+      if (this.gunGroup) this.gunGroup.visible = true;
+      if (this.swordModel) this.swordModel.visible = false;
+      if (this.sheath) this.sheath.visible = false;
+      return;
+    }
     if (!this.isSwordDrawn) return;
     this.isSwordDrawn = false;
     this.sheathSlot.add(this.swordModel);
     this.bladeAura.visible = false;
+  }
+
+  // Động tác chổng mông thả rắm siêu thanh
+  triggerFartAnimation() {
+    this.isFarting = true;
+    this.fartTimer = 0.55;
   }
 
   // Phi kiếm rời tay thì ẩn kiếm trên tay cho tới khi kiếm bay về
@@ -849,7 +1085,11 @@ export class Character {
 
     const flashColor = this.sectStats?.slashColor || (step === 2 ? 0xffffff : 0xfff3b0);
     this.flashBlade(flashColor, step === 2 ? 1.0 : 0.7);
-    if (this.sectStats?.isRangedBasic && sound.playFeatherShoot) {
+    if (this.sectStats?.isGun) {
+      this.rightArm.rotation.x = -Math.PI / 2 + 0.15;
+      this.rightArm.rotation.y = -0.15;
+      if (sound.playGunshot) sound.playGunshot();
+    } else if (this.sectStats?.isRangedBasic && sound.playFeatherShoot) {
       sound.playFeatherShoot();
     } else {
       sound.playSwordSlash();
@@ -934,7 +1174,11 @@ export class Character {
   }
 
   cycleOutfit() {
-    return this.applyOutfit(this.outfitIndex + 1);
+    let next = (this.outfitIndex + 1) % this.outfits.length;
+    if (next === 5 && this.name !== 'NAMCAM') {
+      next = 0;
+    }
+    return this.applyOutfit(next);
   }
 
   update(delta, inputVector, isSprinting) {
@@ -1052,6 +1296,27 @@ export class Character {
     }
 
     this.squashFactor = THREE.MathUtils.lerp(this.squashFactor, 1.0, delta * 9);
+
+    // --- ANIMATION THẢ RẮM (CHỔNG MÔNG THẢ RẮM) ---
+    if (this.isFarting) {
+      this.fartTimer -= delta;
+      if (this.fartTimer <= 0) {
+        this.isFarting = false;
+        this.body.rotation.x = 0;
+        this.body.rotation.y = 0;
+        this.rightLeg.rotation.x = 0;
+        this.leftLeg.rotation.x = 0;
+      } else {
+        const progress = Math.sin((1 - this.fartTimer / 0.55) * Math.PI);
+        this.body.rotation.x = progress * 0.65;
+        this.body.rotation.y = Math.PI;
+        this.rightLeg.rotation.x = progress * -0.6;
+        this.leftLeg.rotation.x = progress * 0.2;
+        this.rightArm.rotation.x = progress * -0.4;
+        this.leftArm.rotation.x = progress * -0.4;
+        return;
+      }
+    }
 
     // ANIMATION TIẾN TRÌNH
     const animSpeed = this.isMoving ? (this.isSprinting ? 14.5 : 9.5) : 3.2;

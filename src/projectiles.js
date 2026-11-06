@@ -81,6 +81,22 @@ export class ProjectileSystem {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
+
+    // Đạn súng trường quân đội (NAMCAM)
+    this.bulletGeo = new THREE.CylinderGeometry(0.038, 0.038, 0.45, 6);
+    this.bulletGeo.rotateX(Math.PI / 2);
+    this.bulletMat = new THREE.MeshBasicMaterial({
+      color: 0xffd32a,
+      transparent: true,
+      opacity: 0.95,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+  }
+
+  // Tạo mesh đạn súng trường
+  createBulletMesh() {
+    return new THREE.Mesh(this.bulletGeo, this.bulletMat);
   }
 
   // Tạo mesh lông vũ tiễn tiên đạo
@@ -331,6 +347,61 @@ export class ProjectileSystem {
     }
   }
 
+  // Đạn súng trường quân đội của Chiến Sĩ NAMCAM
+  // comboStep 0: 1 phát súng chuẩn xác (45 ST)
+  // comboStep 1: 1 phát súng xé gió (48 ST)
+  // comboStep 2 (Finisher): Điểm xạ 3 viên cực nhanh (mỗi viên 35 ST, tổng 105 ST)
+  spawnBullet(origin, direction, comboStep = 0, isLocal = true, sectStats = null, sourceCharacter = null) {
+    const baseDir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+    const dmgMult = sectStats?.damageMult || 1.0;
+    const speed = sectStats?.projectileSpeed || 68;
+    const isBurst = comboStep === 2;
+
+    const count = isBurst ? 3 : 1;
+    const baseDamage = isBurst ? 35 : (comboStep === 1 ? 48 : 45);
+    const actualDamage = Math.round(baseDamage * dmgMult);
+
+    for (let i = 0; i < count; i++) {
+      const angleSpread = isBurst ? (i - 1) * 0.035 : 0;
+      const dir = baseDir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), angleSpread);
+      const mesh = this.createBulletMesh();
+      mesh.position.copy(origin);
+      if (isBurst && i > 0) {
+        mesh.position.addScaledVector(dir, -i * 0.7);
+      }
+      mesh.lookAt(mesh.position.clone().add(dir));
+      this.scene.add(mesh);
+
+      const life = 0.44; // Tầm bay ~30m
+      this.projectiles.push({
+        mesh,
+        dir,
+        velocity: dir.clone().multiplyScalar(speed),
+        life,
+        maxLife: life,
+        size: 0.8,
+        radius: 0.45,
+        damage: actualDamage,
+        pierce: false,
+        hitMonsters: new Set(),
+        hitPlayers: new Set(),
+        isLocal,
+        color: 0xffd32a,
+        trailTimer: 0,
+        sectStats,
+        sourceCharacter,
+        isBullet: true,
+        growWithLife: false,
+        leadOffset: 0.3,
+      });
+    }
+
+    if (this.particles) {
+      this.particles.emitElementalParticles(origin, isBurst ? 8 : 4, [0xffd32a, 0xff9f1a, 0xffffff], [0.5, 1.2], 0.2, 0, 0.25);
+      this.particles.emitShockwave(origin, 0xffa502, 1.0, 0.1);
+    }
+  }
+
   update(delta, monsters, remotePlayers = [], onHitPlayer = null) {
     for (let i = this.slashArcs.length - 1; i >= 0; i--) {
       const s = this.slashArcs[i];
@@ -367,10 +438,20 @@ export class ProjectileSystem {
       const lead = p.leadOffset !== undefined ? p.leadOffset : 0.95 * p.size;
       const pos = p.mesh.position.clone().addScaledVector(p.dir, lead);
 
-      // Hạt đuôi năng lượng (Qi Trail / Feather Trail)
+      // Hạt đuôi năng lượng (Qi Trail / Feather Trail / Bullet Tracer)
       if (p.trailTimer > 0.035 && this.particles) {
         p.trailTimer = 0;
-        if (p.isFeather) {
+        if (p.isBullet) {
+          this.particles.emitElementalParticles(
+            pos,
+            1,
+            [0xffd32a, 0xff9f1a, 0xffffff],
+            [0.1, 0.25],
+            0.12,
+            0,
+            0.2
+          );
+        } else if (p.isFeather) {
           const colors = p.isLightning ? [0xffffff, 0x00d2d3, 0xf1c40f] : [0xffffff, 0x00d2d3, 0x74b9ff];
           this.particles.emitElementalParticles(
             pos,
@@ -403,10 +484,14 @@ export class ProjectileSystem {
           if (rp.checkBulletCollision(pos, p.radius)) {
             p.hitPlayers.add(rp.id);
             if (onHitPlayer) {
-              onHitPlayer(rp.id, p.damage, pos, p.isFeather ? 'feather_dart' : 'sword_qi');
+              const src = p.isBullet ? 'rifle_bullet' : (p.isFeather ? 'feather_dart' : 'sword_qi');
+              onHitPlayer(rp.id, p.damage, pos, src);
             }
             if (this.particles) {
-              if (p.isFeather) {
+              if (p.isBullet) {
+                this.particles.emitHitSparkles(pos, 10);
+                this.particles.emitShockwave(pos, 0xffa502, 1.8, 0.2);
+              } else if (p.isFeather) {
                 this.particles.emitElementalParticles(pos, 10, [0xffffff, 0x00d2d3, 0x74b9ff], [0.8, 1.8], 0.25, 1, 0.4);
                 if (p.isLightning) {
                   this.particles.emitShockwave(pos, 0x00d2d3, 2.8, 0.25);
@@ -436,7 +521,10 @@ export class ProjectileSystem {
             monster.takeDamage(p.damage, pos);
             p.hitMonsters.add(monster);
             if (this.particles) {
-              if (p.isFeather) {
+              if (p.isBullet) {
+                this.particles.emitHitSparkles(pos, 10);
+                this.particles.emitShockwave(pos, 0xffa502, 1.8, 0.2);
+              } else if (p.isFeather) {
                 this.particles.emitElementalParticles(pos, 10, [0xffffff, 0x00d2d3, 0x74b9ff], [0.8, 1.8], 0.25, 1, 0.4);
                 if (p.isLightning) {
                   this.particles.emitShockwave(pos, 0x00d2d3, 2.8, 0.25);
@@ -470,7 +558,10 @@ export class ProjectileSystem {
       const groundY = getTerrainHeight(pos.x, pos.z);
       if (!hit && pos.y <= groundY + 0.18) {
         if (this.particles) {
-          if (p.isFeather) {
+          if (p.isBullet) {
+            this.particles.emitHitSparkles(pos, 6);
+            this.particles.emitShockwave(pos, 0xffa502, 1.5, 0.2);
+          } else if (p.isFeather) {
             this.particles.emitElementalParticles(pos, 6, [0xffffff, 0x00d2d3], [0.4, 1.0], 0.2, 0, 0.3);
           } else {
             this.particles.emitHitSparkles(pos, 8);
