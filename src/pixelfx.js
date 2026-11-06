@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { sound } from './audio.js';
 import { getTerrainHeight } from './world.js';
-import { createSword } from './sword.js';
+import { createSword, SWORD_LENGTH } from './sword.js';
 import { createDragon } from './dragon.js';
 
 // --- PIXEL ART PROCEDURAL TEXTURE GENERATOR (Theo cảm hứng từ patch-gg/pixelfx) ---
@@ -334,34 +334,34 @@ export const SECTS = [
     colorHex: 0xf6c344,
     themeColor: '#f1c40f',
     icon: '🐉',
-    desc: 'Đạo gia chính thống: Mượn uy Chân Long 50m, Bát Quái trận đồ hồi máu và Đại Canh Kiếm Trận lốc sét',
+    desc: 'Đạo gia chính thống: Thiên Long Cự Kiếm 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân',
     skills: [
       {
         id: 1,
-        name: 'Chân Long Bảo Thuật',
-        tag: 'CHÂN LONG',
-        icon: '🐉',
+        name: 'Thiên Long Cự Kiếm',
+        tag: 'CỰ KIẾM',
+        icon: '🗡️',
         cd: 6.0,
         mana: 25,
-        desc: 'Triệu hồi Hắc Kim Chân Long 20m phóng thẳng 50m, tông trúng 75 ST, nổ lôi đình 100 ST'
+        desc: 'Phóng to thanh kiếm đang cầm thành cự kiếm hơn cả bản thể cùng Hắc Kim Chân Long bay thẳng 50m: kiếm chém 50 ST, rồng tông 70 ST, cuối đường nổ 80 ST'
       },
       {
         id: 2,
-        name: 'Thái Cực Bát Quái',
+        name: 'Bát Quái Đại Canh Trận',
         tag: 'BÁT QUÁI',
         icon: '☯️',
-        cd: 8.0,
-        mana: 20,
-        desc: 'Trải trận Bát Quái 10m: Hồi 250 HP cho bản thân, giảm 40% sát thương, làm chậm địch 60%'
+        cd: 14.0,
+        mana: 35,
+        desc: 'Trải trận Bát Quái hồi 250 HP, làm chậm địch, kèm 36 lôi kiếm Đại Canh xoáy lốc 30m suốt 10s'
       },
       {
         id: 3,
-        name: 'Đại Canh Kiếm Trận',
-        tag: 'ĐẠI CANH',
-        icon: '⚡',
-        cd: 11.0,
-        mana: 35,
-        desc: '36 kim lôi kiếm xoay lốc xoáy 25m suốt 8s, quét liên tục 45 ST/hit và tê liệt kẻ địch'
+        name: 'Nhất Khí Hóa Tam Thanh',
+        tag: 'PHÂN THÂN',
+        icon: '👥',
+        cd: 30.0,
+        mana: 40,
+        desc: 'Phân ra 2 đạo ảnh máu bằng 1/2 bản thân, sống 20s hoặc tới khi bị tiêu diệt: Bạch Ảnh (áo trắng) chạy siêu tốc chém vàng liên tục mọi mục tiêu trong 60m, Tử Ảnh (áo tím) bay lên trời liên tục phóng lôi vàng'
       }
     ]
   },
@@ -536,6 +536,7 @@ export class PixelFXManager {
     this.remotePlayers = [];
     this.onHitPlayer = null;
     this.localCharacter = null; // nhân vật của chính mình
+    this.cloneManager = null;   // quản lý đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh)
 
     this.setSect(0);
   }
@@ -637,7 +638,7 @@ export class PixelFXManager {
       case 0: // Thái Thanh Đạo Gia
         if (slotNum === 1) this.castFlyingSword(targetPos, character, monsters);
         else if (slotNum === 2) this.castTaiChiBagua(character, monsters);
-        else if (slotNum === 3) this.castDaiCanhSwordArray(character, monsters);
+        else if (slotNum === 3) this.castSplitShadow(character);
         break;
 
       case 1: // Thanh Vân Tiên Tông
@@ -707,9 +708,10 @@ export class PixelFXManager {
     return dir.lengthSq() > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 0, -1);
   }
 
-  // --- KIẾM CHIÊU 1: CHÂN LONG BẢO THUẬT ---
-  // Phóng tiên kiếm bay thẳng 50m, một thần long bay theo sau mũi kiếm, thân uốn lượn hình chữ S như rồng bay.
-  // Kiếm và rồng tông trúng quái nào là gây sát thương; hết tầm thì kiếm phát nổ, kiếm hiện lại trên tay.
+  // --- KIẾM CHIÊU 1: THIÊN LONG CỰ KIẾM ---
+  // Thanh kiếm đang cầm phóng to ra thành cự kiếm lớn hơn cả bản thể rồi phóng thẳng 50m, một thần long bay
+  // cùng, thân uốn lượn hình chữ S. Cự kiếm (dọc cả lưỡi) và rồng tông trúng quái nào là gây sát thương;
+  // hết tầm thì nổ ở mũi kiếm, kiếm nhỏ hiện lại trên tay.
   castFlyingSword(targetPos, character, monsters) {
     const RANGE = 50;
     const SPEED = 16;
@@ -717,28 +719,42 @@ export class PixelFXManager {
     const DRAGON_DAMAGE = 70;
     const BLAST_RADIUS = 8;
     const BLAST_DAMAGE = 80;
+    const SWORD_SCALE = 4.0;                          // kiếm phóng to 4 lần: dài ~5m, gấp ~2.5 lần nhân vật
+    const SWORD_WIDEN = 1.8;                          // lưỡi bản rộng hơn 1.8 lần để cự kiếm trông đồ sộ, không chỉ dài
+    const BLADE_LEN = SWORD_LENGTH * SWORD_SCALE;
+    const BLADE_HIT_RADIUS = 1.6;                     // bán kính va chạm quanh lưỡi cự kiếm
+    const GROW_TIME = 0.4;                            // kiếm trên tay phình to trong chừng này giây rồi mới phóng
     const DRAGON_THICK = 1.7;  // độ to thân rồng
     const BODY_SPAN = 8.0;     // thân rồng trải dài 8m dọc đường bay
-    const HEAD_LEAD = -0.6;    // đầu rồng bám ngay sau mũi kiếm
+    const HEAD_LEAD = 2.4;     // đầu rồng nhô lên ngang giữa lưỡi cự kiếm, thân kéo dài về sau
+    const RIDE_HEIGHT = 1.1;   // rồng bay phía trên lưỡi kiếm để không xuyên qua thân kiếm
     const SWAY_SIDE = 1.3;     // biên độ lượn ngang ở đuôi (m)
     const SWAY_UP = 0.35;      // biên độ nhấp nhô dọc (m)
     const WAVE_COUNT = 1.1;    // số bước sóng chữ S dọc thân
     const WAVE_SPEED = 3.5;    // sóng chạy từ đầu xuống đuôi (rad/s)
+    const GOLD_SPARK = [0xffd54a, 0xfff3b0, 0xffffff];
 
     const dir = PixelFXManager.flatDirection(character.position, targetPos);
     const right = new THREE.Vector3(dir.z, 0, -dir.x);
     const up = new THREE.Vector3(0, 1, 0);
 
-    const sword = createSword(1.6);
-    sword.visible = false;
+    // Điểm cầm kiếm: ngang ngực, hơi lệch về phía trước. Kiếm nhỏ trên tay ẩn đi, cự kiếm phình ra từ đúng chỗ đó.
+    const start = new THREE.Vector3();
+    start.copy(character.position).add(new THREE.Vector3(0, 1.8, 0)).addScaledVector(dir, 0.7);
+    character.setSwordThrown(true);
+
+    const sword = createSword(1.0);
+    sword.position.copy(start);
+    sword.quaternion.setFromUnitVectors(up, dir);
     this.scene.add(sword);
+    sound.playSwordSummon();
+    if (this.particles) this.particles.emitElementalParticles(start, 16, GOLD_SPARK, [2, 6], 0.4, 0, 0.6);
 
     const dragon = createDragon(DRAGON_THICK);
     dragon.object.visible = false;
     this.scene.add(dragon.object);
     const dragonHits = new Set();
 
-    const start = new THREE.Vector3();
     const pos = new THREE.Vector3();
     const swordHits = new Set();
     let elapsed = 0;
@@ -755,10 +771,13 @@ export class PixelFXManager {
       const p = start.clone()
         .addScaledVector(dir, u)
         .addScaledVector(right, Math.sin(phase) * SWAY_SIDE * sway)
-        .addScaledVector(up, Math.cos(phase) * SWAY_UP * sway);
+        .addScaledVector(up, RIDE_HEIGHT + Math.cos(phase) * SWAY_UP * sway);
       p.y = Math.max(p.y, getTerrainHeight(p.x, p.z) + 0.4);
       return p;
     };
+
+    // Điểm trên lưỡi cự kiếm cách chuôi t * BLADE_LEN (t = 0 chuôi, 1 mũi)
+    const bladePoint = (t) => pos.clone().addScaledVector(dir, BLADE_LEN * t);
 
     // hitSet chứa cả quái lẫn id người chơi đã trúng để mỗi thứ chỉ trúng một lần
     const hitMonsters = (point, radius, hitSet, damage, text, color) => {
@@ -783,29 +802,39 @@ export class PixelFXManager {
       update: (delta) => {
         elapsed += delta;
 
-        // Vung kiếm lấy đà rồi mới phóng
+        // Giai đoạn phình to: kiếm trên tay lớn dần thành cự kiếm tại chỗ, tia sáng vàng bắn dọc lưỡi
         if (!launched) {
-          if (elapsed < 0.18) return true;
+          const t = Math.min(1, elapsed / GROW_TIME);
+          const ease = 1 - Math.pow(1 - t, 3);
+          const grown = THREE.MathUtils.lerp(1.0, SWORD_SCALE, ease);
+          // Trục y là chiều dài lưỡi; x và z (bản rộng, độ dày) phình thêm
+          sword.scale.set(grown * THREE.MathUtils.lerp(1.0, SWORD_WIDEN, ease), grown, grown * THREE.MathUtils.lerp(1.0, SWORD_WIDEN, ease));
+          // Chuôi bám theo nhân vật nếu đang di chuyển
+          start.copy(character.position).add(new THREE.Vector3(0, 1.8, 0)).addScaledVector(dir, 0.7);
+          sword.position.copy(start);
+          if (this.particles && Math.random() < 0.8) {
+            const along = start.clone().addScaledVector(dir, SWORD_LENGTH * sword.scale.y * Math.random());
+            this.particles.emitElementalParticles(along, 2, GOLD_SPARK, [1, 4], 0.3, 0, 0.5);
+          }
+          if (t < 1) return true;
           launched = true;
           elapsed = 0;
-          character.setSwordThrown(true);
-          // Bay cao hơn kiếm thường để thân rồng nhấp nhô không quệt đất
-          start.copy(character.position).add(new THREE.Vector3(0, 1.8, 0)).addScaledVector(dir, 0.8);
-          sword.visible = true;
           dragon.object.visible = true;
-          sound.playSwordSummon();
-          if (this.particles) this.particles.emitElementalParticles(start, 20, [0xe84118, 0xf1c40f, 0xffffff], [2, 5], 0.4, 0, 0.6);
+          if (this.controller) this.controller.addTrauma(0.2);
         }
 
         flight = Math.min(RANGE, flight + SPEED * delta);
         pos.copy(start).addScaledVector(dir, flight);
         // Bay thẳng nhưng không cắm vào dốc
-        pos.y = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + 0.8);
+        pos.y = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + 1.2);
 
         sword.position.copy(pos);
         sword.quaternion.setFromUnitVectors(up, dir);
-        sword.rotateY(Math.sin(elapsed * 30) * 0.3);
-        hitMonsters(pos, 1.2, swordHits, SWORD_DAMAGE, `🗡️ -${SWORD_DAMAGE}`, '#1dd1a1');
+        sword.rotateY(Math.sin(elapsed * 6) * 0.15); // lắc nhẹ quanh trục lưỡi, nặng nề như cự kiếm
+        // Va chạm dọc cả lưỡi cự kiếm: gần chuôi, giữa lưỡi và mũi kiếm
+        for (const t of [0.3, 0.65, 1.0]) {
+          hitMonsters(bladePoint(t), BLADE_HIT_RADIUS, swordHits, SWORD_DAMAGE, `🗡️ -${SWORD_DAMAGE}`, '#ffd54a');
+        }
 
         // Thân rồng uốn theo sóng chữ S sau mũi kiếm
         dragon.pose(bodyPoint);
@@ -819,22 +848,24 @@ export class PixelFXManager {
           this.particles.emitElementalParticles(bodyPoint(Math.random()), 1, [0x1c1c22, 0x2d3436, 0xf9ca24], [0.3, 1.0], 0.3, 0, 0.4);
         }
 
-        if (this.particles && Math.random() < 0.7) {
-          this.particles.emitElementalParticles(pos, 1, [0x1dd1a1, 0x7bed9f, 0xffffff], [0.2, 0.8], 0.3, 0, 0.4);
+        if (this.particles && Math.random() < 0.9) {
+          // Tia vàng bắn ra dọc theo lưỡi cự kiếm
+          this.particles.emitElementalParticles(bladePoint(Math.random()), 2, GOLD_SPARK, [0.3, 1.2], 0.3, 0, 0.4);
         }
 
-        // Hết 50m: kiếm và thần long nổ tung
+        // Hết 50m: cự kiếm cắm xuống nổ ở mũi kiếm cùng thần long
         if (flight >= RANGE) {
           cleanup();
+          const tip = bladePoint(0.9);
           sound.playGiantSwordImpact();
           if (this.onScreenFlash) this.onScreenFlash('sword');
-          if (this.controller) this.controller.addTrauma(0.5);
+          if (this.controller) this.controller.addTrauma(0.6);
           if (this.particles) {
-            this.particles.emitShockwave(pos, 0xf1c40f, BLAST_RADIUS * 2.2, 0.6);
-            this.particles.emitShockwave(pos, 0xe84118, BLAST_RADIUS * 1.4, 0.45);
-            this.particles.emitElementalParticles(pos, 45, [0xe84118, 0xf1c40f, 0x1dd1a1, 0xffffff], [6, 14], 0.9, 4, 1.2);
+            this.particles.emitShockwave(tip, 0xf1c40f, BLAST_RADIUS * 2.2, 0.6);
+            this.particles.emitShockwave(tip, 0xffd54a, BLAST_RADIUS * 1.4, 0.45);
+            this.particles.emitElementalParticles(tip, 50, [0xffd54a, 0xf1c40f, 0xfff3b0, 0xffffff], [6, 14], 0.9, 4, 1.2);
           }
-          this.dealDamageAOE(pos, BLAST_RADIUS, BLAST_DAMAGE, `🐉 -${BLAST_DAMAGE} LONG BẠO`, '#f1c40f', monsters, 'knockback', 'fire', null, character);
+          this.dealDamageAOE(tip, BLAST_RADIUS, BLAST_DAMAGE, `🗡️ -${BLAST_DAMAGE} CỰ KIẾM`, '#f1c40f', monsters, 'knockback', 'fire', null, character);
           character.setSwordThrown(false);
           return false;
         }
@@ -1515,16 +1546,21 @@ export class PixelFXManager {
   // KỸ NĂNG MÔN PHÁI: THÁI THANH ĐẠO GIA
   // =========================================================================
 
-  // [Đạo Gia 2] THÁI CỰC BÁT QUÁI TRẬN (Hồi 250 HP, giảm 40% sát thương, làm chậm địch 60%)
+  // [Đạo Gia 2] BÁT QUÁI ĐẠI CANH TRẬN: trận Bát Quái (hồi 250 HP, làm chậm địch)
+  // kèm 36 lôi kiếm Đại Canh xoáy quanh người, trận giữ đến khi kiếm trận tan
   castTaiChiBagua(character, monsters) {
+    const BAGUA_DURATION = 10.0; // khớp thời gian 36 lôi kiếm của Đại Canh Kiếm Trận
     const center = character.position.clone();
     center.y = getTerrainHeight(center.x, center.z);
     sound.playSwordSummon();
 
     if (this.onScreenFlash) this.onScreenFlash('sword');
 
+    // 0. Triệu hồi 36 lôi kiếm Đại Canh xoáy quanh trận
+    this.castDaiCanhSwordArray(character, monsters);
+
     // 1. Chỉ điểm Bát Quái trận dưới chân
-    this.spawnGroundDecalEffect('bagua', new THREE.Vector3(center.x, center.y + 0.08, center.z), 12, 5.0);
+    this.spawnGroundDecalEffect('bagua', new THREE.Vector3(center.x, center.y + 0.08, center.z), 12, BAGUA_DURATION);
 
     // 2. Trụ ánh sáng Tiên Thiên Bát Quái xoay tròn
     const arrayGroup = new THREE.Group();
@@ -1576,7 +1612,7 @@ export class PixelFXManager {
       update: (delta) => {
         elapsed += delta;
         arrayGroup.rotation.y += delta * 1.5;
-        pillarMesh.material.opacity = (Math.sin(elapsed * 6) * 0.15 + 0.28) * (1.0 - elapsed / 5.0);
+        pillarMesh.material.opacity = (Math.sin(elapsed * 6) * 0.15 + 0.28) * (1.0 - elapsed / BAGUA_DURATION);
 
         // Làm chậm quái vật trong trận
         if (monsters) {
@@ -1587,7 +1623,7 @@ export class PixelFXManager {
           }
         }
 
-        if (elapsed >= 5.0) {
+        if (elapsed >= BAGUA_DURATION) {
           this.scene.remove(arrayGroup);
           pillarMat.dispose();
           ringMat.dispose();
@@ -1596,6 +1632,21 @@ export class PixelFXManager {
         return true;
       }
     });
+  }
+
+  // [Đạo Gia 3] NHẤT KHÍ HÓA TAM THANH: phân ra 2 đạo ảnh (xem clones.js).
+  // Chỉ máy của người ra chiêu mới tạo đạo ảnh thật; máy khác thấy bản sao qua đồng bộ trạng thái.
+  castSplitShadow(character) {
+    sound.playSwordSummon();
+    if (this.onScreenFlash) this.onScreenFlash('sword');
+    if (this.particles) {
+      const center = character.position.clone().add(new THREE.Vector3(0, 1.0, 0));
+      this.particles.emitElementalParticles(center, 30, [0x8854d0, 0xf5f6fa, 0xffd54a], [2, 6], 0.6, 3.0, 1.0);
+      this.particles.emitShockwave(character.position, 0xffd54a, 6.0, 0.35);
+    }
+    if (character === this.localCharacter && this.cloneManager) {
+      this.cloneManager.spawnLocal(character);
+    }
   }
 
   // =========================================================================

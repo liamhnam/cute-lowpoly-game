@@ -318,7 +318,7 @@ export class RemotePlayer {
     this.targetRotationY = facing;
   }
 
-  // Kiếm chiêu Chân Long Bảo Thuật: kiếm rời tay trong lúc bay
+  // Kiếm chiêu Thiên Long Cự Kiếm: kiếm rời tay trong lúc bay
   setSwordThrown(thrown) {
     this.swordModel.visible = !thrown;
   }

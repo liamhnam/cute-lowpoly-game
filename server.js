@@ -149,6 +149,7 @@ wss.on('connection', (ws) => {
             isGrounded: player.isGrounded,
             isCasting: player.isCasting,
             castSkill: player.castSkill,
+            clones: sanitizeClones(msg.clones),
           });
           break;
         }
@@ -160,10 +161,14 @@ wss.on('connection', (ws) => {
             id: playerId,
             origin: msg.origin,
             direction: msg.direction,
-            // Loại đòn kiếm: chém combo (step 0-2) hoặc kiếm khí tụ lực (power 0-1)
-            kind: msg.kind === 'qi' ? 'qi' : 'slash',
+            // Loại đòn kiếm: chém combo (step 0-2), kiếm khí tụ lực (power 0-1),
+            // chém hoàng kim của Bạch Ảnh (gslash) hoặc tia sét vàng của Tử Ảnh (bolt, kèm target)
+            kind: ['qi', 'gslash', 'bolt'].includes(msg.kind) ? msg.kind : 'slash',
+            target: sanitizePoint(msg.target),
             step: Math.min(2, Math.max(0, Math.floor(Number(msg.step) || 0))),
             power: Math.min(1, Math.max(0, Number(msg.power) || 0)),
+            // Đòn do đạo ảnh phân thân (0 hoặc 1) chém ra, không có thì là đòn của chính người chơi
+            clone: msg.clone === 0 || msg.clone === 1 ? msg.clone : null,
           });
           break;
         }
@@ -181,6 +186,22 @@ wss.on('connection', (ws) => {
 
         case 'hit': {
           if (!player || player.isDead) return;
+
+          // Đánh trúng đạo ảnh phân thân (id "<chủ nhân>#clone<i>"): chuyển cho máy chủ nhân tự trừ máu đạo ảnh
+          const cloneMatch = /^(.+)#clone([01])$/.exec(String(msg.targetId || ''));
+          if (cloneMatch) {
+            const owner = players.get(cloneMatch[1]);
+            if (!owner || owner.isDead || owner.id === player.id || owner.ws.readyState !== WebSocket.OPEN) return;
+            owner.ws.send(JSON.stringify({
+              type: 'clone_damaged',
+              clone: Number(cloneMatch[2]),
+              attackerId: player.id,
+              damage: Math.min(600, Math.max(5, Math.round(Number(msg.damage) || 30))),
+              hitPos: msg.hitPos,
+            }));
+            break;
+          }
+
           const target = players.get(msg.targetId);
           if (!target || target.isDead) return;
 
@@ -267,6 +288,27 @@ wss.on('connection', (ws) => {
     console.error(`Socket error for ${playerId}:`, err.message);
   });
 });
+
+function sanitizePoint(p) {
+  if (!p || typeof p !== 'object') return null;
+  return { x: Number(p.x) || 0, y: Number(p.y) || 0, z: Number(p.z) || 0 };
+}
+
+// Trạng thái đạo ảnh phân thân gửi kèm 'state': tối đa 2 đạo ảnh, chỉ giữ các trường số cần thiết
+function sanitizeClones(list) {
+  if (!Array.isArray(list)) return [];
+  return list.slice(0, 2)
+    .filter((c) => c && (c.i === 0 || c.i === 1))
+    .map((c) => ({
+      i: c.i,
+      x: Number(c.x) || 0,
+      y: Number(c.y) || 0,
+      z: Number(c.z) || 0,
+      rotY: Number(c.rotY) || 0,
+      hp: Math.max(0, Number(c.hp) || 0),
+      maxHp: Math.max(1, Number(c.maxHp) || 1),
+    }));
+}
 
 function broadcast(msg) {
   const str = JSON.stringify(msg);

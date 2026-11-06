@@ -545,7 +545,7 @@ export class Character {
 
     // Kiếm quang: khối sáng cộng màu phủ dọc lưỡi, dùng được cho cả model GLB
     this.bladeGlowMat = new THREE.MeshBasicMaterial({
-      color: 0x1dd1a1,
+      color: 0xffd54a,
       transparent: true,
       opacity: 0,
       depthWrite: false,
@@ -636,7 +636,7 @@ export class Character {
     this.sword.add(this.swordModel);
     this.bladeAura.visible = !this.isSwordThrown;
     if (this.particles) {
-      this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1.4, 0)), 6, [0x1dd1a1, 0xffffff], [1, 3], 0.3, 0, 0.4);
+      this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1.4, 0)), 6, [0xffd54a, 0xffffff], [1, 3], 0.3, 0, 0.4);
     }
   }
 
@@ -678,7 +678,7 @@ export class Character {
     this.slashFacing = facing;
     this.targetRotationY = facing;
 
-    this.flashBlade(step === 2 ? 0xffffff : 0x7bed9f, step === 2 ? 1.0 : 0.7);
+    this.flashBlade(step === 2 ? 0xffffff : 0xfff3b0, step === 2 ? 1.0 : 0.7);
     sound.playSwordSlash();
   }
 
@@ -714,7 +714,7 @@ export class Character {
 
     // Màu sắc hào quang ma pháp theo từng Môn Phái và Chiêu thức
     const sectColors = [
-      { 1: 0x1dd1a1, 2: 0xf1c40f, 3: 0xa29bfe }, // Đạo Gia (Chân Long, Bát Quái, Đại Canh)
+      { 1: 0xffd54a, 2: 0xf1c40f, 3: 0xa29bfe }, // Đạo Gia (Thiên Long Cự Kiếm, Bát Quái Đại Canh, Phân Thân)
       { 1: 0x00d2d3, 2: 0x7ed6df, 3: 0x54a0ff }, // Thanh Vân (Huyền Băng, Phong Trảm, Băng Vũ)
       { 1: 0xa29bfe, 2: 0x7bed9f, 3: 0xffd700 }, // Tử Tiêu (Thuấn Bộ, Hộ Thể, Vạn Kiếm)
       { 1: 0xff4757, 2: 0x8854d0, 3: 0xeb3b5a }, // Ma Tu (Huyết Ma, Hắc Động, Ma Bạo)
@@ -1037,7 +1037,7 @@ export class Character {
       this.body.rotation.y = 0.3 * c;
       this.sword.rotation.x = Math.PI - 0.25;
       const pulse = c >= 1 ? 0.5 + 0.5 * Math.sin(this.animTime * 6) : c;
-      this.bladeGlowMat.color.setHex(0x1dd1a1).lerp(CHARGE_FULL_COLOR, pulse);
+      this.bladeGlowMat.color.setHex(0xfff3b0).lerp(CHARGE_FULL_COLOR, pulse);
       this.auraIntensity = Math.max(this.auraIntensity, 0.3 + 0.6 * c);
 
       if (this.particles && Math.random() < 0.15 + c * 0.35) {

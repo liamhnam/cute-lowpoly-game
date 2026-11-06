@@ -12,6 +12,7 @@ import { loadSwordModel } from './sword.js';
 import { loadDragonModel } from './dragon.js';
 import { NetworkManager } from './network.js';
 import { RemotePlayer } from './remotePlayer.js';
+import { CloneManager } from './clones.js';
 
 class Game {
   constructor() {
@@ -121,7 +122,7 @@ class Game {
     // 3. Nhân vật Bé Gấu Tu Tiên mang hồ lô và pháp bảo
     this.character = new Character(this.scene, this.particles);
     loadSwordModel(); // Nạp tiên kiếm GLB nếu có, kiếm trên tay & kiếm chiêu tự đổi theo
-    loadDragonModel(); // Nạp thần long GLB nếu có cho chiêu Chân Long Bảo Thuật
+    loadDragonModel(); // Nạp thần long GLB nếu có cho chiêu Thiên Long Cự Kiếm
 
     // 4. Hệ thống chém kiếm & kiếm khí có vệt sáng & tương tác vật thể
     this.projectiles = new ProjectileSystem(this.scene, this.particles, this.world);
@@ -162,6 +163,16 @@ class Game {
     this.pixelFX.remotePlayers = [];
     this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source) => this.handleHitPlayer(targetId, dmg, hitPos, source);
     this.pixelFX.localCharacter = this.character;
+
+    // Đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh): đòn kiếm khí của đạo ảnh cũng gửi qua mạng để máy khác thấy
+    this.clones = new CloneManager(this.scene, this.particles, this.projectiles);
+    this.clones.pixelFX = this.pixelFX;
+    this.clones.onAttack = (index, origin, dir, attack) => {
+      if (this.network.isConnected) {
+        this.network.sendShoot(origin, dir, { ...attack, clone: index });
+      }
+    };
+    this.pixelFX.cloneManager = this.clones;
 
     // 7. Bộ điều khiển góc nhìn thứ 3 tích hợp Rung lắc Camera (Trauma Shake)
     this.controller = new ThirdPersonController(
@@ -331,7 +342,14 @@ class Game {
       const rp = this.remotePlayers.get(state.id);
       if (rp) {
         rp.updateState(state);
+        this.clones.syncRemote(state.id, rp.name, state.clones);
       }
+    });
+
+    // Người khác đánh trúng đạo ảnh của mình: server chuyển sát thương về đây để trừ máu
+    this.network.on('clone_damaged', (msg) => {
+      const hitPos = msg.hitPos ? new THREE.Vector3(msg.hitPos.x, msg.hitPos.y, msg.hitPos.z) : null;
+      this.clones.damageLocal(msg.clone, msg.damage, hitPos);
     });
 
     this.network.on('player_shoot', (msg) => {
@@ -339,11 +357,20 @@ class Game {
       const rp = this.remotePlayers.get(msg.id);
       const origin = new THREE.Vector3(msg.origin.x, msg.origin.y, msg.origin.z);
       const dir = new THREE.Vector3(msg.direction.x, msg.direction.y, msg.direction.z);
-      if (rp) {
+      if (msg.clone === 0 || msg.clone === 1) {
+        if (msg.kind !== 'bolt') this.clones.animateRemote(msg.id, msg.clone, Math.atan2(dir.x, dir.z), msg.step || 0);
+      } else if (rp) {
         rp.triggerSlash(Math.atan2(dir.x, dir.z), msg.kind === 'qi' ? 0 : (msg.step || 0));
+      }
+      if (msg.kind === 'bolt') {
+        // Tia sét vàng của Tử Ảnh: chỉ dựng lại hình ảnh, sát thương do máy chủ nhân báo
+        if (msg.target) this.clones.spawnBolt(origin, new THREE.Vector3(msg.target.x, msg.target.y, msg.target.z));
+        return;
       }
       if (msg.kind === 'qi') {
         this.projectiles.spawnSwordQi(origin, dir, msg.power || 0, false);
+      } else if (msg.kind === 'gslash') {
+        this.projectiles.slash(origin, dir, this.monsters, 'goldSlash');
       } else {
         this.projectiles.slash(origin, dir, this.monsters, msg.step === 2 ? 'thrust' : 'sweep');
       }
@@ -434,6 +461,7 @@ class Game {
 
     this.network.on('player_left', (msg) => {
       const rp = this.remotePlayers.get(msg.id);
+      this.clones.removeRemote(msg.id);
       if (rp) {
         rp.destroy();
         this.remotePlayers.delete(msg.id);
@@ -925,6 +953,7 @@ class Game {
           isGrounded: this.character.isGrounded,
           isCasting: this.character.isCasting,
           castSkill: this.character.castSkill,
+          clones: this.clones.getNetworkState(),
         });
       }
     }
@@ -934,13 +963,19 @@ class Game {
 
     // Cập nhật danh sách người chơi khác (Remote Players)
     const rpList = Array.from(this.remotePlayers.values());
-    this.pixelFX.remotePlayers = rpList;
     for (const rp of rpList) {
       rp.update(delta);
     }
 
+    // Mục tiêu PvP: người chơi khác và đạo ảnh phân thân của họ
+    const pvpTargets = rpList.concat(this.clones.getRemoteTargets());
+    this.pixelFX.remotePlayers = pvpTargets;
+
+    // Đạo ảnh phân thân: AI của mình + bản sao đạo ảnh của người khác
+    this.clones.update(delta, this.character, this.monsters, pvpTargets, this.controller.yaw);
+
     // 2. Cập nhật đạn và va chạm với người chơi khác + quái vật
-    this.projectiles.update(delta, this.monsters, rpList, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source));
+    this.projectiles.update(delta, this.monsters, pvpTargets, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source));
 
     // 3. Cập nhật kỹ năng PixelFX & tàn phá địa hình
     this.pixelFX.update(delta);

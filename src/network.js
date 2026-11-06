@@ -159,6 +159,10 @@ export class NetworkManager {
         this.emit('player_left', msg);
         break;
 
+      case 'clone_damaged':
+        this.emit('clone_damaged', msg);
+        break;
+
       case 'pong':
         this.ping = Math.max(1, Date.now() - msg.clientTime);
         this.emit('pong', { ping: this.ping });
@@ -177,7 +181,8 @@ export class NetworkManager {
     });
   }
 
-  // Tiện ích gửi đòn kiếm: attack = { kind: 'slash', step } (nhát combo 0-2) hoặc { kind: 'qi', power } (lực tụ 0-1)
+  // Tiện ích gửi đòn kiếm: attack = { kind: 'slash', step } (nhát combo 0-2) hoặc { kind: 'qi', power } (lực tụ 0-1).
+  // attack.clone = 0/1 khi đòn do đạo ảnh phân thân chém ra
   sendShoot(origin, direction, attack = {}) {
     this.send({
       type: 'shoot',
@@ -186,6 +191,9 @@ export class NetworkManager {
       kind: attack.kind || 'slash',
       step: attack.step || 0,
       power: attack.power || 0,
+      clone: attack.clone !== undefined ? attack.clone : null,
+      // Điểm đánh của tia sét vàng (Tử Ảnh), kind = 'bolt'
+      target: attack.target ? { x: attack.target.x, y: attack.target.y, z: attack.target.z } : null,
     });
   }
 

@@ -6,6 +6,8 @@ import { getTerrainHeight } from './world.js';
 const MELEE_STYLES = {
   sweep: { damage: 35, range: 3.4, halfAngle: Math.PI / 3, knockback: 0, color: 0xc8ffe0 },  // cung 120°
   thrust: { damage: 70, range: 5.2, halfAngle: Math.PI / 7, knockback: 10, color: 0xffffff }, // mũi đâm ~50°
+  // Nhát chém của Bạch Ảnh (phân thân): cung rộng 144°, kèm vệt chém hoàng kim
+  goldSlash: { damage: 40, range: 4.8, halfAngle: Math.PI / 2.5, knockback: 0, color: 0xffc107, gold: true },
 };
 const QI_MIN_DAMAGE = 30;  // kiếm khí vừa bắt đầu tụ
 const QI_MAX_DAMAGE = 120; // kiếm khí tụ đầy lực
@@ -33,6 +35,9 @@ export class ProjectileSystem {
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     });
+
+    // Vệt chém hoàng kim: cung trăng khuyết đứng (mặt phẳng XY, pháp tuyến +Z), mũi cung chỉ lên trên
+    this.goldCrescentGeo = new THREE.RingGeometry(2.5, 3.5, 24, 1, Math.PI / 2 - 0.85, 1.7);
 
     // Kiếm khí trăng lưỡi liềm
     this.qiGeo = new THREE.RingGeometry(0.75, 1.15, 14, 1, -Math.PI / 3, (Math.PI * 2) / 3);
@@ -63,11 +68,14 @@ export class ProjectileSystem {
 
     const arcMat = this.slashArcMat.clone();
     arcMat.color.setHex(style.color);
+    // Vệt vàng dùng pha màu thường: pha sáng cộng sẽ ngả trắng trên nền sáng
+    if (style.gold) arcMat.blending = THREE.NormalBlending;
     const arc = new THREE.Mesh(this.slashGeos[styleName], arcMat);
     arc.position.set(center.x, center.y - 0.3, center.z);
     arc.rotation.y = ProjectileSystem.yawFor(dir);
     this.scene.add(arc);
     this.slashArcs.push({ mesh: arc, life: 0.2, maxLife: 0.2 });
+    if (style.gold) this.spawnGoldSlashFx(center, dir);
 
     let hitAny = false;
     for (const monster of monsters || []) {
@@ -120,6 +128,34 @@ export class ProjectileSystem {
 
     if (hitAny) sound.playHit();
     return hitAny;
+  }
+
+  // Vệt chém hoàng kim: hai cung trăng khuyết đứng chéo nhau trước mặt (như hai đường kiếm vung liên tiếp),
+  // sáng chói, nở rộng rồi tan, kèm tia lửa vàng bắn theo hướng chém
+  spawnGoldSlashFx(center, dir) {
+    const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(dir.x, dir.z));
+    const tilts = [(Math.random() - 0.5) * 1.2 + 0.6, (Math.random() - 0.5) * 1.2 - 0.6];
+
+    tilts.forEach((tilt, k) => {
+      const mat = new THREE.MeshBasicMaterial({
+        color: k === 0 ? 0xffc107 : 0xffd54a,
+        transparent: true,
+        opacity: 0.95,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+      const crescent = new THREE.Mesh(this.goldCrescentGeo, mat);
+      // Tâm cung đặt thấp hơn ngực ~2.6m để phần cung đi qua ngang tầm thân địch
+      crescent.position.set(center.x + dir.x * (1.4 + k * 0.5), center.y - 2.6, center.z + dir.z * (1.4 + k * 0.5));
+      crescent.quaternion.copy(yaw).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), tilt));
+      this.scene.add(crescent);
+      this.slashArcs.push({ mesh: crescent, life: 0.3, maxLife: 0.3 });
+    });
+
+    if (this.particles) {
+      const spark = center.clone().addScaledVector(dir, 2.2);
+      this.particles.emitElementalParticles(spark, 10, [0xffd54a, 0xfff3b0, 0xffffff], [3, 9], 0.3, 0, 0.5);
+    }
   }
 
   // Phóng kiếm khí bay ngang theo hướng direction; power 0..1 là lực tụ.
