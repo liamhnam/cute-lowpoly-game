@@ -5,7 +5,7 @@ import { ParticleSystem } from './particles.js';
 import { ThirdPersonController } from './controller.js';
 import { ProjectileSystem } from './projectiles.js';
 import { Monster } from './monsters.js';
-import { PixelFXManager, HIDDEN_COMBO_SIGNAL } from './pixelfx.js';
+import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
 import { MobileControlsManager } from './mobileControls.js';
 import { loadSwordModel } from './sword.js';
@@ -162,13 +162,6 @@ class Game {
     this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source) => this.handleHitPlayer(targetId, dmg, hitPos, source);
     this.pixelFX.localCharacter = this.character;
 
-    // Combo ẩn 3 → 2 → 1 của Hoàng Bào Đạo Sĩ: báo cho mình và gửi tín hiệu để người khác thấy sấm sét
-    this.pixelFX.onHiddenCombo = (targetPos) => {
-      this.showNotification('⚡⚡⚡ THIÊN LÔI PHẠT THẾ! Sấm sét giáng khắp 60m trong 10 giây!');
-      if (this.network.isConnected) {
-        this.network.sendSkill(HIDDEN_COMBO_SIGNAL, targetPos);
-      }
-    };
     this.character.pixelFX = this.pixelFX;
 
     // Đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh): đòn kiếm khí của đạo ảnh cũng gửi qua mạng để máy khác thấy
@@ -214,8 +207,8 @@ class Game {
         }
       },
       (skillNum, targetPos) => {
-        // Chỉ hỗ trợ 3 kỹ năng độc nhất theo từng môn phái (1, 2, 3)
-        if (skillNum < 1 || skillNum > 3) return false;
+        // Mỗi môn phái có 3 kỹ năng (1, 2, 3); Đạo Gia có thêm chiêu 4
+        if (skillNum < 1 || skillNum > 4 || !this.pixelFX.cooldowns[skillNum]) return false;
 
         // Kiểm tra hồi chiêu
         if (this.pixelFX.isSkillOnCooldown(skillNum)) {
@@ -759,7 +752,7 @@ class Game {
     }
 
     // Gắn sự kiện click cho 3 ô kỹ năng môn phái trên HUD
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 4; i++) {
       const slot = document.getElementById(`skill-slot-${i}`);
       if (slot) {
         slot.addEventListener('click', (e) => {
@@ -775,10 +768,11 @@ class Game {
       if (sectTag) {
         sectTag.textContent = `${sect.icon} ${sect.name}`;
       }
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i <= 4; i++) {
         const skill = sect.skills[i - 1];
-        if (!skill) continue;
         const slot = document.getElementById(`skill-slot-${i}`);
+        if (slot) slot.style.display = skill ? '' : 'none';
+        if (!skill) continue;
         if (slot) {
           slot.title = `Phím ${i}: ${skill.name} ${skill.icon} (${skill.mana > 0 ? `-${skill.mana} Linh Lực, ` : ''}${skill.desc})`;
           const tagEl = slot.querySelector('.skill-talisman-tag');

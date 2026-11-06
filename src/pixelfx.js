@@ -329,13 +329,6 @@ class FloatingDamageText {
 // (1.6 = hồi nhanh hơn 60%, tức thời gian hồi chiêu rút ngắn còn ~62.5%)
 const BAGUA_COOLDOWN_RATE = 1.6;
 
-// Combo ẩn của Hoàng Bào Đạo Sĩ: dùng chiêu 3 → 2 → 1 theo đúng thứ tự, mỗi bước cách bước trước tối đa
-// HIDDEN_COMBO_WINDOW giây, thì kích hoạt "Thiên Lôi Phạt Thế": 10s sấm sét cực mạnh giáng khắp 60m.
-// Cố ý không ghi trong giao diện. Chiêu 4 là tín hiệu mạng riêng của đòn này (không phải ô kỹ năng).
-const HIDDEN_COMBO = [3, 2, 1];
-const HIDDEN_COMBO_WINDOW = 8.0;
-export const HIDDEN_COMBO_SIGNAL = 4;
-
 export const SECTS = [
   {
     id: 'dao_gia',
@@ -344,7 +337,7 @@ export const SECTS = [
     colorHex: 0xf6c344,
     themeColor: '#f1c40f',
     icon: '🐉',
-    desc: 'Đạo gia trận pháp & phòng ngự: Cự Kiếm Phá Thiên 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân',
+    desc: 'Đạo gia trận pháp & phòng ngự: Cự Kiếm Phá Thiên 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân, Thiên Lôi Phạt Thế giáng sấm khắp 60m',
     skills: [
       {
         id: 1,
@@ -372,6 +365,15 @@ export const SECTS = [
         cd: 30.0,
         mana: 40,
         desc: 'Phân ra 2 đạo ảnh máu bằng 1/2 bản thân, sống 20s hoặc tới khi bị tiêu diệt: Bạch Ảnh (áo trắng) chạy siêu tốc chém vàng liên tục mọi mục tiêu trong 60m, Tử Ảnh (áo tím) bay lên trời liên tục phóng lôi vàng'
+      },
+      {
+        id: 4,
+        name: 'Thiên Lôi Phạt Thế',
+        tag: 'THIÊN LÔI',
+        icon: '⛈️',
+        cd: 40.0,
+        mana: 50,
+        desc: 'Mây giông phủ trời, 10s sấm sét cực mạnh từ trên trời giáng xuống liên tục khắp 60m: địch trúng 120 ST mỗi tia, không có địch sấm vẫn đánh rền khắp vùng'
       }
     ]
   },
@@ -585,9 +587,6 @@ export class PixelFXManager {
     this.onHitPlayer = null;
     this.localCharacter = null; // nhân vật của chính mình
     this.cloneManager = null;   // quản lý đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh)
-    this.comboSeq = [];         // chuỗi chiêu vừa dùng liên tiếp (combo ẩn của Đạo Gia)
-    this.comboTimer = 0;        // còn bao lâu thì chuỗi bị huỷ
-    this.onHiddenCombo = null;  // (targetPos) => void, báo main.js để thông báo và gửi qua mạng
 
     // Quản lý vùng trận pháp & tương tác chiêu thức
     this.lastBaguaPos = null;
@@ -603,11 +602,10 @@ export class PixelFXManager {
     this.currentSectIndex = ((Number(sectIndex) % SECTS.length) + SECTS.length) % SECTS.length;
     const sect = SECTS[this.currentSectIndex];
 
-    this.cooldowns = {
-      1: { current: 0, max: sect.skills[0].cd, name: sect.skills[0].name, icon: sect.skills[0].icon, tag: sect.skills[0].tag, desc: sect.skills[0].desc, mana: sect.skills[0].mana },
-      2: { current: 0, max: sect.skills[1].cd, name: sect.skills[1].name, icon: sect.skills[1].icon, tag: sect.skills[1].tag, desc: sect.skills[1].desc, mana: sect.skills[1].mana },
-      3: { current: 0, max: sect.skills[2].cd, name: sect.skills[2].name, icon: sect.skills[2].icon, tag: sect.skills[2].tag, desc: sect.skills[2].desc, mana: sect.skills[2].mana },
-    };
+    this.cooldowns = {};
+    sect.skills.forEach((s, i) => {
+      this.cooldowns[i + 1] = { current: 0, max: s.cd, name: s.name, icon: s.icon, tag: s.tag, desc: s.desc, mana: s.mana };
+    });
 
     if (this.onSectChange) {
       this.onSectChange(sect, this.cooldowns);
@@ -679,16 +677,13 @@ export class PixelFXManager {
   // KÍCH HOẠT KỸ NĂNG THEO MÔN PHÁI (MỖI PHÁI 3 CHIÊU [1], [2], [3])
   castSkill(skillIndex, targetPos, character, monsters) {
     const slotNum = Number(skillIndex);
-
-    // Tín hiệu đòn ẩn từ người chơi khác: chỉ dựng lại hiệu ứng, máy mình không tính hồi chiêu hay combo
-    if (slotNum === HIDDEN_COMBO_SIGNAL) {
-      if (character && character !== this.localCharacter) this.castHeavenlyThunder(character, monsters);
-      return false;
-    }
-    if (![1, 2, 3].includes(slotNum)) return false;
+    if (![1, 2, 3, 4].includes(slotNum)) return false;
 
     // Xác định môn phái của nhân vật thi triển (bản thân hoặc người chơi khác)
     const sectIdx = ((character?.outfitIndex !== undefined ? character.outfitIndex : this.currentSectIndex) % SECTS.length + SECTS.length) % SECTS.length;
+
+    // Chỉ một số môn phái có chiêu thứ 4 (hiện chỉ Thái Thanh Đạo Gia)
+    if (slotNum === 4 && !SECTS[sectIdx].skills[3]) return false;
 
     // Hồi chiêu chỉ áp cho chiêu của chính mình (nhân hệ số hồi chiêu theo môn phái)
     if (character === this.localCharacter) {
@@ -703,6 +698,7 @@ export class PixelFXManager {
         if (slotNum === 1) this.castFlyingSword(targetPos, character, monsters);
         else if (slotNum === 2) this.castTaiChiBagua(character, monsters);
         else if (slotNum === 3) this.castSplitShadow(character);
+        else if (slotNum === 4) this.castHeavenlyThunder(character, monsters);
         break;
 
       case 1: // Thanh Vân Tiên Tông
@@ -736,37 +732,13 @@ export class PixelFXManager {
         break;
     }
 
-    // Chỉ chiêu của chính mình mới được tính vào combo ẩn
-    if (character === this.localCharacter) this.trackHiddenCombo(slotNum, sectIdx, targetPos, character, monsters);
-
     return true;
   }
 
-  // Theo dõi chuỗi chiêu 3 → 2 → 1 của Hoàng Bào Đạo Sĩ. Dùng sai thứ tự, hoặc để quá HIDDEN_COMBO_WINDOW
-  // giây giữa hai bước thì chuỗi bị huỷ (dùng lại chiêu 3 thì bắt đầu chuỗi mới).
-  trackHiddenCombo(slotNum, sectIdx, targetPos, character, monsters) {
-    if (sectIdx !== 0) {
-      this.comboSeq = [];
-      return;
-    }
-    if (slotNum === HIDDEN_COMBO[this.comboSeq.length]) {
-      this.comboSeq.push(slotNum);
-    } else {
-      this.comboSeq = slotNum === HIDDEN_COMBO[0] ? [slotNum] : [];
-    }
-    this.comboTimer = HIDDEN_COMBO_WINDOW;
-
-    if (this.comboSeq.length === HIDDEN_COMBO.length) {
-      this.comboSeq = [];
-      this.comboTimer = 0;
-      this.castHeavenlyThunder(character, monsters);
-      if (this.onHiddenCombo) this.onHiddenCombo(targetPos);
-    }
-  }
-
-  // --- ĐÒN ẨN: THIÊN LÔI PHẠT THẾ ---
-  // 10 giây sấm sét cực mạnh giáng liên tục xuống kẻ địch (quái, người chơi, đạo ảnh) trong 60m quanh người ra chiêu.
-  // Mây giông đen che trời và vòng ranh giới 60m đi theo người ra chiêu. Không phá hoại cảnh vật, chỉ trúng địch.
+  // --- [Đạo Gia 4] THIÊN LÔI PHẠT THẾ ---
+  // 10 giây sấm sét cực mạnh từ trời giáng xuống liên tục trong 60m quanh người ra chiêu: có địch (quái, người chơi,
+  // đạo ảnh) thì đánh thẳng vào địch, không có địch thì vẫn giáng xuống mặt đất khắp vùng. Mây giông đen che trời
+  // và vòng ranh giới 60m đi theo người ra chiêu. Không phá hoại cảnh vật, chỉ trúng địch.
   // Chỉ máy của người ra chiêu mới báo sát thương PvP (xem canHitPlayers); máy khác chỉ dựng lại hiệu ứng.
   castHeavenlyThunder(character, monsters) {
     const DURATION = 10;
@@ -849,10 +821,10 @@ export class PixelFXManager {
             if (targets.length) {
               const p = targets[Math.floor(Math.random() * targets.length)];
               strike(new THREE.Vector3(p.x, p.y + 1.0, p.z), true);
-            } else if (tick % 2 === 0) {
-              // Không còn địch: vẫn có sấm rền xuống mặt đất quanh người cho ra dáng bão giông
+            } else {
+              // Không có địch: sấm vẫn giáng xuống liên tục từ trời tới mặt đất khắp vùng 60m (chỉ là hiệu ứng)
               const a = Math.random() * Math.PI * 2;
-              const r = 6 + Math.random() * 22;
+              const r = 5 + Math.sqrt(Math.random()) * (RANGE - 8);
               const x = c.x + Math.cos(a) * r;
               const z = c.z + Math.sin(a) * r;
               strike(new THREE.Vector3(x, getTerrainHeight(x, z) + 0.3, z), false);
@@ -3346,10 +3318,6 @@ export class PixelFXManager {
   }
 
   update(delta) {
-    if (this.comboTimer > 0) {
-      this.comboTimer -= delta;
-      if (this.comboTimer <= 0) this.comboSeq = [];
-    }
     if (this.baguaTimer > 0) this.baguaTimer -= delta;
     if (this.vortexTimer > 0) this.vortexTimer -= delta;
 

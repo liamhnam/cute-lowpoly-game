@@ -314,7 +314,7 @@ export class ThirdPersonController {
       const castSuccess = this.onCastSkill(skillNum, targetPos);
       if (castSuccess) {
         this.character.triggerSkillCast(skillNum);
-        this.addTrauma(skillNum === 3 ? 0.3 : (skillNum === 2 ? 0.18 : 0.12));
+        this.addTrauma(skillNum === 4 ? 0.4 : skillNum === 3 ? 0.3 : (skillNum === 2 ? 0.18 : 0.12));
       }
     }
   }
@@ -377,6 +377,10 @@ export class ThirdPersonController {
       case 'KeyE':
       case 'KeyR':
         if (isDown) this.triggerSkill(3);
+        break;
+      case 'Digit4':
+      case 'Numpad4':
+        if (isDown) this.triggerSkill(4);
         break;
     }
   }

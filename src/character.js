@@ -1142,13 +1142,13 @@ export class Character {
     this.isCasting = true;
     this.castSkill = skillNum;
     this.castTime = 0;
-    const durations = { 1: 0.5, 2: 0.45, 3: 1.1, 4: 0.75, 5: 1.35, 6: 1.0 };
+    const durations = { 1: 0.5, 2: 0.45, 3: 1.1, 4: 1.0, 5: 1.35, 6: 1.0 };
     this.castDuration = durations[skillNum] || 0.6;
     this.drawSword();
 
     // Màu sắc hào quang ma pháp theo từng Môn Phái và Chiêu thức
     const sectColors = [
-      { 1: 0xffd54a, 2: 0xf1c40f, 3: 0xa29bfe }, // Đạo Gia (Cự Kiếm Phá Thiên, Bát Quái Đại Canh, Phân Thân)
+      { 1: 0xffd54a, 2: 0xf1c40f, 3: 0xa29bfe, 4: 0x74b9ff }, // Đạo Gia (Cự Kiếm Phá Thiên, Bát Quái Đại Canh, Phân Thân, Thiên Lôi Phạt Thế)
       { 1: 0x00d2d3, 2: 0x7ed6df, 3: 0x54a0ff }, // Thanh Vân (Huyền Băng, Phong Trảm, Băng Vũ)
       { 1: 0xa29bfe, 2: 0x7bed9f, 3: 0xffd700 }, // Tử Tiêu (Thuấn Bộ, Hộ Thể, Vạn Kiếm)
       { 1: 0xff4757, 2: 0x8854d0, 3: 0xeb3b5a }, // Ma Tu (Huyết Ma, Hắc Động, Ma Bạo)
@@ -1178,6 +1178,10 @@ export class Character {
       this.squashFactor = 0.85;
     } else if (skillNum === 1) {
       this.squashFactor = 1.15;
+    } else if (skillNum === 4) {
+      // Thiên Lôi Phạt Thế: nhún người giương kiếm chỉ trời gọi sấm
+      this.squashFactor = 1.3;
+      sound.playSwordSummon();
     }
 
     if (this.particles) {
@@ -1415,6 +1419,27 @@ export class Character {
             [0xffd700, 0xffffff, 0xa29bfe],
             [1, 3],
             0.35,
+            0,
+            0.5
+          );
+        }
+      } else if (this.castSkill === 4) {
+        // [4] Thiên Lôi Phạt Thế: giương thẳng kiếm chỉ trời, mắt ngước lên gọi sấm, người rung theo lôi quang
+        this.body.rotation.x = -0.25;
+        this.head.rotation.x = -0.5;
+        this.rightArm.rotation.x = -3.0;
+        this.rightArm.rotation.z = 0.1;
+        this.sword.rotation.x = Math.PI - 0.1;
+        this.leftArm.rotation.x = -2.6;
+        this.leftArm.rotation.z = -0.3;
+        this.body.position.y = 0.15 + Math.sin(this.castTime * 28) * 0.03;
+        if (this.particles && Math.random() < 0.6) {
+          this.particles.emitElementalParticles(
+            this.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 1.4 + Math.random() * 1.2, (Math.random() - 0.5) * 1.2)),
+            2,
+            [0x74b9ff, 0xa29bfe, 0xffffff],
+            [2, 5],
+            0.3,
             0,
             0.5
           );

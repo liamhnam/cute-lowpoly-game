@@ -467,6 +467,27 @@
       background: #00d2d3;
       color: #1e272e;
     }
+    /* Ô Kỹ năng 4: Thiên Lôi Phạt Thế (sắc giông bão tím xanh) */
+    .skill-slot#skill-slot-4 {
+      width: 76px;
+      height: 86px;
+      background: linear-gradient(180deg, #eef1ff 0%, #c9d1ff 100%);
+      box-shadow:
+        0 -2px 0 0 #6c5ce7,
+        0 2px 0 0 #6c5ce7,
+        -2px 0 0 0 #6c5ce7,
+        2px 0 0 0 #6c5ce7,
+        inset 0 0 0 2px #74b9ff;
+    }
+
+    .skill-slot#skill-slot-4 .skill-talisman-tag {
+      background: #6c5ce7;
+    }
+
+    .skill-slot#skill-slot-4 .skill-key {
+      background: #74b9ff;
+      color: #1e272e;
+    }
     /* Hiệu ứng Cooldown đen mờ */
     .skill-cd-overlay {
       position: absolute;
@@ -1165,7 +1186,8 @@
       -webkit-tap-highlight-color: transparent !important;
     }
 
-    body.mobile-ui-active .skill-slot#skill-slot-3 {
+    body.mobile-ui-active .skill-slot#skill-slot-3,
+    body.mobile-ui-active .skill-slot#skill-slot-4 {
       width: 58px !important;
       height: 70px !important;
       border: 2px solid #f1c40f !important;
@@ -1208,7 +1230,8 @@
         width: 48px !important;
         height: 58px !important;
       }
-      body.mobile-ui-active .skill-slot#skill-slot-3 {
+      body.mobile-ui-active .skill-slot#skill-slot-3,
+      body.mobile-ui-active .skill-slot#skill-slot-4 {
         width: 54px !important;
         height: 64px !important;
       }
@@ -1269,7 +1292,8 @@
         width: 46px !important;
         height: 56px !important;
       }
-      body.mobile-ui-active .skill-slot#skill-slot-3 {
+      body.mobile-ui-active .skill-slot#skill-slot-3,
+      body.mobile-ui-active .skill-slot#skill-slot-4 {
         width: 50px !important;
         height: 60px !important;
       }
@@ -1944,6 +1968,16 @@
           <span class="skill-name">Phân Thân</span>
           <div class="skill-cd-overlay" id="skill-cd-3"></div>
           <span class="skill-cd-text" id="skill-text-3">3</span>
+        </div>
+
+        <!-- Chiêu 4: Thiên Lôi Phạt Thế (chỉ Đạo Gia) -->
+        <div class="skill-slot" id="skill-slot-4" title="Phím 4: Thiên Lôi Phạt Thế">
+          <span class="skill-key">4</span>
+          <span class="skill-talisman-tag">THIÊN LÔI</span>
+          <span class="skill-icon">⛈️</span>
+          <span class="skill-name">Thiên Lôi</span>
+          <div class="skill-cd-overlay" id="skill-cd-4"></div>
+          <span class="skill-cd-text" id="skill-text-4">4</span>
         </div>
       </div>
     </div>
