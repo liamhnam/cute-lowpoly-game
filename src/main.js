@@ -788,6 +788,16 @@ class Game {
     const savedName = localStorage.getItem('playerName') || 'Hiệp Sĩ Bé Gấu';
     if (nameInput) nameInput.value = savedName;
 
+    const savedOutfit = parseInt(localStorage.getItem('playerOutfit'), 10);
+    if (!isNaN(savedOutfit) && savedOutfit >= 0 && savedOutfit < 5) {
+      this.selectedOutfitIndex = savedOutfit;
+      outfitCards.forEach((c) => {
+        c.classList.toggle('active', parseInt(c.dataset.index, 10) === savedOutfit);
+      });
+      this.character.setOutfit(this.selectedOutfitIndex);
+      this.pixelFX.setSect(this.selectedOutfitIndex);
+    }
+
     const defaultServerUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname || 'localhost'}:3000`;
     if (serverInput) serverInput.value = defaultServerUrl;
 
@@ -797,6 +807,7 @@ class Game {
         outfitCards.forEach((c) => c.classList.remove('active'));
         card.classList.add('active');
         this.selectedOutfitIndex = parseInt(card.dataset.index, 10) || 0;
+        localStorage.setItem('playerOutfit', this.selectedOutfitIndex);
         this.character.setOutfit(this.selectedOutfitIndex);
         this.pixelFX.setSect(this.selectedOutfitIndex);
       });
@@ -805,6 +816,7 @@ class Game {
     const enterGame = async (isOnlineMode) => {
       const name = (nameInput.value || 'Gấu Hiệp Sĩ').trim().substring(0, 18);
       localStorage.setItem('playerName', name);
+      localStorage.setItem('playerOutfit', this.selectedOutfitIndex);
       this.character.setName(name);
       this.character.setOutfit(this.selectedOutfitIndex);
       this.pixelFX.setSect(this.selectedOutfitIndex);
@@ -961,6 +973,7 @@ class Game {
           isGrounded: this.character.isGrounded,
           isCasting: this.character.isCasting,
           castSkill: this.character.castSkill,
+          outfit: this.character.outfitIndex,
         });
       }
     }

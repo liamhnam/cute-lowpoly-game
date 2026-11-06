@@ -7,7 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // Rồng không có vị trí cố định: mỗi khung hình gọi pose(pathFn) với pathFn(s) trả về toạ độ thế giới
 // của điểm trên thân, s = 0 ở đầu và s = 1 ở đuôi. Cả thân sẽ uốn theo đúng đường cong đó.
 
-const DRAGON_MODEL_URL = `${import.meta.env.BASE_URL}models/chinese_dragon.glb`;
+const DRAGON_MODEL_URL = `${import.meta.env?.BASE_URL || './'}models/chinese_dragon.glb`;
 const MODEL_LENGTH = 6.0; // chiều dài chuẩn hoá của model GLB (đầu ở z = 0, đuôi ở z = -MODEL_LENGTH)
 
 // Chỉnh tay khi model nạp vào bị ngược đầu

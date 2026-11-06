@@ -1807,8 +1807,13 @@ export class PixelFXManager {
       this.particles.emitShockwave(endPos, 0x00d2d3, 8.0, 0.35);
     }
 
-    character.position.copy(endPos);
-    character.group.position.copy(endPos);
+    // Lướt gió mượt mà tốc độ cao
+    if (character.startDash) {
+      character.startDash(dir, dashDistance, 0.22);
+    } else {
+      character.position.copy(endPos);
+      if (character.group) character.group.position.copy(endPos);
+    }
 
     // Chém sát thương diện rộng dọc đường và tại điểm đến
     const midPos = startPos.clone().add(endPos).multiplyScalar(0.5);

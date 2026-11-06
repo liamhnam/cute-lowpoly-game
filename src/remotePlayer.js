@@ -311,6 +311,14 @@ export class RemotePlayer {
     this.isGrounded = state.isGrounded !== undefined ? state.isGrounded : true;
     this.isCasting = Boolean(state.isCasting);
     this.castSkill = Number(state.castSkill) || 0;
+    if (state.outfit !== undefined && state.outfit !== this.outfitIndex) {
+      this.outfitIndex = Number(state.outfit);
+      const outfit = this.outfits[this.outfitIndex % this.outfits.length];
+      if (outfit) {
+        if (this.clothesMat) this.clothesMat.color.setHex(outfit.clothes);
+        if (this.hatMat) this.hatMat.color.setHex(outfit.hat);
+      }
+    }
   }
 
   // Animation chém kiếm khi nhận đòn của người chơi này qua mạng; step 0/1 chém ngang, step 2 đâm tới
