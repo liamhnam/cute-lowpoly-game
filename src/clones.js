@@ -209,7 +209,8 @@ export class CloneManager {
     const dz = goal.z - pos.z;
     const dist = Math.hypot(dx, dz);
 
-    if (dist > stopDist) {
+    // Dung sai nhỏ: tới đúng mép stopDist thì sai số số thực có thể giữ dist > stopDist mãi, Bạch Ảnh đứng yên không chém
+    if (dist > stopDist + 0.1) {
       const dir = new THREE.Vector3(dx / dist, 0, dz / dist);
       const step = Math.min(RUN_SPEED * delta, dist - stopDist);
       pos.addScaledVector(dir, step);
