@@ -408,31 +408,31 @@ export class PixelFXManager {
     const impactX = targetPos.x;
     const impactZ = targetPos.z;
     const impactY = getTerrainHeight(impactX, impactZ);
-    const fallDuration = 0.58;
+    const fallDuration = 0.62;
 
-    // 1. Chỉ điểm vòng ma pháp lửa trên mặt đất
-    this.spawnTelegraph(new THREE.Vector3(impactX, impactY, impactZ), 0xff4757, fallDuration, 7.5);
+    // 1. Chỉ điểm vòng ma pháp lửa trên mặt đất (bán kính rộng 14m)
+    this.spawnTelegraph(new THREE.Vector3(impactX, impactY, impactZ), 0xff4757, fallDuration, 14.0);
 
-    const startY = impactY + 38;
-    const startX = impactX - 24;
-    const startZ = impactZ - 24;
+    const startY = impactY + 45;
+    const startX = impactX - 28;
+    const startZ = impactZ - 28;
 
-    // 2. Khối thiên thạch 3 tầng lõi phát sáng rực rỡ
+    // 2. Khối thiên thạch khổng lồ 3 tầng lõi phát sáng rực rỡ
     const meteorGroup = new THREE.Group();
     const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const core = new THREE.Mesh(new THREE.DodecahedronGeometry(0.8, 0), coreMat);
+    const core = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4, 0), coreMat);
     meteorGroup.add(core);
 
-    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff4757, transparent: true, opacity: 0.9 });
-    const flame = new THREE.Mesh(new THREE.DodecahedronGeometry(1.5, 1), flameMat);
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xff4757, transparent: true, opacity: 0.92 });
+    const flame = new THREE.Mesh(new THREE.DodecahedronGeometry(2.6, 1), flameMat);
     meteorGroup.add(flame);
 
-    const outerMat = new THREE.MeshBasicMaterial({ color: 0xffa502, transparent: true, opacity: 0.75 });
-    const outer = new THREE.Mesh(new THREE.DodecahedronGeometry(2.1, 1), outerMat);
+    const outerMat = new THREE.MeshBasicMaterial({ color: 0xffa502, transparent: true, opacity: 0.8 });
+    const outer = new THREE.Mesh(new THREE.DodecahedronGeometry(3.8, 1), outerMat);
     meteorGroup.add(outer);
 
-    // Điểm sáng động chiếu rọi địa hình khi thiên thạch bay tới
-    const meteorLight = new THREE.PointLight(0xff6b4a, 4.0, 32);
+    // Điểm sáng động cực lớn chiếu rọi địa hình khi thiên thạch bay tới
+    const meteorLight = new THREE.PointLight(0xff4757, 6.0, 48);
     meteorGroup.add(meteorLight);
 
     meteorGroup.position.set(startX, startY, startZ);
@@ -450,58 +450,65 @@ export class PixelFXManager {
           meteorGroup.position.x = THREE.MathUtils.lerp(startX, impactX, progress);
           meteorGroup.position.y = THREE.MathUtils.lerp(startY, impactY, progress);
           meteorGroup.position.z = THREE.MathUtils.lerp(startZ, impactZ, progress);
-          meteorGroup.rotation.x += 14 * delta;
-          meteorGroup.rotation.y += 14 * delta;
+          meteorGroup.rotation.x += 16 * delta;
+          meteorGroup.rotation.y += 16 * delta;
 
-          // Hạt đuôi lửa cuồn cuộn
-          if (trailTimer > 0.03) {
+          // Hạt đuôi lửa dày đặc cuồn cuộn
+          if (trailTimer > 0.02) {
             trailTimer = 0;
             this.particles.emitElementalParticles(
               meteorGroup.position,
-              4,
-              [0xff4757, 0xffa502, 0xffd32a],
-              [2, 6],
-              0.4,
+              7,
+              [0xff4757, 0xffa502, 0xffd32a, 0xffffff],
+              [3, 8],
+              0.5,
               0,
-              0.8
+              1.2
             );
           }
           return true;
         }
 
-        // --- CHẠM ĐẤT: NỔ TUNG SIÊU HOÀNG TRÁNG! ---
+        // --- CHẠM ĐẤT: NỔ TUNG SIÊU BÙNG NỔ HOÀNG TRÁNG! ---
         this.scene.remove(meteorGroup);
         sound.playMeteorExplosion();
 
         if (this.controller) {
-          this.controller.addTrauma(0.85); // Rung giật màn hình cực mạnh
+          this.controller.addTrauma(1.0); // Rung giật màn hình cực đại
         }
         if (this.onScreenFlash) {
           this.onScreenFlash('fire');
         }
 
-        // 1. Tàn phá địa hình (Lõm sâu 2.0m, cháy than dung nham)
-        this.world.deformTerrain(impactX, impactZ, 10.5, 2.0, 'fire');
-
-        // 2. Sóng xung kích đôi (Shockwaves)
         const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
-        this.particles.emitShockwave(hitPos, 0xff4757, 18, 0.65);
-        this.particles.emitShockwave(hitPos, 0xffa502, 12, 0.45);
 
-        // 3. Quả cầu lửa nổ bung phồng to rồi tan biến (Blast Fireball Dome)
-        const blastGeo = new THREE.SphereGeometry(1.0, 12, 12);
+        // 1. Tàn phá địa hình sâu 3.4m, bán kính 16m
+        this.world.deformTerrain(impactX, impactZ, 16.0, 3.4, 'fire');
+
+        // 2. Cột khói nấm cuồn cuộn bốc cao 22m bung tỏa mũ nấm 18m
+        if (this.particles.emitMushroomExplosion) {
+          this.particles.emitMushroomExplosion(hitPos, 22, 18);
+        }
+
+        // 3. Ba tầng sóng xung kích cực đại (Triple Shockwaves)
+        this.particles.emitShockwave(hitPos, 0xff4757, 26, 0.75);
+        this.particles.emitShockwave(hitPos, 0xffa502, 18, 0.55);
+        this.particles.emitShockwave(hitPos, 0xffffff, 11, 0.35);
+
+        // 4. Quả cầu lửa nổ bung phồng to cực đại (Blast Fireball Dome phình tới 16m)
+        const blastGeo = new THREE.SphereGeometry(1.0, 14, 14);
         const blastMat = new THREE.MeshBasicMaterial({
           color: 0xffa502,
           transparent: true,
-          opacity: 0.9,
+          opacity: 0.95,
           depthWrite: false,
         });
         const blastMesh = new THREE.Mesh(blastGeo, blastMat);
         blastMesh.position.copy(hitPos);
-        blastMesh.position.y += 1.2;
+        blastMesh.position.y += 1.8;
         this.scene.add(blastMesh);
 
-        let blastLife = 0.38;
+        let blastLife = 0.45;
         this.activeEffects.push({
           update: (dt) => {
             blastLife -= dt;
@@ -509,51 +516,51 @@ export class PixelFXManager {
               this.scene.remove(blastMesh);
               return false;
             }
-            const prog = 1.0 - blastLife / 0.38;
-            const sc = THREE.MathUtils.lerp(1.5, 8.5, Math.pow(prog, 0.5));
-            blastMesh.scale.set(sc, sc * 1.3, sc);
-            blastMat.opacity = (1.0 - prog) * 0.9;
+            const prog = 1.0 - blastLife / 0.45;
+            const sc = THREE.MathUtils.lerp(2.0, 16.0, Math.pow(prog, 0.45));
+            blastMesh.scale.set(sc, sc * 1.25, sc);
+            blastMat.opacity = (1.0 - prog) * 0.95;
             return true;
           }
         });
 
-        // 4. Các mảnh đá magma bốc cháy văng tứ phía
+        // 5. 32 khối đá magma bốc cháy văng tứ phía với vận tốc cực lớn
         const magmaRocks = [];
-        const rockGeo = new THREE.DodecahedronGeometry(0.5, 0);
+        const rockGeo = new THREE.DodecahedronGeometry(0.55, 0);
         const rockMat = new THREE.MeshStandardMaterial({
           color: 0x3d1c06,
           emissive: 0xff4757,
-          roughness: 0.6,
+          roughness: 0.5,
           flatShading: true,
         });
 
-        for (let i = 0; i < 18; i++) {
+        for (let i = 0; i < 32; i++) {
           const rMesh = new THREE.Mesh(rockGeo, rockMat);
           rMesh.position.copy(hitPos);
-          rMesh.position.y += 0.8;
-          rMesh.scale.setScalar(0.6 + Math.random() * 0.7);
+          rMesh.position.y += 1.0;
+          rMesh.scale.setScalar(0.7 + Math.random() * 0.9);
           this.scene.add(rMesh);
 
           const ang = Math.random() * Math.PI * 2;
-          const spd = 7 + Math.random() * 11;
+          const spd = 12 + Math.random() * 18;
           magmaRocks.push({
             mesh: rMesh,
             vel: new THREE.Vector3(
               Math.cos(ang) * spd,
-              8 + Math.random() * 10,
+              12 + Math.random() * 15,
               Math.sin(ang) * spd
             ),
-            rot: (Math.random() - 0.5) * 12,
+            rot: (Math.random() - 0.5) * 16,
           });
         }
 
-        let magmaLife = 1.5;
+        let magmaLife = 2.0;
         this.activeEffects.push({
           update: (dt) => {
             magmaLife -= dt;
             for (const mr of magmaRocks) {
               mr.mesh.position.addScaledVector(mr.vel, dt);
-              mr.vel.y -= 22 * dt;
+              mr.vel.y -= 24 * dt;
               mr.mesh.rotation.x += mr.rot * dt;
               mr.mesh.rotation.y += mr.rot * dt;
             }
@@ -565,15 +572,49 @@ export class PixelFXManager {
           }
         });
 
-        // 5. Cột lửa bập bùng cháy trên đất trong 2.0s
-        this.particles.emitSmoke(hitPos, 12, 0x333333, 1.4);
-        this.particles.emitElementalParticles(hitPos, 45, [0xff4757, 0xffa502, 0xffd32a], [6, 16], 0.9, 8.0, 1.4);
+        // 6. Tàn lửa bùng lên và decal pixel art
+        this.particles.emitSmoke(hitPos, 20, 0x111111, 2.0, true);
+        this.particles.emitElementalParticles(hitPos, 65, [0xff4757, 0xffa502, 0xffd32a], [8, 22], 1.2, 12.0, 1.8);
+        this.spawnGroundDecalEffect('fire', new THREE.Vector3(impactX, impactY + 0.15, impactZ), 20, 2.2);
 
-        // 6. Decal Pixel Art vết cháy nổ trên mặt đất
-        this.spawnGroundDecalEffect('fire', new THREE.Vector3(impactX, impactY + 0.12, impactZ), 16, 1.6);
+        // 7. Sát thương cực đại và lực tàn phá vật thể cực lớn (Force = 60, Radius = 22m, Damage = 250)
+        this.dealDamageAOE(hitPos, 22.0, 250, '🔥 -250 THIÊN ĐỊA DIỆT!', '#ff3838', monsters, 'knockback', 'fire', 60.0);
 
-        // 7. Gây sát thương diện rộng cực lớn
-        this.dealDamageAOE(hitPos, 11.0, 125, '🔥 -125 CRIT!', '#ff4757', monsters, null, 'fire');
+        // 8. BIỂN LỬA ÂM BỈ KÉO DÀI 4.5 GIÂY (LINGERING INFERNO)
+        let fireFieldTimer = 4.5;
+        let tickTimer = 0;
+        this.activeEffects.push({
+          update: (dt) => {
+            fireFieldTimer -= dt;
+            tickTimer += dt;
+
+            // Mỗi 0.12s nhả khói lửa bập bùng trên miệng hố
+            if (Math.random() < 0.65) {
+              const rOffset = Math.random() * 7.5;
+              const aOffset = Math.random() * Math.PI * 2;
+              const fPos = hitPos.clone().add(new THREE.Vector3(Math.cos(aOffset) * rOffset, 0.2, Math.sin(aOffset) * rOffset));
+              this.particles.emitElementalParticles(fPos, 2, [0xff4757, 0xffa502], [2, 6], 0.45, 0, 0.6);
+            }
+
+            // Mỗi 0.5s gây sát thương thiêu đốt cho kẻ địch trong tâm hố
+            if (tickTimer >= 0.5) {
+              tickTimer = 0;
+              if (monsters) {
+                for (const m of monsters) {
+                  if (!m.isDead && m.position.distanceTo(hitPos) < 10.0) {
+                    m.takeDamage(25, hitPos);
+                    const mPos = m.position.clone();
+                    mPos.y += m.hitHeight * 0.7;
+                    this.damageTexts.spawn('🔥 -25 BURN', mPos, '#ff9f43');
+                  }
+                }
+              }
+            }
+
+            return fireFieldTimer > 0;
+          }
+        });
+
         return false;
       }
     };
@@ -1190,10 +1231,10 @@ export class PixelFXManager {
   }
 
   // XỬ LÝ SÁT THƯƠNG DIỆN RỘNG (AOE), TƯƠNG TÁC MÔI TRƯỜNG & HIỆU ỨNG TRẠNG THÁI
-  dealDamageAOE(epicenter, radius, amount, text, textColor, monsters, statusEffect = null, elementType = 'neutral') {
-    // 1. Tương tác với Vật thể môi trường (Làm văng, gãy cây, bể đá, bung hàng rào, nát hoa cỏ)
+  dealDamageAOE(epicenter, radius, amount, text, textColor, monsters, statusEffect = null, elementType = 'neutral', customForce = null) {
+    // 1. Tương tác với Vật thể môi trường (Làm văng, gãy cây, bể đá, bung hàng rào, sập tường, vỡ ngói)
     if (this.world && this.world.interactWithArea) {
-      const force = amount >= 150 ? 24 : (amount >= 120 ? 19 : 14);
+      const force = customForce !== null ? customForce : (amount >= 200 ? 55 : (amount >= 150 ? 25 : (amount >= 120 ? 19 : 14)));
       this.world.interactWithArea(epicenter, radius * 1.15, force, elementType);
     }
 

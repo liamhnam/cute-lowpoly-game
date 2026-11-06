@@ -170,33 +170,60 @@ class SoundManager {
 
   // --- ÂM THANH KỸ NĂNG PIXELFX ---
 
-  // Kỹ năng 1: Thiên thạch hỏa ngục rền vang
+  // Kỹ năng 1: Thiên thạch hỏa ngục nổ rung chuyển long trời lở đất
   playMeteorExplosion() {
     if (this.muted || !this.ctx) return;
     const now = this.ctx.currentTime;
 
-    // Tiếng nổ trầm low-end rumble
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(160, now);
-    osc.frequency.exponentialRampToValueAtTime(25, now + 0.8);
+    // 1. Cú va chạm siêu trầm (Sub-bass impact boom)
+    const subOsc = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(140, now);
+    subOsc.frequency.exponentialRampToValueAtTime(28, now + 1.2);
+    subGain.gain.setValueAtTime(0.55, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.25);
+    subOsc.connect(subGain);
+    subGain.connect(this.ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 1.26);
 
-    gain.gain.setValueAtTime(0.35, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-
-    // Filter tạo tiếng nổ đục
+    // 2. Tiếng nổ xé toạc đất đá (Sawtooth crash & distortion)
+    const crashOsc = this.ctx.createOscillator();
+    const crashGain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
+
+    crashOsc.type = 'sawtooth';
+    crashOsc.frequency.setValueAtTime(220, now);
+    crashOsc.frequency.exponentialRampToValueAtTime(35, now + 0.95);
+
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(1200, now);
-    filter.frequency.exponentialRampToValueAtTime(100, now + 0.8);
+    filter.frequency.setValueAtTime(1800, now);
+    filter.frequency.exponentialRampToValueAtTime(80, now + 0.95);
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
+    crashGain.gain.setValueAtTime(0.45, now);
+    crashGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
 
-    osc.start(now);
-    osc.stop(now + 0.85);
+    crashOsc.connect(filter);
+    filter.connect(crashGain);
+    crashGain.connect(this.ctx.destination);
+
+    crashOsc.start(now);
+    crashOsc.stop(now + 1.05);
+
+    // 3. Tiếng lửa gầm bập bùng âm ỉ (Lingering fire crackle)
+    const noiseOsc = this.ctx.createOscillator();
+    const noiseGain = this.ctx.createGain();
+    noiseOsc.type = 'triangle';
+    noiseOsc.frequency.setValueAtTime(95, now + 0.1);
+    noiseOsc.frequency.linearRampToValueAtTime(45, now + 1.5);
+    noiseGain.gain.setValueAtTime(0.0, now);
+    noiseGain.gain.linearRampToValueAtTime(0.25, now + 0.15);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 1.6);
+    noiseOsc.connect(noiseGain);
+    noiseGain.connect(this.ctx.destination);
+    noiseOsc.start(now + 0.1);
+    noiseOsc.stop(now + 1.65);
   }
 
   // Kỹ năng 2: Sét đánh giáng trần chói tai

@@ -17,7 +17,7 @@ export class ParticleSystem {
   }
 
   createDustPool() {
-    const dustGeo = new THREE.DodecahedronGeometry(0.14, 0);
+    const dustGeo = new THREE.DodecahedronGeometry(0.16, 0);
     const dustMat = new THREE.MeshBasicMaterial({
       color: 0xe0d6b6,
       transparent: true,
@@ -25,7 +25,7 @@ export class ParticleSystem {
     });
 
     this.dustGroup = new THREE.Group();
-    for (let i = 0; i < 45; i++) {
+    for (let i = 0; i < 50; i++) {
       const mesh = new THREE.Mesh(dustGeo, dustMat.clone());
       mesh.visible = false;
       this.dustGroup.add(mesh);
@@ -40,10 +40,10 @@ export class ParticleSystem {
   }
 
   createSparklePool() {
-    const sparkGeo = new THREE.DodecahedronGeometry(0.2, 0);
+    const sparkGeo = new THREE.DodecahedronGeometry(0.25, 0);
     this.sparkleGroup = new THREE.Group();
 
-    for (let i = 0; i < 180; i++) {
+    for (let i = 0; i < 280; i++) {
       const mat = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
@@ -59,7 +59,7 @@ export class ParticleSystem {
         maxLife: 0.7,
         gravity: 9.8,
         velocity: new THREE.Vector3(),
-        initialScale: 1.0,
+        rotSpeed: 10,
       });
     }
     this.scene.add(this.sparkleGroup);
@@ -67,15 +67,15 @@ export class ParticleSystem {
 
   createShockwavePool() {
     this.shockwaveGroup = new THREE.Group();
-    const ringGeo = new THREE.RingGeometry(0.5, 1.2, 24);
+    const ringGeo = new THREE.RingGeometry(0.5, 1.2, 32);
     ringGeo.rotateX(-Math.PI / 2);
 
     for (let i = 0; i < 16; i++) {
       const mat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        side: THREE.DoubleSide,
+        color: 0xffa502,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.85,
+        side: THREE.DoubleSide,
         depthWrite: false,
       });
       const mesh = new THREE.Mesh(ringGeo, mat);
@@ -85,23 +85,23 @@ export class ParticleSystem {
         mesh,
         mat,
         life: 0,
-        duration: 0.6,
-        startScale: 0.5,
-        targetScale: 12.0,
+        maxLife: 0.6,
+        maxRadius: 18,
+        currentRadius: 0.5,
       });
     }
     this.scene.add(this.shockwaveGroup);
   }
 
   createSmokePool() {
+    const smokeGeo = new THREE.DodecahedronGeometry(0.55, 1);
     this.smokeGroup = new THREE.Group();
-    const smokeGeo = new THREE.DodecahedronGeometry(0.35, 1);
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 90; i++) {
       const mat = new THREE.MeshBasicMaterial({
-        color: 0x555555,
+        color: 0x333333,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.75,
         depthWrite: false,
       });
       const mesh = new THREE.Mesh(smokeGeo, mat);
@@ -111,9 +111,12 @@ export class ParticleSystem {
         mesh,
         mat,
         life: 0,
-        maxLife: 1.0,
+        maxLife: 1.2,
+        startColor: new THREE.Color(0xff4757),
+        endColor: new THREE.Color(0x1a1a1a),
+        isFiery: false,
         velocity: new THREE.Vector3(),
-        growRate: 1.8,
+        growRate: 2.2,
       });
     }
     this.scene.add(this.smokeGroup);
@@ -169,41 +172,83 @@ export class ParticleSystem {
     }
   }
 
-  // Phát sóng xung kích lan tỏa trên mặt đất
-  emitShockwave(pos, color = 0xffffff, targetScale = 12, duration = 0.55) {
+  emitElementalParticles(pos, count = 15, colors = [0xffffff], speedRange = [4, 9], maxLife = 0.65, gravity = 9.8, scaleMul = 1.0) {
+    let spawned = 0;
+    for (const s of this.sparkles) {
+      if (!s.mesh.visible) {
+        s.mesh.visible = true;
+        s.life = maxLife;
+        s.maxLife = maxLife;
+        s.gravity = gravity;
+
+        const col = colors[Math.floor(Math.random() * colors.length)];
+        s.mat.color.setHex(col);
+
+        s.mesh.position.copy(pos);
+        s.mesh.position.x += (Math.random() - 0.5) * 0.4;
+        s.mesh.position.y += (Math.random() - 0.5) * 0.4;
+        s.mesh.position.z += (Math.random() - 0.5) * 0.4;
+
+        s.mesh.scale.setScalar((0.8 + Math.random() * 0.6) * scaleMul);
+
+        const spd = speedRange[0] + Math.random() * (speedRange[1] - speedRange[0]);
+        const theta = Math.random() * Math.PI * 2;
+        const phi = (Math.random() - 0.25) * Math.PI;
+
+        s.velocity.set(
+          Math.cos(theta) * Math.cos(phi) * spd,
+          Math.sin(phi) * spd + 1.5,
+          Math.sin(theta) * Math.cos(phi) * spd
+        );
+
+        s.rotSpeed = (Math.random() - 0.5) * 20;
+
+        spawned++;
+        if (spawned >= count) break;
+      }
+    }
+  }
+
+  emitShockwave(pos, color = 0xffa502, maxRadius = 14, maxLife = 0.55) {
     for (const sw of this.shockwaves) {
       if (!sw.mesh.visible) {
         sw.mesh.visible = true;
-        sw.life = 0;
-        sw.duration = duration;
-        sw.targetScale = targetScale;
+        sw.life = maxLife;
+        sw.maxLife = maxLife;
+        sw.maxRadius = maxRadius;
+        sw.currentRadius = 0.5;
         sw.mat.color.setHex(color);
         sw.mesh.position.copy(pos);
         sw.mesh.position.y += 0.12;
-        sw.mesh.scale.setScalar(0.4);
-        sw.mat.opacity = 0.9;
+        sw.mesh.scale.set(0.5, 0.5, 0.5);
         break;
       }
     }
   }
 
-  // Khói bốc lên mờ ảo
-  emitSmoke(pos, count = 4, color = 0x666666, maxLife = 1.0) {
+  emitSmoke(pos, count = 6, color = 0x555555, maxLife = 1.2, isFiery = false) {
     let spawned = 0;
     for (const sm of this.smokeParticles) {
       if (!sm.mesh.visible) {
         sm.mesh.visible = true;
         sm.life = maxLife;
         sm.maxLife = maxLife;
-        sm.mat.color.setHex(color);
+        sm.isFiery = isFiery;
+        if (isFiery) {
+          sm.startColor.setHex(0xff5722);
+          sm.endColor.setHex(0x1a1a1a);
+          sm.mat.color.copy(sm.startColor);
+        } else {
+          sm.mat.color.setHex(color);
+        }
         sm.mesh.position.copy(pos);
-        sm.mesh.position.x += (Math.random() - 0.5) * 0.8;
-        sm.mesh.position.z += (Math.random() - 0.5) * 0.8;
-        sm.mesh.scale.setScalar(0.5 + Math.random() * 0.4);
+        sm.mesh.position.x += (Math.random() - 0.5) * 1.2;
+        sm.mesh.position.z += (Math.random() - 0.5) * 1.2;
+        sm.mesh.scale.setScalar(0.7 + Math.random() * 0.5);
         sm.velocity.set(
-          (Math.random() - 0.5) * 1.2,
-          1.2 + Math.random() * 1.6,
-          (Math.random() - 0.5) * 1.2
+          (Math.random() - 0.5) * 2.2,
+          2.0 + Math.random() * 2.5,
+          (Math.random() - 0.5) * 2.2
         );
         spawned++;
         if (spawned >= count) break;
@@ -211,82 +256,76 @@ export class ParticleSystem {
     }
   }
 
-  // Bọt rượu và tia nước đỏ văng tung tóe khi bể vò rượu
+  // CỘT KHÓI NẤM KHỔNG LỒ (MUSHROOM CLOUD) CHO THIÊN THẠCH CHIÊU 1
+  emitMushroomExplosion(pos, height = 18, radius = 16) {
+    // 1. Thân cột khói lửa bốc vút thẳng lên cao
+    const stemCount = 18;
+    for (let i = 0; i < stemCount; i++) {
+      const hProg = i / stemCount;
+      const smokePos = pos.clone();
+      smokePos.y += hProg * height * 0.65;
+      smokePos.x += (Math.random() - 0.5) * 2.5;
+      smokePos.z += (Math.random() - 0.5) * 2.5;
+      this.emitSmoke(smokePos, 2, 0xff4757, 1.8 + Math.random() * 0.8, true);
+    }
+
+    // 2. Mũ nấm bung nở xòe rộng trên đỉnh
+    const capCount = 24;
+    for (let i = 0; i < capCount; i++) {
+      const ang = (i / capCount) * Math.PI * 2;
+      const r = 2.0 + Math.random() * (radius * 0.6);
+      const capPos = pos.clone();
+      capPos.y += height * 0.75 + (Math.random() - 0.5) * 3.5;
+      capPos.x += Math.cos(ang) * r;
+      capPos.z += Math.sin(ang) * r;
+      this.emitSmoke(capPos, 2, 0x222222, 2.2 + Math.random() * 1.0, Math.random() > 0.4);
+    }
+
+    // 3. Tia lửa than hồng bung tỏa xung quanh
+    this.emitElementalParticles(
+      pos,
+      50,
+      [0xffffff, 0xffd32a, 0xff4757, 0xff6b81, 0xffa502],
+      [12, 28],
+      1.5,
+      14,
+      1.6
+    );
+  }
+
   emitWineSplash(pos, count = 18) {
     let spawned = 0;
-    const wineColors = [0x962d22, 0xc0392b, 0xd63031, 0xe17055];
-    for (const sp of this.sparkles) {
-      if (!sp.mesh.visible) {
-        sp.mesh.visible = true;
-        sp.life = 0.5 + Math.random() * 0.4;
-        sp.maxLife = sp.life;
-        sp.gravity = 24.0;
-        sp.initialScale = 0.8 + Math.random() * 0.5;
-
-        const col = wineColors[Math.floor(Math.random() * wineColors.length)];
-        sp.mat.color.setHex(col);
-
-        sp.mesh.position.copy(pos);
-        sp.mesh.position.y += 0.2;
-
-        const angle = Math.random() * Math.PI * 2;
-        const speed = 3.5 + Math.random() * 5.5;
-        sp.velocity.set(
-          Math.cos(angle) * speed,
-          4.0 + Math.random() * 4.5,
-          Math.sin(angle) * speed
-        );
-
-        spawned++;
-        if (spawned >= count) break;
-      }
-    }
-  }
-
-  // Hệ thống hạt nguyên tố đa màu sắc (Lửa, Sấm Sét, Băng Tuyết, Đất Đá)
-  emitElementalParticles(pos, count = 15, colors = [0xffffff], speedRange = [3, 8], lifeTime = 0.65, gravity = 10, scale = 1.0) {
-    let spawned = 0;
+    const wineColors = [0x8b0000, 0x9b111e, 0x67000d, 0xff6b81];
     for (const s of this.sparkles) {
       if (!s.mesh.visible) {
         s.mesh.visible = true;
-        s.life = lifeTime * (0.8 + Math.random() * 0.4);
-        s.maxLife = s.life;
-        s.gravity = gravity;
-        s.initialScale = scale * (0.7 + Math.random() * 0.6);
-        s.mesh.scale.setScalar(s.initialScale);
-
-        const chosenColor = colors[Math.floor(Math.random() * colors.length)];
-        s.mat.color.setHex(chosenColor);
-
+        s.life = 0.55;
+        s.maxLife = 0.55;
+        s.gravity = 14;
+        s.mat.color.setHex(wineColors[Math.floor(Math.random() * wineColors.length)]);
         s.mesh.position.copy(pos);
-        s.mesh.position.x += (Math.random() - 0.5) * 0.3;
-        s.mesh.position.z += (Math.random() - 0.5) * 0.3;
+        s.mesh.scale.setScalar(0.45 + Math.random() * 0.4);
 
-        const spd = speedRange[0] + Math.random() * (speedRange[1] - speedRange[0]);
-        const angleY = Math.random() * Math.PI * 2;
-        const angleElevation = 0.2 + Math.random() * 1.2;
-
+        const spd = 5 + Math.random() * 8;
+        const ang = Math.random() * Math.PI * 2;
         s.velocity.set(
-          Math.cos(angleY) * Math.cos(angleElevation) * spd,
-          Math.sin(angleElevation) * spd,
-          Math.sin(angleY) * Math.cos(angleElevation) * spd
+          Math.cos(ang) * spd,
+          4 + Math.random() * 6,
+          Math.sin(ang) * spd
         );
-
         spawned++;
         if (spawned >= count) break;
       }
     }
   }
 
-  emitHitSparkles(pos, count = 8) {
-    const rainbowColors = [0xffd32a, 0xff3f34, 0x0be881, 0x0fbcf9, 0xff5e57, 0xffa801];
-    this.emitElementalParticles(pos, count, rainbowColors, [4, 9], 0.55, 9.8, 1.0);
+  emitHitSparkles(pos, count = 10) {
+    this.emitElementalParticles(pos, count, [0xffd32a, 0xff4757, 0x0be881, 0x0fbcf9, 0xffffff], [5, 12], 0.6, 9.8, 1.0);
   }
 
   emitMonsterDefeat(pos) {
-    const victoryColors = [0xffd32a, 0xff3838, 0xff9f43, 0x54a0ff, 0x1dd1a1];
-    this.emitElementalParticles(pos, 35, victoryColors, [6, 14], 0.9, 8.0, 1.4);
-    this.emitShockwave(pos, 0xffd32a, 10, 0.6);
+    this.emitElementalParticles(pos, 45, [0xffd700, 0xff4757, 0x54a0ff, 0x1dd1a1, 0xffffff], [8, 18], 1.2, 8.0, 1.4);
+    this.emitShockwave(pos, 0xffd700, 16, 0.7);
     this.emitSmoke(pos, 8, 0x888888, 1.2);
   }
 
@@ -317,44 +356,49 @@ export class ParticleSystem {
           const progress = s.life / s.maxLife;
           s.mesh.position.addScaledVector(s.velocity, delta);
           s.velocity.y -= s.gravity * delta;
-          s.mesh.rotation.x += 12 * delta;
-          s.mesh.rotation.y += 12 * delta;
-          s.mesh.scale.setScalar(s.initialScale * progress);
-          s.mat.opacity = Math.min(1.0, progress * 1.5);
+          s.mesh.rotation.x += s.rotSpeed * delta;
+          s.mesh.rotation.y += s.rotSpeed * delta;
+          s.mesh.material.opacity = Math.min(1.0, progress * 1.5);
         }
       }
     }
 
-    // 3. Cập nhật sóng xung kích Shockwaves
+    // 3. Cập nhật sóng xung kích
     for (const sw of this.shockwaves) {
       if (sw.mesh.visible) {
-        sw.life += delta;
-        const progress = sw.life / sw.duration;
-        if (progress >= 1.0) {
+        sw.life -= delta;
+        if (sw.life <= 0) {
           sw.mesh.visible = false;
         } else {
-          // Easing out quad
-          const ease = 1 - Math.pow(1 - progress, 3);
-          const currentScale = sw.startScale + ease * (sw.targetScale - sw.startScale);
-          sw.mesh.scale.set(currentScale, currentScale, currentScale);
-          sw.mat.opacity = (1.0 - progress) * 0.9;
+          const prog = 1.0 - sw.life / sw.maxLife;
+          const currentR = THREE.MathUtils.lerp(0.5, sw.maxRadius, Math.pow(prog, 0.45));
+          sw.mesh.scale.set(currentR, currentR, currentR);
+          sw.mat.opacity = (1.0 - prog) * 0.85;
         }
       }
     }
 
-    // 4. Cập nhật khói bốc lên
+    // 4. Cập nhật khói lửa cuộn trào
     for (const sm of this.smokeParticles) {
       if (sm.mesh.visible) {
         sm.life -= delta;
         if (sm.life <= 0) {
           sm.mesh.visible = false;
         } else {
-          const progress = sm.life / sm.maxLife;
+          const prog = 1.0 - sm.life / sm.maxLife;
           sm.mesh.position.addScaledVector(sm.velocity, delta);
+          sm.velocity.y += 0.8 * delta; // Khói nóng bốc lên
           sm.velocity.x *= 0.96;
           sm.velocity.z *= 0.96;
+
+          // Phình to dần
           sm.mesh.scale.multiplyScalar(1.0 + sm.growRate * delta);
-          sm.mat.opacity = progress * 0.6;
+
+          if (sm.isFiery) {
+            sm.mat.color.copy(sm.startColor).lerp(sm.endColor, prog);
+          }
+
+          sm.mat.opacity = (1.0 - prog) * 0.75;
         }
       }
     }
