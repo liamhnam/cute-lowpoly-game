@@ -311,16 +311,42 @@
     }
 
     /* THANH KỸ NĂNG: ĐẠO PHÙ & NGỌC BÀI PIXEL (TALISMAN SKILL BAR) */
-    .skill-bar-container {
+    .skill-bar-wrapper {
       position: absolute;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      pointer-events: auto;
+      z-index: 10005;
+      touch-action: manipulation;
+    }
+
+    .sect-header-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.58rem;
+      background: #1e272e;
+      color: #f1c40f;
+      padding: 4px 14px;
+      border: 2px solid #f1c40f;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      text-shadow: 1px 1px 0 #000;
+      border-radius: 4px;
+      cursor: default;
+    }
+
+    /* THANH KỸ NĂNG: ĐẠO PHÙ & NGỌC BÀI PIXEL (TALISMAN SKILL BAR) */
+    .skill-bar-container {
+      display: flex;
       align-items: flex-end;
-      gap: 12px;
+      gap: 14px;
       background: #2f3542;
-      padding: 10px 16px;
+      padding: 10px 18px;
       box-shadow:
         0 -4px 0 0 #1e272e,
         0 4px 0 0 #1e272e,
@@ -328,16 +354,13 @@
         4px 0 0 0 #1e272e,
         0 0 0 2px #f1c40f,
         0 12px 30px rgba(0, 0, 0, 0.4);
-      pointer-events: auto;
-      z-index: 10005;
-      touch-action: manipulation;
     }
 
     /* Mỗi ô kỹ năng là 1 tấm Đạo Phù Pixel */
     .skill-slot {
       position: relative;
-      width: 66px;
-      height: 78px;
+      width: 68px;
+      height: 80px;
       background: #fdfbf7;
       box-shadow:
         0 -2px 0 0 #1e272e,
@@ -408,10 +431,10 @@
       line-height: 1;
     }
 
-    /* Ô Kỹ năng 5: Cực Phẩm Ngọc Bài Trấn Phái */
-    .skill-slot#skill-slot-5 {
-      width: 72px;
-      height: 84px;
+    /* Ô Kỹ năng 3: Tuyệt Kỹ Trấn Tông */
+    .skill-slot#skill-slot-3 {
+      width: 76px;
+      height: 86px;
       background: linear-gradient(180deg, #fff9db 0%, #ffeaa7 100%);
       box-shadow:
         0 -2px 0 0 #f1c40f,
@@ -421,34 +444,12 @@
         inset 0 0 0 2px #f39c12;
     }
 
-    .skill-slot#skill-slot-5 .skill-talisman-tag {
+    .skill-slot#skill-slot-3 .skill-talisman-tag {
       background: #9b59b6;
     }
 
-    .skill-slot#skill-slot-5 .skill-key {
+    .skill-slot#skill-slot-3 .skill-key {
       background: #00d2d3;
-      color: #1e272e;
-    }
-
-    /* Ô Kỹ năng 6: Đại Canh Kiếm Trận */
-    .skill-slot#skill-slot-6 {
-      width: 72px;
-      height: 84px;
-      background: linear-gradient(180deg, #f3f0ff 0%, #d6ccff 100%);
-      box-shadow:
-        0 -2px 0 0 #6c5ce7,
-        0 2px 0 0 #6c5ce7,
-        -2px 0 0 0 #6c5ce7,
-        2px 0 0 0 #6c5ce7,
-        inset 0 0 0 2px #a29bfe;
-    }
-
-    .skill-slot#skill-slot-6 .skill-talisman-tag {
-      background: #6c5ce7;
-    }
-
-    .skill-slot#skill-slot-6 .skill-key {
-      background: #a29bfe;
       color: #1e272e;
     }
     /* Hiệu ứng Cooldown đen mờ */
@@ -1125,11 +1126,25 @@
     /* ========================================================
        THANH KỸ NĂNG ĐẠO PHÙ: TÂM ĐIỂM SẮC NÉT & CẢM ỨNG CHÍNH XÁC
        ======================================================== */
-    body.mobile-ui-active .skill-bar-container {
+    body.mobile-ui-active .skill-bar-wrapper {
       position: absolute !important;
       bottom: 12px !important;
       left: 50% !important;
       transform: translateX(-50%) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      gap: 4px !important;
+      z-index: 10005 !important;
+      pointer-events: auto !important;
+    }
+
+    body.mobile-ui-active .sect-header-badge {
+      font-size: 0.44rem !important;
+      padding: 2px 8px !important;
+    }
+
+    body.mobile-ui-active .skill-bar-container {
       display: flex !important;
       gap: 8px !important;
       padding: 6px 12px !important;
@@ -1140,7 +1155,6 @@
         0 -2px 0 0 #f1c40f,
         0 4px 20px rgba(0, 0, 0, 0.7),
         0 0 16px rgba(241, 196, 15, 0.4) !important;
-      z-index: 10005 !important;
       pointer-events: auto !important;
       touch-action: manipulation !important;
     }
@@ -1156,7 +1170,7 @@
       -webkit-tap-highlight-color: transparent !important;
     }
 
-    body.mobile-ui-active .skill-slot#skill-slot-5 {
+    body.mobile-ui-active .skill-slot#skill-slot-3 {
       width: 58px !important;
       height: 70px !important;
       border: 2px solid #f1c40f !important;
@@ -1188,8 +1202,10 @@
         padding: 8px 12px !important;
       }
 
+      body.mobile-ui-active .skill-bar-wrapper {
+        bottom: 8px !important;
+      }
       body.mobile-ui-active .skill-bar-container {
-        bottom: 10px !important;
         gap: 6px !important;
         padding: 4px 8px !important;
       }
@@ -1197,7 +1213,7 @@
         width: 48px !important;
         height: 58px !important;
       }
-      body.mobile-ui-active .skill-slot#skill-slot-5 {
+      body.mobile-ui-active .skill-slot#skill-slot-3 {
         width: 54px !important;
         height: 64px !important;
       }
@@ -1247,18 +1263,20 @@
       body.mobile-ui-active .hud-layer {
         padding: 10px !important;
       }
-      body.mobile-ui-active .skill-bar-container {
+      body.mobile-ui-active .skill-bar-wrapper {
         bottom: 110px !important;
-        gap: 4px !important;
-        padding: 4px 6px !important;
+      }
+      body.mobile-ui-active .skill-bar-container {
+        gap: 6px !important;
+        padding: 4px 8px !important;
       }
       body.mobile-ui-active .skill-slot {
-        width: 44px !important;
-        height: 54px !important;
+        width: 46px !important;
+        height: 56px !important;
       }
-      body.mobile-ui-active .skill-slot#skill-slot-5 {
-        width: 48px !important;
-        height: 58px !important;
+      body.mobile-ui-active .skill-slot#skill-slot-3 {
+        width: 50px !important;
+        height: 60px !important;
       }
       body.mobile-ui-active .skill-icon {
         font-size: 1.15rem !important;
@@ -1370,21 +1388,23 @@
     }
 
     .outfit-selector {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
+      flex-direction: column;
       gap: 8px;
       margin-top: 6px;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 4px;
     }
 
     .outfit-card {
-      padding: 8px 10px;
+      padding: 8px 12px;
       background: #2f3640;
       border: 2px solid #718093;
       cursor: pointer;
-      font-size: 1.05rem;
       display: flex;
-      align-items: center;
-      gap: 8px;
+      flex-direction: column;
+      gap: 6px;
       transition: all 0.15s;
     }
 
@@ -1395,8 +1415,17 @@
 
     .outfit-card.active {
       border-color: #f1c40f;
-      background: #4b4b4b;
-      box-shadow: 0 0 8px rgba(241, 196, 15, 0.5);
+      background: #232d3b;
+      box-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
+    }
+
+    .outfit-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #f5f6fa;
     }
 
     .outfit-dot {
@@ -1404,6 +1433,23 @@
       height: 14px;
       border-radius: 50%;
       border: 1px solid #fff;
+      flex-shrink: 0;
+    }
+
+    .outfit-skills-list {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .outfit-skill-badge {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.46rem;
+      background: rgba(0, 0, 0, 0.45);
+      color: #00d2d3;
+      padding: 3px 6px;
+      border: 1px solid #57606f;
+      border-radius: 3px;
     }
 
     .modal-actions {
@@ -1637,27 +1683,62 @@
       </div>
 
       <div class="modal-field">
-        <label>Chọn Tiên Bào (Môn Phái):</label>
+        <label>Chọn Môn Phái & Tiên Bào (Mỗi phái có 3 chiêu độc nhất):</label>
         <div class="outfit-selector" id="modal-outfits">
           <div class="outfit-card active" data-index="0">
-            <span class="outfit-dot" style="background: #f6c344;"></span>
-            <span>Hoàng Bào Đạo Sĩ</span>
+            <div class="outfit-card-header">
+              <span class="outfit-dot" style="background: #f6c344;"></span>
+              <span>🥋 Thái Thanh Đạo Gia</span>
+            </div>
+            <div class="outfit-skills-list">
+              <span class="outfit-skill-badge">🐉 1. Chân Long</span>
+              <span class="outfit-skill-badge">☯ 2. Bát Quái</span>
+              <span class="outfit-skill-badge">⚡ 3. Canh Kiếm</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="1">
-            <span class="outfit-dot" style="background: #54a0ff;"></span>
-            <span>Thanh Vân Tiên Bào</span>
+            <div class="outfit-card-header">
+              <span class="outfit-dot" style="background: #54a0ff;"></span>
+              <span>❄️ Thanh Vân Tiên Tông</span>
+            </div>
+            <div class="outfit-skills-list">
+              <span class="outfit-skill-badge">❄️ 1. Huyền Băng</span>
+              <span class="outfit-skill-badge">💨 2. Ngự Phong</span>
+              <span class="outfit-skill-badge">🌧️ 3. Vạn Nhận</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="2">
-            <span class="outfit-dot" style="background: #8854d0;"></span>
-            <span>Tử Tiêu Kiếm Tông</span>
+            <div class="outfit-card-header">
+              <span class="outfit-dot" style="background: #8854d0;"></span>
+              <span>⚔️ Tử Tiêu Kiếm Tông</span>
+            </div>
+            <div class="outfit-skills-list">
+              <span class="outfit-skill-badge">💨 1. Thuấn Bộ</span>
+              <span class="outfit-skill-badge">🌀 2. Hộ Thể</span>
+              <span class="outfit-skill-badge">⚔️ 3. Vạn Kiếm</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="3">
-            <span class="outfit-dot" style="background: #eb3b5a;"></span>
-            <span>Hồng Trần Ma Tu</span>
+            <div class="outfit-card-header">
+              <span class="outfit-dot" style="background: #eb3b5a;"></span>
+              <span>🩸 Hồng Trần Ma Tu</span>
+            </div>
+            <div class="outfit-skills-list">
+              <span class="outfit-skill-badge">🩸 1. Huyết Ma</span>
+              <span class="outfit-skill-badge">🕳️ 2. Ma Vực</span>
+              <span class="outfit-skill-badge">🌋 3. Ma Bạo</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="4">
-            <span class="outfit-dot" style="background: #f5f6fa;"></span>
-            <span>Bạch Hạc Chân Nhân</span>
+            <div class="outfit-card-header">
+              <span class="outfit-dot" style="background: #f5f6fa;"></span>
+              <span>🪶 Bạch Hạc Chân Nhân</span>
+            </div>
+            <div class="outfit-skills-list">
+              <span class="outfit-skill-badge">⚡ 1. Huyền Lôi</span>
+              <span class="outfit-skill-badge">🕊️ 2. Bạch Hạc</span>
+              <span class="outfit-skill-badge">💥 3. Hám Địa</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1729,7 +1810,7 @@
     <div class="top-bar">
       <div class="title-card">
         <h1>🐻 Cổ Đô Trường An <span>🏮 Hoàng Thành</span></h1>
-        <p>Chu Tước Đại Đạo • Tửu Lầu Phố Cổ • Phím [1-5/E] xuất Đạo Pháp, bấm [R] mở Đại Canh Kiếm Trận!</p>
+        <p>Chu Tước Đại Đạo • Tửu Lầu Phố Cổ • Phím [1, 2, 3/E] xuất Tuyệt Kỹ Tông Môn, bấm [C] hoán môn phái!</p>
 
         <!-- Thanh Khí Huyết & Linh Lực -->
         <div class="status-bars-container">
@@ -1770,68 +1851,41 @@
     </div>
 
     <!-- Thông báo Popup Tiên Hiệp -->
-    <div id="toast">Chào mừng đạo hữu nhập thế Trường An Kinh Thành! Dùng phím 1-5 hoặc E để trảm yêu!</div>
+    <div id="toast">Chào mừng đạo hữu nhập thế Trường An Kinh Thành! Dùng phím [1, 2, 3/E] để thi triển thần thông tông môn!</div>
 
-    <!-- THANH KỸ NĂNG ĐẠO PHÙ PIXEL (TALISMAN SKILL BAR) -->
-    <div class="skill-bar-container">
-      <!-- Skill 1: Chân Long Bảo Thuật -->
-      <div class="skill-slot" id="skill-slot-1" title="Phím 1: Chân Long Bảo Thuật 🐉 (-20 Linh Lực, phóng kiếm kèm thần long uốn lượn bay 50m, tông trúng 50/70 ST, cuối đường nổ 80 ST)">
-        <span class="skill-key">1</span>
-        <span class="skill-talisman-tag">LONG</span>
-        <span class="skill-icon">🐉</span>
-        <span class="skill-name">Chân Long</span>
-        <div class="skill-cd-overlay" id="skill-cd-1"></div>
-        <span class="skill-cd-text" id="skill-text-1">1</span>
-      </div>
+    <!-- THANH KỸ NĂNG TÔNG MÔN PIXEL -->
+    <div class="skill-bar-wrapper">
+      <div class="sect-header-badge" id="hud-sect-name">🥋 Thái Thanh Đạo Gia</div>
+      <div class="skill-bar-container">
+        <!-- Chiêu 1 -->
+        <div class="skill-slot" id="skill-slot-1" title="Phím 1: Chân Long">
+          <span class="skill-key">1</span>
+          <span class="skill-talisman-tag">LONG</span>
+          <span class="skill-icon">🐉</span>
+          <span class="skill-name">Chân Long</span>
+          <div class="skill-cd-overlay" id="skill-cd-1"></div>
+          <span class="skill-cd-text" id="skill-text-1">1</span>
+        </div>
 
-      <!-- Skill 2: Thuấn Bộ Trảm -->
-      <div class="skill-slot" id="skill-slot-2" title="Phím 2: Thuấn Bộ Trảm 💨 (-20 Linh Lực, lướt 10m chém xuyên 70 ST + kiếm ngân 40 ST)">
-        <span class="skill-key">2</span>
-        <span class="skill-talisman-tag">THUẤN</span>
-        <span class="skill-icon">💨</span>
-        <span class="skill-name">Thuấn Bộ</span>
-        <div class="skill-cd-overlay" id="skill-cd-2"></div>
-        <span class="skill-cd-text" id="skill-text-2">2</span>
-      </div>
+        <!-- Chiêu 2 -->
+        <div class="skill-slot" id="skill-slot-2" title="Phím 2: Bát Quái">
+          <span class="skill-key">2</span>
+          <span class="skill-talisman-tag">BÁT QUÁI</span>
+          <span class="skill-icon">☯</span>
+          <span class="skill-name">Bát Quái</span>
+          <div class="skill-cd-overlay" id="skill-cd-2"></div>
+          <span class="skill-cd-text" id="skill-text-2">2</span>
+        </div>
 
-      <!-- Skill 3: Kiếm Trận Hộ Thể -->
-      <div class="skill-slot" id="skill-slot-3" title="Phím 3: Kiếm Trận Hộ Thể 🌀 (-25 Linh Lực, 6 kiếm xoay quanh người 6 giây rồi bắn tung ra)">
-        <span class="skill-key">3</span>
-        <span class="skill-talisman-tag">TRẬN</span>
-        <span class="skill-icon">🌀</span>
-        <span class="skill-name">Kiếm Trận</span>
-        <div class="skill-cd-overlay" id="skill-cd-3"></div>
-        <span class="skill-cd-text" id="skill-text-3">3</span>
-      </div>
-
-      <!-- Skill 4: Thiên Kiếm Lạc -->
-      <div class="skill-slot" id="skill-slot-4" title="Phím 4: Thiên Kiếm Lạc 🌧️ (-25 Linh Lực, mưa kiếm 28 thanh rồi trấn áp đóng băng cả vùng)">
-        <span class="skill-key">4</span>
-        <span class="skill-talisman-tag">THIÊN</span>
-        <span class="skill-icon">🌧️</span>
-        <span class="skill-name">Thiên Kiếm</span>
-        <div class="skill-cd-overlay" id="skill-cd-4"></div>
-        <span class="skill-cd-text" id="skill-text-4">4</span>
-      </div>
-
-      <!-- Skill 5: Vạn Kiếm Quy Tông -->
-      <div class="skill-slot" id="skill-slot-5" title="Phím 5 hoặc E: Vạn Kiếm Quy Tông ⚔️ (-35 Linh Lực, Cực Phẩm Trấn Tông Kiếm Trận 240 ST)">
-        <span class="skill-key">5/E</span>
-        <span class="skill-talisman-tag">TRẤN TÔNG</span>
-        <span class="skill-icon">⚔️</span>
-        <span class="skill-name">Vạn Kiếm</span>
-        <div class="skill-cd-overlay" id="skill-cd-5"></div>
-        <span class="skill-cd-text" id="skill-text-5">5</span>
-      </div>
-
-      <!-- Skill 6: Đại Canh Kiếm Trận -->
-      <div class="skill-slot" id="skill-slot-6" title="Phím R hoặc 6: Đại Canh Kiếm Trận ⚡ (hồi chiêu 10 giây, 36 lôi kiếm xoáy vòng quét sạch yêu ma trong 30m suốt 10 giây)">
-        <span class="skill-key">6/R</span>
-        <span class="skill-talisman-tag">ĐẠI CANH</span>
-        <span class="skill-icon">⚡</span>
-        <span class="skill-name">Đại Canh</span>
-        <div class="skill-cd-overlay" id="skill-cd-6"></div>
-        <span class="skill-cd-text" id="skill-text-6">6</span>
+        <!-- Chiêu 3: Tuyệt Kỹ Trấn Tông -->
+        <div class="skill-slot" id="skill-slot-3" title="Phím 3 hoặc E: Đại Canh Kiếm Trận">
+          <span class="skill-key">3/E</span>
+          <span class="skill-talisman-tag">TRẤN TÔNG</span>
+          <span class="skill-icon">⚡</span>
+          <span class="skill-name">Đại Canh</span>
+          <div class="skill-cd-overlay" id="skill-cd-3"></div>
+          <span class="skill-cd-text" id="skill-text-3">3</span>
+        </div>
       </div>
     </div>
 
@@ -1847,8 +1901,8 @@
           <span>Chém Kiếm · Giữ: Tụ Kiếm Khí</span>
         </div>
         <div class="control-item">
-          <span class="key-badge skill-badge">1-5 (E)</span>
-          <span><strong>Đạo Pháp & Vạn Kiếm</strong></span>
+          <span class="key-badge skill-badge">1-3 (E)</span>
+          <span><strong>Tuyệt Kỹ Tông Môn</strong></span>
         </div>
         <div class="control-item">
           <span class="key-badge">Space</span>

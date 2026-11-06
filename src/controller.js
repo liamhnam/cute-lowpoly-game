@@ -312,7 +312,7 @@ export class ThirdPersonController {
       const castSuccess = this.onCastSkill(skillNum, targetPos);
       if (castSuccess) {
         this.character.triggerSkillCast(skillNum);
-        this.addTrauma(skillNum >= 5 ? 0.35 : (skillNum === 4 ? 0.25 : 0.12));
+        this.addTrauma(skillNum === 3 ? 0.3 : (skillNum === 2 ? 0.18 : 0.12));
       }
     }
   }
@@ -357,9 +357,10 @@ export class ThirdPersonController {
         if (isDown) this.exitLock();
         break;
 
-      // CÁC PHÍM SỐ SỬ DỤNG KỸ NĂNG: [1], [2], [3], [4]
+      // CÁC PHÍM KỸ NĂNG: [1], [2], [3] (hỗ trợ thêm [Q] cho 1, [E] cho 3)
       case 'Digit1':
       case 'Numpad1':
+      case 'KeyQ':
         if (isDown) this.triggerSkill(1);
         break;
       case 'Digit2':
@@ -368,22 +369,9 @@ export class ThirdPersonController {
         break;
       case 'Digit3':
       case 'Numpad3':
-        if (isDown) this.triggerSkill(3);
-        break;
-      case 'Digit4':
-      case 'Numpad4':
-        if (isDown) this.triggerSkill(4);
-        break;
-      case 'Digit5':
-      case 'Numpad5':
       case 'KeyE':
-        if (isDown) this.triggerSkill(5);
-        break;
-      // Đại Canh Kiếm Trận
-      case 'Digit6':
-      case 'Numpad6':
       case 'KeyR':
-        if (isDown) this.triggerSkill(6);
+        if (isDown) this.triggerSkill(3);
         break;
     }
   }

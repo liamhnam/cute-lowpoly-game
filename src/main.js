@@ -178,50 +178,37 @@ class Game {
         }
       },
       (skillNum, targetPos) => {
+        // Chỉ hỗ trợ 3 kỹ năng độc nhất theo từng môn phái (1, 2, 3)
+        if (skillNum < 1 || skillNum > 3) return false;
+
         // Kiểm tra hồi chiêu
         if (this.pixelFX.isSkillOnCooldown(skillNum)) {
-          const cd = this.pixelFX.cooldowns[skillNum].current.toFixed(1);
+          const cd = this.pixelFX.cooldowns[skillNum]?.current?.toFixed(1) || '0';
           this.showNotification(`⏳ Đang hồi chiêu (${cd}s)...`);
           return false;
         }
 
-        // Đại Canh Kiếm Trận: không tốn Linh Lực, chỉ chờ hồi chiêu
-        if (skillNum === 6) {
-          const success = this.pixelFX.castSkill(6, targetPos, this.character, this.monsters);
-          if (success) {
-            if (this.network.isConnected) {
-              this.network.sendSkill(6, targetPos);
-            }
-            this.showNotification('⚡ ĐẠI CANH KIẾM TRẬN! Ba mươi sáu lôi kiếm xoáy diệt yêu ma!');
-          }
-          return success;
-        }
+        const skillMeta = this.pixelFX.cooldowns[skillNum];
+        const cost = skillMeta?.mana || 0;
 
         // Kiểm tra tiêu hao Linh Lực (Mana)
-        const manaCost = { 1: 20, 2: 20, 3: 25, 4: 25, 5: 35 };
-        const cost = manaCost[skillNum] || 15;
-
-        if (this.playerMp < cost) {
+        if (cost > 0 && this.playerMp < cost) {
           this.showNotification(`⚠️ Linh lực không đủ (${Math.floor(this.playerMp)}/${cost})! Tĩnh tâm hồi khí...`);
           return false;
         }
 
         const success = this.pixelFX.castSkill(skillNum, targetPos, this.character, this.monsters);
         if (success) {
-          this.playerMp -= cost;
+          if (cost > 0) {
+            this.playerMp -= cost;
+          }
 
           if (this.network.isConnected) {
             this.network.sendSkill(skillNum, targetPos);
           }
 
-          const names = {
-            1: 'Chân Long Bảo Thuật 🐉',
-            2: 'Thuấn Bộ Trảm 💨',
-            3: 'Kiếm Trận Hộ Thể 🌀',
-            4: 'Thiên Kiếm Lạc 🌧️',
-            5: 'Vạn Kiếm Quy Tông ⚔️'
-          };
-          this.showNotification(`Thi triển [${names[skillNum]}]! (-${cost} Linh Lực)`);
+          const skillName = skillMeta ? `${skillMeta.name} ${skillMeta.icon}` : 'Kỹ Năng';
+          this.showNotification(`Thi triển [${skillName}]!${cost > 0 ? ` (-${cost} Linh Lực)` : ''}`);
         }
         return success;
       }
@@ -243,7 +230,8 @@ class Game {
     this.pixelFX.onScreenFlash = (type) => this.triggerScreenFlash(type);
 
     this.controller.onOutfitChange = (outfitName) => {
-      this.showNotification(`Đã hoán đổi tiên bào: ${outfitName}`);
+      this.pixelFX.setSect(this.character.outfitIndex);
+      this.showNotification(`Đã hoán đổi môn phái: ${outfitName}`);
     };
 
     this.controller.onLockChange = (isLocked) => {
@@ -671,8 +659,8 @@ class Game {
       });
     }
 
-    // Gắn sự kiện click cho các ô kỹ năng trên HUD
-    for (let i = 1; i <= 6; i++) {
+    // Gắn sự kiện click cho 3 ô kỹ năng môn phái trên HUD
+    for (let i = 1; i <= 3; i++) {
       const slot = document.getElementById(`skill-slot-${i}`);
       if (slot) {
         slot.addEventListener('click', (e) => {
@@ -681,6 +669,31 @@ class Game {
         });
       }
     }
+
+    // Khi môn phái thay đổi: cập nhật giao diện 3 ô kỹ năng và nhãn môn phái
+    this.pixelFX.onSectChange = (sect) => {
+      const sectTag = document.getElementById('hud-sect-name');
+      if (sectTag) {
+        sectTag.textContent = `${sect.icon} ${sect.name}`;
+      }
+      for (let i = 1; i <= 3; i++) {
+        const skill = sect.skills[i - 1];
+        if (!skill) continue;
+        const slot = document.getElementById(`skill-slot-${i}`);
+        if (slot) {
+          slot.title = `Phím ${i}: ${skill.name} ${skill.icon} (${skill.mana > 0 ? `-${skill.mana} Linh Lực, ` : ''}${skill.desc})`;
+          const tagEl = slot.querySelector('.skill-talisman-tag');
+          if (tagEl) tagEl.textContent = skill.tag;
+          const iconEl = slot.querySelector('.skill-icon');
+          if (iconEl) iconEl.textContent = skill.icon;
+          const nameEl = slot.querySelector('.skill-name');
+          if (nameEl) nameEl.textContent = skill.name;
+        }
+      }
+    };
+
+    // Thiết lập môn phái ban đầu cho hệ thống hiệu ứng
+    this.pixelFX.setSect(this.character.outfitIndex);
 
     // Cập nhật Cooldown trực quan trên thanh kỹ năng HUD
     this.pixelFX.onCooldownUpdate = (cds) => {
@@ -749,6 +762,7 @@ class Game {
         card.classList.add('active');
         this.selectedOutfitIndex = parseInt(card.dataset.index, 10) || 0;
         this.character.setOutfit(this.selectedOutfitIndex);
+        this.pixelFX.setSect(this.selectedOutfitIndex);
       });
     });
 
@@ -757,6 +771,7 @@ class Game {
       localStorage.setItem('playerName', name);
       this.character.setName(name);
       this.character.setOutfit(this.selectedOutfitIndex);
+      this.pixelFX.setSect(this.selectedOutfitIndex);
 
       if (loginModal) loginModal.style.display = 'none';
 
@@ -964,15 +979,9 @@ class Game {
       } else if (!this.character.isGrounded) {
         state = 'Đạp Vân Phi Hành 🦘';
       } else if (this.character.isCasting) {
-        const skillNames = {
-          1: 'Chân Long 🐉',
-          2: 'Thuấn Bộ 💨',
-          3: 'Kiếm Trận 🌀',
-          4: 'Thiên Kiếm 🌧️',
-          5: 'Vạn Kiếm ⚔️',
-          6: 'Đại Canh Kiếm Trận ⚡'
-        };
-        state = `Thi triển ${skillNames[this.character.castSkill] || 'Thần Thông'} ✨`;
+        const curSkill = this.pixelFX.cooldowns[this.character.castSkill];
+        const skillTitle = curSkill ? `${curSkill.name} ${curSkill.icon}` : 'Thần Thông';
+        state = `Thi triển ${skillTitle} ✨`;
       } else if (this.character.isMoving) {
         state = this.character.isSprinting ? 'Súc Địa Thành Thốn! ⚡' : 'Ngự Phong Hành 🚶';
       }

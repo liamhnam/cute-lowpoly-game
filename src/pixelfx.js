@@ -67,6 +67,191 @@ class PixelCanvasEffect {
     }
     this.texture.needsUpdate = true;
   }
+
+  // Đồ hình Bát Quái Thái Cực (Thái Thanh Đạo Gia)
+  drawBagua(progress) {
+    this.clear();
+    const ctx = this.ctx;
+    const w = this.size;
+    const h = this.size;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = w / 2 - 2;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(progress * Math.PI * 4);
+
+    // Vòng Bát Quái ngoài
+    ctx.strokeStyle = '#f1c40f';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.92, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 8 quẻ Bát Quái
+    ctx.strokeStyle = '#ffeaa7';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const x1 = Math.cos(a) * (r * 0.76);
+      const y1 = Math.sin(a) * (r * 0.76);
+      const x2 = Math.cos(a) * (r * 0.9);
+      const y2 = Math.sin(a) * (r * 0.9);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    // Đồ hình Thái Cực Âm Dương ở tâm
+    const tr = r * 0.55;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, 0, tr, -Math.PI / 2, Math.PI / 2);
+    ctx.arc(0, tr / 2, tr / 2, Math.PI / 2, -Math.PI / 2);
+    ctx.arc(0, -tr / 2, tr / 2, Math.PI / 2, 3 * Math.PI / 2, true);
+    ctx.fill();
+
+    ctx.fillStyle = '#1e272e';
+    ctx.beginPath();
+    ctx.arc(0, 0, tr, Math.PI / 2, 3 * Math.PI / 2);
+    ctx.arc(0, -tr / 2, tr / 2, -Math.PI / 2, Math.PI / 2);
+    ctx.arc(0, tr / 2, tr / 2, -Math.PI / 2, Math.PI / 2, true);
+    ctx.fill();
+
+    // 2 mắt âm dương
+    ctx.fillStyle = '#1e272e';
+    ctx.beginPath();
+    ctx.arc(0, tr / 2, tr * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, -tr / 2, tr * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+    this.texture.needsUpdate = true;
+  }
+
+  // Hoa tuyết Băng Phong (Thanh Vân Tiên Tông)
+  drawFrostNova(progress) {
+    this.clear();
+    const ctx = this.ctx;
+    const w = this.size;
+    const h = this.size;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = (w / 2 - 2) * Math.min(1.0, progress * 1.5);
+
+    ctx.strokeStyle = '#00d2d3';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 6 nhánh hoa tuyết
+    ctx.strokeStyle = '#7ed6df';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + progress;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      ctx.stroke();
+    }
+    this.texture.needsUpdate = true;
+  }
+
+  // Huyết Phù Ma Đạo (Hồng Trần Ma Tu)
+  drawBloodRune(progress) {
+    this.clear();
+    const ctx = this.ctx;
+    const w = this.size;
+    const h = this.size;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = (w / 2 - 2);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(-progress * Math.PI * 3);
+
+    ctx.strokeStyle = '#ff4757';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.88, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#2f3542';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Ngôi sao huyết ma 5 cánh
+    ctx.strokeStyle = '#ff3838';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * 4 * Math.PI / 5) - Math.PI / 2;
+      const x = Math.cos(a) * (r * 0.7);
+      const y = Math.sin(a) * (r * 0.7);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.restore();
+    this.texture.needsUpdate = true;
+  }
+
+  drawFireExplosion(progress) {
+    this.clear();
+    const ctx = this.ctx;
+    const w = this.size;
+    const h = this.size;
+    const r = (w / 2 - 2) * Math.min(1.0, progress * 1.8);
+    ctx.fillStyle = '#ff3838';
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, r * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd32a';
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, r * 0.45, 0, Math.PI * 2);
+    ctx.fill();
+    this.texture.needsUpdate = true;
+  }
+
+  drawLightning(progress) {
+    this.clear();
+    const ctx = this.ctx;
+    const w = this.size;
+    const h = this.size;
+    const r = (w / 2 - 2);
+    ctx.strokeStyle = '#ffd32a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, r * 0.85, 0, Math.PI * 2);
+    ctx.stroke();
+    this.texture.needsUpdate = true;
+  }
+
+  drawEarthquake(progress) {
+    this.clear();
+    const ctx = this.ctx;
+    const w = this.size;
+    const h = this.size;
+    const r = (w / 2 - 2);
+    ctx.strokeStyle = '#e67e22';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, r * 0.85, 0, Math.PI * 2);
+    ctx.stroke();
+    this.texture.needsUpdate = true;
+  }
 }
 
 // Lớp hiển thị số sát thương nhảy lên kiểu Retro Pixel Art Floating Text
@@ -138,6 +323,202 @@ class FloatingDamageText {
   }
 }
 
+// =========================================================================
+// BẢNG 5 MÔN PHÁI TIÊN HIỆP - MỖI PHÁI 3 CHIÊU THỨC ĐỘC NHẤT VỀ CƠ CHẾ
+// =========================================================================
+export const SECTS = [
+  {
+    id: 'dao_gia',
+    name: 'Thái Thanh Đạo Gia',
+    outfitName: 'Hoàng Bào Đạo Sĩ (Kim Hoàng)',
+    colorHex: 0xf6c344,
+    themeColor: '#f1c40f',
+    icon: '🐉',
+    desc: 'Đạo gia chính thống: Mượn uy Chân Long 50m, Bát Quái trận đồ hồi máu và Đại Canh Kiếm Trận lốc sét',
+    skills: [
+      {
+        id: 1,
+        name: 'Chân Long Bảo Thuật',
+        tag: 'CHÂN LONG',
+        icon: '🐉',
+        cd: 6.0,
+        mana: 25,
+        desc: 'Triệu hồi Hắc Kim Chân Long 20m phóng thẳng 50m, tông trúng 75 ST, nổ lôi đình 100 ST'
+      },
+      {
+        id: 2,
+        name: 'Thái Cực Bát Quái',
+        tag: 'BÁT QUÁI',
+        icon: '☯️',
+        cd: 8.0,
+        mana: 20,
+        desc: 'Trải trận Bát Quái 10m: Hồi 250 HP cho bản thân, giảm 40% sát thương, làm chậm địch 60%'
+      },
+      {
+        id: 3,
+        name: 'Đại Canh Kiếm Trận',
+        tag: 'ĐẠI CANH',
+        icon: '⚡',
+        cd: 11.0,
+        mana: 35,
+        desc: '36 kim lôi kiếm xoay lốc xoáy 25m suốt 8s, quét liên tục 45 ST/hit và tê liệt kẻ địch'
+      }
+    ]
+  },
+  {
+    id: 'thanh_van',
+    name: 'Thanh Vân Tiên Tông',
+    outfitName: 'Thanh Vân Tiên Bào (Lam Ngọc)',
+    colorHex: 0x54a0ff,
+    themeColor: '#00d2d3',
+    icon: '❄️',
+    desc: 'Tiên gia băng phong: Đóng băng khống chế cứng, ngự phong lướt gió tốc độ âm thanh và mưa kiếm hàn băng',
+    skills: [
+      {
+        id: 1,
+        name: 'Huyền Băng Tuyệt Vực',
+        tag: 'BĂNG PHONG',
+        icon: '❄️',
+        cd: 6.5,
+        mana: 25,
+        desc: 'Sóng băng 14m nhô cọc băng nhọn gây 95 ST và ĐÓNG BĂNG kẻ địch 2.5 giây'
+      },
+      {
+        id: 2,
+        name: 'Ngự Phong Thuấn Trảm',
+        tag: 'PHONG TRẢM',
+        icon: '🌪️',
+        cd: 5.0,
+        mana: 20,
+        desc: 'Hóa cuồng phong lướt vút 16m tốc độ âm thanh, chém lạnh 85 ST và đẩy lùi mục tiêu'
+      },
+      {
+        id: 3,
+        name: 'Hàn Băng Vạn Nhận',
+        tag: 'BĂNG VŨ',
+        icon: '🌧️',
+        cd: 10.0,
+        mana: 35,
+        desc: 'Mưa 28 kiếm băng cắm ngập đất liên tiếp (30 ST/thanh) rồi nổ bão tuyết 160 ST'
+      }
+    ]
+  },
+  {
+    id: 'kiem_tong',
+    name: 'Tử Tiêu Kiếm Tông',
+    outfitName: 'Tử Tiêu Kiếm Tông (Tử Kim)',
+    colorHex: 0x8854d0,
+    themeColor: '#a29bfe',
+    icon: '⚔️',
+    desc: 'Thuần tu kiếm đạo: Thuấn bộ trảm choáng, kiếm trận hộ thân phản kích và Vạn Kiếm Quy Tông Cực Phẩm',
+    skills: [
+      {
+        id: 1,
+        name: 'Thuấn Bộ Trảm',
+        tag: 'THUẤN BỘ',
+        icon: '💨',
+        cd: 5.0,
+        mana: 20,
+        desc: 'Tốc biến lướt 12m chém xuyên 85 ST và nổ kiếm ngân sau 0.4s (50 ST), làm choáng'
+      },
+      {
+        id: 2,
+        name: 'Kiếm Trận Hộ Thể',
+        tag: 'HỘ THÂN',
+        icon: '🌀',
+        cd: 7.5,
+        mana: 25,
+        desc: '6 phi kiếm xoay quanh thân 6s chém 40 ST/hit, kích hoạt lại phóng kiếm tỏa 6 hướng'
+      },
+      {
+        id: 3,
+        name: 'Vạn Kiếm Quy Tông',
+        tag: 'VẠN KIẾM',
+        icon: '⚔️',
+        cd: 12.0,
+        mana: 40,
+        desc: '32 phi kiếm cắm kiếm trận rồi CỰ ĐẠI THIÊN KIẾM giáng trần nổ hố gây 260 ST'
+      }
+    ]
+  },
+  {
+    id: 'ma_tu',
+    name: 'Hồng Trần Ma Tu',
+    outfitName: 'Hồng Trần Ma Tu (Chu Sa Hắc Bào)',
+    colorHex: 0xeb3b5a,
+    themeColor: '#ff4757',
+    icon: '🩸',
+    desc: 'Huyết ma ma đạo: Huyết kiếm hút máu hồi phục, Hắc Động ma vực hút kẻ địch và Ma Bạo dung nham',
+    skills: [
+      {
+        id: 1,
+        name: 'Huyết Ma Trảm',
+        tag: 'HẤP HUYẾT',
+        icon: '🩸',
+        cd: 5.0,
+        mana: 20,
+        desc: 'Phóng đao huyết khí đỏ xé gió 22m gây 125 ST và HÚT 60 HP hồi phục cho bản thân'
+      },
+      {
+        id: 2,
+        name: 'U Minh Ma Vực',
+        tag: 'HẮC ĐỘNG',
+        icon: '🕳️',
+        cd: 7.0,
+        mana: 25,
+        desc: 'Hắc Động ma lực xoáy cực mạnh hút toàn bộ kẻ địch vào tâm hố, thiêu đốt 35 ST/s'
+      },
+      {
+        id: 3,
+        name: 'Hồng Trần Ma Bạo',
+        tag: 'MA BẠO',
+        icon: '🔥',
+        cd: 11.0,
+        mana: 35,
+        desc: 'Nổ tung huyết ma viêm 16m nung chảy đất đá thành hố than dung nham, gây 250 ST'
+      }
+    ]
+  },
+  {
+    id: 'bach_hac',
+    name: 'Bạch Hạc Chân Nhân',
+    outfitName: 'Bạch Hạc Chân Nhân (Bạch Ngọc)',
+    colorHex: 0xf5f6fa,
+    themeColor: '#2ed573',
+    icon: '🪶',
+    desc: 'Thần thú tiên nhân: Cửu Thiên lôi giật lan tỏa, Bạch Hạc hất tung tăng tốc chạy và Hám Địa thần thông',
+    skills: [
+      {
+        id: 1,
+        name: 'Cửu Thiên Huyền Lôi',
+        tag: 'LÔI ĐÌNH',
+        icon: '⚡',
+        cd: 5.5,
+        mana: 25,
+        desc: 'Sét đánh bổ xuống mục tiêu 140 ST, phóng 4 tia hồ quang giật lan 60 ST sang lân cận'
+      },
+      {
+        id: 2,
+        name: 'Bạch Hạc Tường Vân',
+        tag: 'BẠCH HẠC',
+        icon: '🪶',
+        cd: 6.0,
+        mana: 20,
+        desc: 'Linh ảnh Bạch Hạc sải cánh lướt 24m hất tung kẻ địch lên trời, tăng 50% tốc độ chạy'
+      },
+      {
+        id: 3,
+        name: 'Hám Địa Thần Thông',
+        tag: 'ĐỊA CHẤN',
+        icon: '🌍',
+        cd: 10.0,
+        mana: 35,
+        desc: 'Bật nhảy giậm mạnh sụp đổ nứt toác mặt đất sâu 2.5m, gây 230 ST và thổi bay vật thể'
+      }
+    ]
+  }
+];
+
 export class PixelFXManager {
   constructor(scene, world, particles) {
     this.scene = scene;
@@ -148,20 +529,34 @@ export class PixelFXManager {
     this.activeEffects = [];
     this.damageTexts = new FloatingDamageText(scene);
 
-    // Thời gian hồi chiêu của 5 kiếm chiêu (giây)
-    this.cooldowns = {
-      1: { current: 0, max: 6.0, name: 'Chân Long Bảo Thuật', icon: '🐉' },
-      2: { current: 0, max: 5.0, name: 'Thuấn Bộ Trảm', icon: '💨' },
-      3: { current: 0, max: 10.0, name: 'Kiếm Trận Hộ Thể', icon: '🌀' },
-      4: { current: 0, max: 7.0, name: 'Thiên Kiếm Lạc', icon: '🌧️' },
-      5: { current: 0, max: 9.0, name: 'Vạn Kiếm Quy Tông', icon: '⚔️' },
-      6: { current: 0, max: 10.0, name: 'Đại Canh Kiếm Trận', icon: '⚡' },
-    };
-
+    this.currentSectIndex = 0;
+    this.cooldowns = {};
     this.onCooldownUpdate = null;
+    this.onSectChange = null;
     this.remotePlayers = [];
     this.onHitPlayer = null;
-    this.localCharacter = null; // nhân vật của chính mình, dùng để biết chiêu nào do mình ra
+    this.localCharacter = null; // nhân vật của chính mình
+
+    this.setSect(0);
+  }
+
+  // ĐẶT MÔN PHÁI CHO NHÂN VẬT & TẢI 3 CHIÊU ĐỘC NHẤT
+  setSect(sectIndex) {
+    this.currentSectIndex = ((Number(sectIndex) % SECTS.length) + SECTS.length) % SECTS.length;
+    const sect = SECTS[this.currentSectIndex];
+
+    this.cooldowns = {
+      1: { current: 0, max: sect.skills[0].cd, name: sect.skills[0].name, icon: sect.skills[0].icon, tag: sect.skills[0].tag, desc: sect.skills[0].desc, mana: sect.skills[0].mana },
+      2: { current: 0, max: sect.skills[1].cd, name: sect.skills[1].name, icon: sect.skills[1].icon, tag: sect.skills[1].tag, desc: sect.skills[1].desc, mana: sect.skills[1].mana },
+      3: { current: 0, max: sect.skills[2].cd, name: sect.skills[2].name, icon: sect.skills[2].icon, tag: sect.skills[2].tag, desc: sect.skills[2].desc, mana: sect.skills[2].mana },
+    };
+
+    if (this.onSectChange) {
+      this.onSectChange(sect, this.cooldowns);
+    }
+    if (this.onCooldownUpdate) {
+      this.onCooldownUpdate(this.cooldowns);
+    }
   }
 
   // VÒNG CHỈ ĐIỂM MA PHÁP DƯỚI ĐẤT (TARGETING TELEGRAPH RUNE)
@@ -223,35 +618,50 @@ export class PixelFXManager {
     return s && s.current > 0;
   }
 
-  // KÍCH HOẠT KỸ NĂNG THEO PHÍM SỐ [1], [2], [3], [4], [5]
+  // KÍCH HOẠT KỸ NĂNG THEO MÔN PHÁI (MỖI PHÁI 3 CHIÊU [1], [2], [3])
   castSkill(skillIndex, targetPos, character, monsters) {
-    const skill = this.cooldowns[skillIndex];
-    if (!skill) return false;
+    const slotNum = Number(skillIndex);
+    if (![1, 2, 3].includes(slotNum)) return false;
 
-    // Hồi chiêu chỉ áp cho chiêu của chính mình; chiêu của người chơi khác chỉ được dựng lại hiệu ứng
+    // Xác định môn phái của nhân vật thi triển (bản thân hoặc người chơi khác)
+    const sectIdx = ((character?.outfitIndex !== undefined ? character.outfitIndex : this.currentSectIndex) % SECTS.length + SECTS.length) % SECTS.length;
+
+    // Hồi chiêu chỉ áp cho chiêu của chính mình
     if (character === this.localCharacter) {
-      if (skill.current > 0) return false;
+      const skill = this.cooldowns[slotNum];
+      if (!skill || skill.current > 0) return false;
       skill.current = skill.max;
     }
 
-    switch (skillIndex) {
-      case 1:
-        this.castFlyingSword(targetPos, character, monsters);
+    switch (sectIdx) {
+      case 0: // Thái Thanh Đạo Gia
+        if (slotNum === 1) this.castFlyingSword(targetPos, character, monsters);
+        else if (slotNum === 2) this.castTaiChiBagua(character, monsters);
+        else if (slotNum === 3) this.castDaiCanhSwordArray(character, monsters);
         break;
-      case 2:
-        this.castBlinkSlash(targetPos, character, monsters);
+
+      case 1: // Thanh Vân Tiên Tông
+        if (slotNum === 1) this.castFrostNova(targetPos, character, monsters);
+        else if (slotNum === 2) this.castWindDash(targetPos, character, monsters);
+        else if (slotNum === 3) this.castSwordRain(targetPos, character, monsters);
         break;
-      case 3:
-        this.castSwordBarrier(character, monsters);
+
+      case 2: // Tử Tiêu Kiếm Tông
+        if (slotNum === 1) this.castBlinkSlash(targetPos, character, monsters);
+        else if (slotNum === 2) this.castSwordBarrier(character, monsters);
+        else if (slotNum === 3) this.castWanJianGuiZong(targetPos, character, monsters);
         break;
-      case 4:
-        this.castSwordRain(targetPos, character, monsters);
+
+      case 3: // Hồng Trần Ma Tu
+        if (slotNum === 1) this.castBloodSlash(targetPos, character, monsters);
+        else if (slotNum === 2) this.castNetherVortex(targetPos, character, monsters);
+        else if (slotNum === 3) this.castHellfireCataclysm(targetPos, character, monsters);
         break;
-      case 5:
-        this.castWanJianGuiZong(targetPos, character, monsters);
-        break;
-      case 6:
-        this.castDaiCanhSwordArray(character, monsters);
+
+      case 4: // Bạch Hạc Chân Nhân
+        if (slotNum === 1) this.castChainLightning(targetPos, character, monsters);
+        else if (slotNum === 2) this.castCraneGlide(targetPos, character, monsters);
+        else if (slotNum === 3) this.castEarthquakeStomp(targetPos, character, monsters);
         break;
     }
 
@@ -1101,6 +1511,598 @@ export class PixelFXManager {
     });
   }
 
+  // =========================================================================
+  // KỸ NĂNG MÔN PHÁI: THÁI THANH ĐẠO GIA
+  // =========================================================================
+
+  // [Đạo Gia 2] THÁI CỰC BÁT QUÁI TRẬN (Hồi 250 HP, giảm 40% sát thương, làm chậm địch 60%)
+  castTaiChiBagua(character, monsters) {
+    const center = character.position.clone();
+    center.y = getTerrainHeight(center.x, center.z);
+    sound.playSwordSummon();
+
+    if (this.onScreenFlash) this.onScreenFlash('sword');
+
+    // 1. Chỉ điểm Bát Quái trận dưới chân
+    this.spawnGroundDecalEffect('bagua', new THREE.Vector3(center.x, center.y + 0.08, center.z), 12, 5.0);
+
+    // 2. Trụ ánh sáng Tiên Thiên Bát Quái xoay tròn
+    const arrayGroup = new THREE.Group();
+    arrayGroup.position.copy(center);
+
+    const pillarGeo = new THREE.CylinderGeometry(5.2, 5.2, 6.5, 24, 1, true);
+    const pillarMat = new THREE.MeshBasicMaterial({
+      color: 0xf1c40f,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+    });
+    const pillarMesh = new THREE.Mesh(pillarGeo, pillarMat);
+    pillarMesh.position.y = 3.25;
+    arrayGroup.add(pillarMesh);
+
+    // Vòng kim quang bao quanh
+    const ringGeo = new THREE.RingGeometry(4.8, 5.2, 32);
+    ringGeo.rotateX(-Math.PI / 2);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.position.y = 0.12;
+    arrayGroup.add(ringMesh);
+
+    this.scene.add(arrayGroup);
+
+    // 3. Hồi phục 250 HP cho caster
+    if (character && character.hp < character.maxHp) {
+      const heal = Math.min(250, character.maxHp - character.hp);
+      character.hp += heal;
+      if (character.updateBillboard) character.updateBillboard();
+      this.damageTexts.spawn(`💚 +${Math.round(heal)} BÁT QUÁI!`, character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#2ed573');
+    }
+
+    if (this.particles) {
+      this.particles.emitElementalParticles(center, 30, [0xf1c40f, 0x2ed573, 0xffffff], [2, 6], 0.6, 5.0, 1.2);
+      this.particles.emitShockwave(center, 0xf1c40f, 10.0, 0.4);
+    }
+
+    let elapsed = 0;
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        arrayGroup.rotation.y += delta * 1.5;
+        pillarMesh.material.opacity = (Math.sin(elapsed * 6) * 0.15 + 0.28) * (1.0 - elapsed / 5.0);
+
+        // Làm chậm quái vật trong trận
+        if (monsters) {
+          for (const m of monsters) {
+            if (!m.isDead && m.position.distanceTo(center) < 6.0) {
+              if (m.freeze && Math.random() < 0.2) m.freeze(0.4);
+            }
+          }
+        }
+
+        if (elapsed >= 5.0) {
+          this.scene.remove(arrayGroup);
+          pillarMat.dispose();
+          ringMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // =========================================================================
+  // KỸ NĂNG MÔN PHÁI: THANH VÂN TIÊN TÔNG
+  // =========================================================================
+
+  // [Thanh Vân 1] HUYỀN BĂNG TUYỆT VỰC (Đóng băng cứng ngắc 2.8s + cọc băng nhọn 95 ST)
+  castFrostNova(targetPos, character, monsters) {
+    const impactX = targetPos.x;
+    const impactZ = targetPos.z;
+    const impactY = getTerrainHeight(impactX, impactZ);
+    const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
+
+    sound.playHit();
+    if (this.onScreenFlash) this.onScreenFlash('frost');
+
+    // 1. Chỉ điểm hoa tuyết băng phong
+    this.spawnTelegraph(hitPos, 0x00d2d3, 1.2, 14.0);
+    this.spawnGroundDecalEffect('ice', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 16, 2.5);
+
+    // 2. Biến đổi địa hình thành tuyết trắng
+    if (this.world && this.world.deformTerrain) {
+      this.world.deformTerrain(impactX, impactZ, 14.0, 1.4, 'ice');
+    }
+
+    // 3. Mọc 12 tinh thể trụ băng nhọn hoắt low-poly
+    const iceGroup = new THREE.Group();
+    const iceSpikes = [];
+    const spikeGeo = new THREE.CylinderGeometry(0.06, 0.42, 2.4, 5);
+    const spikeMat = new THREE.MeshStandardMaterial({
+      color: 0x7ed6df,
+      emissive: 0x00d2d3,
+      emissiveIntensity: 0.35,
+      roughness: 0.2,
+      flatShading: true,
+    });
+
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2 + Math.random() * 0.3;
+      const dist = 3.0 + Math.random() * 7.5;
+      const spike = new THREE.Mesh(spikeGeo, spikeMat);
+      const sx = impactX + Math.cos(angle) * dist;
+      const sz = impactZ + Math.sin(angle) * dist;
+      const sy = getTerrainHeight(sx, sz);
+
+      spike.position.set(sx, sy - 1.2, sz);
+      spike.rotation.x = (Math.random() - 0.5) * 0.4;
+      spike.rotation.z = (Math.random() - 0.5) * 0.4;
+      spike.scale.set(1, 0.1, 1);
+      iceGroup.add(spike);
+      iceSpikes.push({ mesh: spike, targetY: sy + 1.1, baseScale: 0.8 + Math.random() * 0.5 });
+    }
+    this.scene.add(iceGroup);
+
+    // 4. Sóng chấn động băng tuyết & ĐÓNG BĂNG MỤC TIÊU
+    if (this.particles) {
+      this.particles.emitShockwave(hitPos, 0x00d2d3, 14.0, 0.5);
+      this.particles.emitElementalParticles(hitPos, 35, [0x00d2d3, 0x7ed6df, 0xffffff], [3, 8], 0.7, 5.0, 1.2);
+    }
+
+    // Gây sát thương & ĐÓNG BĂNG CỨNG
+    this.dealDamageAOE(hitPos, 14.0, 95, '❄️ -95 ĐÓNG BĂNG!', '#00d2d3', monsters, 'freeze', 'ice', null, character);
+
+    let elapsed = 0;
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        // Trụ băng trồi lên nhanh trong 0.25s
+        if (elapsed < 0.25) {
+          const p = elapsed / 0.25;
+          for (const s of iceSpikes) {
+            s.mesh.position.y = THREE.MathUtils.lerp(s.mesh.position.y, s.targetY, p);
+            s.mesh.scale.y = THREE.MathUtils.lerp(0.1, s.baseScale, p);
+          }
+        } else if (elapsed > 2.0) {
+          // Trụ băng tan chảy co lại
+          const melt = 1.0 - (elapsed - 2.0) / 0.8;
+          iceGroup.scale.multiplyScalar(0.96);
+          if (elapsed >= 2.8) {
+            this.scene.remove(iceGroup);
+            spikeMat.dispose();
+            return false;
+          }
+        }
+        return true;
+      }
+    });
+  }
+
+  // [Thanh Vân 2] NGỰ PHONG THUẤN TRẢM (Lướt gió tốc độ âm thanh 16m chém 85 ST)
+  castWindDash(targetPos, character, monsters) {
+    if (!character) return;
+    const startPos = character.position.clone();
+    const dir = PixelFXManager.flatDirection(startPos, targetPos);
+
+    sound.playSwordSlash();
+    if (this.controller) this.controller.addTrauma(0.15);
+
+    // Dịch chuyển lướt nhanh 16m
+    const dashDistance = 16.0;
+    const endPos = startPos.clone().addScaledVector(dir, dashDistance);
+    endPos.x = THREE.MathUtils.clamp(endPos.x, -120, 120);
+    endPos.z = THREE.MathUtils.clamp(endPos.z, -120, 120);
+    endPos.y = getTerrainHeight(endPos.x, endPos.z);
+
+    // Vệt gió phong nhận dọc đường lướt
+    if (this.particles) {
+      for (let d = 0; d <= dashDistance; d += 2) {
+        const p = startPos.clone().addScaledVector(dir, d);
+        p.y = getTerrainHeight(p.x, p.z) + 0.6;
+        this.particles.emitElementalParticles(p, 4, [0x00d2d3, 0xffffff, 0x7ed6df], [2, 5], 0.4, 3.0, 0.6);
+      }
+      this.particles.emitShockwave(startPos, 0x00d2d3, 6.0, 0.3);
+      this.particles.emitShockwave(endPos, 0x00d2d3, 8.0, 0.35);
+    }
+
+    character.position.copy(endPos);
+    character.group.position.copy(endPos);
+
+    // Chém sát thương diện rộng dọc đường và tại điểm đến
+    const midPos = startPos.clone().add(endPos).multiplyScalar(0.5);
+    this.dealDamageAOE(midPos, 8.0, 85, '🌪️ -85 PHONG TRẢM!', '#00d2d3', monsters, 'knockback', 'ice', null, character);
+    this.dealDamageAOE(endPos, 6.5, 85, '🌪️ -85 PHONG TRẢM!', '#00d2d3', monsters, 'knockback', 'ice', null, character);
+  }
+
+  // =========================================================================
+  // KỸ NĂNG MÔN PHÁI: HỒNG TRẦN MA TU
+  // =========================================================================
+
+  // [Ma Tu 1] HUYẾT MA TRẢM (Phóng lưỡi đao huyết khí 22m, gây 125 ST & HÚT 60 HP)
+  castBloodSlash(targetPos, character, monsters) {
+    const startPos = character.position.clone();
+    startPos.y += 1.1;
+    const dir = PixelFXManager.flatDirection(startPos, targetPos);
+    sound.playSwordSlash();
+
+    if (this.controller) this.controller.addTrauma(0.18);
+
+    // Lưỡi đao huyết khí đỏ rực
+    const bladeGeo = new THREE.TorusGeometry(1.6, 0.16, 6, 16, Math.PI * 0.9);
+    const bladeMat = new THREE.MeshBasicMaterial({ color: 0xff4757, side: THREE.DoubleSide });
+    const bladeMesh = new THREE.Mesh(bladeGeo, bladeMat);
+
+    bladeMesh.position.copy(startPos);
+    bladeMesh.rotation.y = Math.atan2(dir.x, dir.z) + Math.PI / 2;
+    bladeMesh.rotation.z = Math.PI / 2;
+    this.scene.add(bladeMesh);
+
+    const SPEED = 40.0;
+    const RANGE = 24.0;
+    let travelled = 0;
+    let hasHealed = false;
+    const hitSet = new Set();
+
+    this.activeEffects.push({
+      update: (delta) => {
+        const step = SPEED * delta;
+        travelled += step;
+        bladeMesh.position.addScaledVector(dir, step);
+        bladeMesh.position.y = getTerrainHeight(bladeMesh.position.x, bladeMesh.position.z) + 1.1;
+        bladeMesh.rotation.z += delta * 18;
+
+        if (this.particles && Math.random() < 0.6) {
+          this.particles.emitElementalParticles(bladeMesh.position, 2, [0xff4757, 0xeb3b5a, 0x2d3436], [1, 4], 0.3, 0, 0.5);
+        }
+
+        // Quét trúng quái vật
+        if (monsters) {
+          for (const m of monsters) {
+            if (!m.isDead && !hitSet.has(m) && m.checkCollision(bladeMesh.position, 1.6)) {
+              hitSet.add(m);
+              m.takeDamage(125, bladeMesh.position);
+              this.damageTexts.spawn('🩸 -125 HUYẾT MA!', m.position.clone().add(new THREE.Vector3(0, m.hitHeight, 0)), '#ff4757');
+
+              // Hút máu hồi phục cho bản thân!
+              if (!hasHealed && character && character.hp < character.maxHp) {
+                hasHealed = true;
+                const heal = Math.min(60, character.maxHp - character.hp);
+                character.hp += heal;
+                if (character.updateBillboard) character.updateBillboard();
+                this.damageTexts.spawn(`🩸 +${Math.round(heal)} HÚT HUYẾT!`, character.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#ff4757');
+              }
+            }
+          }
+        }
+
+        // Quét trúng người chơi khác (PvP)
+        if (this.canHitPlayers(character)) {
+          const hitRps = this.damagePlayersNear(bladeMesh.position, 1.8, 125, '🩸 -125 HUYẾT MA!', '#ff4757', character, hitSet);
+          if (hitRps.length > 0 && !hasHealed && character && character.hp < character.maxHp) {
+            hasHealed = true;
+            const heal = Math.min(60, character.maxHp - character.hp);
+            character.hp += heal;
+            if (character.updateBillboard) character.updateBillboard();
+            this.damageTexts.spawn(`🩸 +${Math.round(heal)} HÚT HUYẾT!`, character.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#ff4757');
+          }
+        }
+
+        if (travelled >= RANGE) {
+          this.scene.remove(bladeMesh);
+          bladeGeo.dispose();
+          bladeMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // [Ma Tu 2] U MINH MA VỰC (Hắc Động hút toàn bộ kẻ địch vào tâm hố, thiêu đốt 35 ST/s)
+  castNetherVortex(targetPos, character, monsters) {
+    const impactX = targetPos.x;
+    const impactZ = targetPos.z;
+    const impactY = getTerrainHeight(impactX, impactZ);
+    const center = new THREE.Vector3(impactX, impactY, impactZ);
+
+    sound.playSwordSummon();
+    if (this.controller) this.controller.addTrauma(0.25);
+
+    this.spawnGroundDecalEffect('blood', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 12, 3.5);
+
+    // Mô hình Hắc Động xoáy đen tím
+    const vortexGroup = new THREE.Group();
+    vortexGroup.position.copy(center);
+
+    const vortexGeo = new THREE.RingGeometry(0.8, 4.5, 32);
+    vortexGeo.rotateX(-Math.PI / 2);
+    const vortexMat = new THREE.MeshBasicMaterial({
+      color: 0x8854d0,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
+    const vortexMesh = new THREE.Mesh(vortexGeo, vortexMat);
+    vortexMesh.position.y = 0.15;
+    vortexGroup.add(vortexMesh);
+
+    // Tâm cầu ma lực đen
+    const coreMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.85, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0x1e272e })
+    );
+    coreMesh.position.y = 1.0;
+    vortexGroup.add(coreMesh);
+
+    this.scene.add(vortexGroup);
+
+    let elapsed = 0;
+    let tickTimer = 0;
+
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        tickTimer += delta;
+
+        vortexMesh.rotation.z += delta * 10;
+        coreMesh.rotation.y += delta * 6;
+        coreMesh.scale.setScalar(1.0 + Math.sin(elapsed * 12) * 0.15);
+
+        // Lực hút chân không (Vortex Pull): Kéo quái vật về tâm
+        if (monsters) {
+          for (const m of monsters) {
+            if (!m.isDead) {
+              const d = m.position.distanceTo(center);
+              if (d < 12.0 && d > 0.8) {
+                m.position.lerp(center, delta * 3.5);
+              }
+            }
+          }
+        }
+
+        // Hút người chơi khác trong PvP
+        if (this.canHitPlayers(character) && this.remotePlayers) {
+          for (const rp of this.remotePlayers) {
+            if (!rp.isDead) {
+              const d = rp.position.distanceTo(center);
+              if (d < 12.0 && d > 0.8) {
+                rp.position.lerp(center, delta * 3.2);
+              }
+            }
+          }
+        }
+
+        // Gây sát thương ma diễm định kỳ mỗi 0.6s
+        if (tickTimer >= 0.6) {
+          tickTimer = 0;
+          this.dealDamageAOE(center, 9.0, 35, '🔥 -35 MA DIỄM!', '#eb3b5a', monsters, null, 'fire', null, character);
+          if (this.particles) {
+            this.particles.emitElementalParticles(center, 12, [0x8854d0, 0xeb3b5a, 0x1e272e], [1, 4], 0.5, 0, 0.6);
+          }
+        }
+
+        if (elapsed >= 3.5) {
+          // Nổ bung kết thúc đẩy văng kẻ địch
+          this.dealDamageAOE(center, 10.0, 60, '💥 -60 NỔ MA KHÍ!', '#ff4757', monsters, 'knockback', 'fire', 40.0, character);
+          this.scene.remove(vortexGroup);
+          vortexGeo.dispose();
+          vortexMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // [Ma Tu 3] HỒNG TRẦN MA BẠO (Vụ nổ Huyết Diễm cực đại 16m nung chảy đất đá, gây 250 ST)
+  castHellfireCataclysm(targetPos, character, monsters) {
+    const center = character ? character.position.clone() : targetPos.clone();
+    center.y = getTerrainHeight(center.x, center.z);
+
+    sound.playGiantSwordImpact();
+    if (this.controller) this.controller.addTrauma(0.85);
+    if (this.onScreenFlash) this.onScreenFlash('fire');
+
+    // Nung chảy đất đá thành hố than dung nham
+    if (this.world && this.world.deformTerrain) {
+      this.world.deformTerrain(center.x, center.z, 15.0, 2.4, 'fire');
+    }
+
+    if (this.particles) {
+      this.particles.emitShockwave(center, 0xff3838, 20.0, 0.7);
+      this.particles.emitShockwave(center, 0xeb3b5a, 14.0, 0.5);
+      this.particles.emitElementalParticles(center, 60, [0xff3838, 0xeb3b5a, 0xffd32a, 0x2d3436], [6, 16], 0.9, 6.5, 1.8);
+    }
+
+    // Sát thương bộc phá cực đại
+    this.dealDamageAOE(center, 16.0, 250, '🔥 -250 MA BẠO!', '#eb3b5a', monsters, 'knockback', 'fire', 55.0, character);
+  }
+
+  // =========================================================================
+  // KỸ NĂNG MÔN PHÁI: BẠCH HẠC CHÂN NHÂN
+  // =========================================================================
+
+  // [Bạch Hạc 1] CỬU THIÊN HUYỀN LÔI (Sét đánh bổ xuống mục tiêu 140 ST + giật lan 60 ST)
+  castChainLightning(targetPos, character, monsters) {
+    const impactX = targetPos.x;
+    const impactZ = targetPos.z;
+    const impactY = getTerrainHeight(impactX, impactZ);
+    const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
+
+    sound.playThunder();
+    if (this.controller) this.controller.addTrauma(0.35);
+    if (this.onScreenFlash) this.onScreenFlash('lightning');
+
+    this.spawnTelegraph(hitPos, 0xffd32a, 0.8, 8.0);
+    this.spawnGroundDecalEffect('lightning', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 10, 2.0);
+
+    // Cột sét giáng từ trời xuống
+    const boltGeo = new THREE.CylinderGeometry(0.2, 0.45, 45, 6);
+    const boltMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const bolt = new THREE.Mesh(boltGeo, boltMat);
+    bolt.position.set(impactX, impactY + 22.5, impactZ);
+    this.scene.add(bolt);
+
+    if (this.particles) {
+      this.particles.emitShockwave(hitPos, 0xffd32a, 12.0, 0.4);
+      this.particles.emitElementalParticles(hitPos, 35, [0xffd32a, 0xffffff, 0x74b9ff], [3, 8], 0.7, 5.0, 1.0);
+    }
+
+    // Sát thương tâm sét
+    this.dealDamageAOE(hitPos, 8.0, 140, '⚡ -140 THIÊN LÔI!', '#ffd32a', monsters, null, 'lightning', null, character);
+
+    // Sét giật lan (Chain Lightning) sang 4 mục tiêu lân cận trong 12m
+    if (monsters) {
+      let chained = 0;
+      for (const m of monsters) {
+        if (!m.isDead && chained < 4) {
+          const d = m.position.distanceTo(hitPos);
+          if (d > 3.0 && d < 14.0) {
+            chained++;
+            m.takeDamage(60, hitPos);
+            this.damageTexts.spawn('⚡ -60 GIẬT LAN!', m.position.clone().add(new THREE.Vector3(0, m.hitHeight, 0)), '#74b9ff');
+            if (this.particles) this.particles.emitHitSparkles(m.position, 12);
+          }
+        }
+      }
+    }
+
+    let elapsed = 0;
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        bolt.scale.x = Math.max(0, 1.0 - elapsed * 4);
+        bolt.scale.z = bolt.scale.x;
+        if (elapsed >= 0.25) {
+          this.scene.remove(bolt);
+          boltGeo.dispose();
+          boltMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // [Bạch Hạc 2] BẠCH HẠC TƯỜNG VÂN (Linh ảnh Bạch Hạc sải cánh lướt 24m hất tung + tăng tốc chạy)
+  castCraneGlide(targetPos, character, monsters) {
+    const startPos = character.position.clone();
+    startPos.y += 1.2;
+    const dir = PixelFXManager.flatDirection(startPos, targetPos);
+    sound.playSwordSlash();
+
+    if (this.controller) this.controller.addTrauma(0.2);
+
+    // Tăng tốc độ chạy cho caster trong 4 giây!
+    if (character) {
+      character.speedBoostTimer = 4.0;
+      this.damageTexts.spawn('🪶 +50% TỐC ĐỘ!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#2ed573');
+    }
+
+    // Mô hình Linh Ảnh Bạch Hạc sải cánh
+    const craneGroup = new THREE.Group();
+    craneGroup.position.copy(startPos);
+    craneGroup.rotation.y = Math.atan2(dir.x, dir.z);
+
+    const wingMat = new THREE.MeshStandardMaterial({
+      color: 0xf5f6fa,
+      emissive: 0x2ed573,
+      emissiveIntensity: 0.35,
+      roughness: 0.3,
+      flatShading: true,
+    });
+
+    const bodyMesh = new THREE.Mesh(new THREE.ConeGeometry(0.6, 3.2, 5), wingMat);
+    bodyMesh.rotation.x = Math.PI / 2;
+    craneGroup.add(bodyMesh);
+
+    // 2 cánh hạc sải rộng 8m
+    for (const side of [1, -1]) {
+      const wingGeo = new THREE.BoxGeometry(3.8, 0.1, 1.2);
+      const wing = new THREE.Mesh(wingGeo, wingMat);
+      wing.position.set(side * 2.2, 0.2, 0);
+      wing.rotation.z = side * -0.2;
+      craneGroup.add(wing);
+    }
+
+    this.scene.add(craneGroup);
+
+    const SPEED = 38.0;
+    const RANGE = 24.0;
+    let travelled = 0;
+    const hitSet = new Set();
+
+    this.activeEffects.push({
+      update: (delta) => {
+        const step = SPEED * delta;
+        travelled += step;
+        craneGroup.position.addScaledVector(dir, step);
+        craneGroup.position.y = getTerrainHeight(craneGroup.position.x, craneGroup.position.z) + 1.2;
+
+        if (this.particles && Math.random() < 0.6) {
+          this.particles.emitElementalParticles(craneGroup.position, 3, [0xf5f6fa, 0x2ed573, 0xffffff], [2, 5], 0.4, 0, 0.6);
+        }
+
+        // Quét quái vật hất tung lên trời
+        if (monsters) {
+          for (const m of monsters) {
+            if (!m.isDead && !hitSet.has(m) && m.checkCollision(craneGroup.position, 2.5)) {
+              hitSet.add(m);
+              m.takeDamage(100, craneGroup.position);
+              m.position.y += 3.5; // Hất tung!
+              this.damageTexts.spawn('🪶 -100 BẠCH HẠC!', m.position.clone().add(new THREE.Vector3(0, m.hitHeight, 0)), '#2ed573');
+              if (this.particles) this.particles.emitHitSparkles(m.position, 14);
+            }
+          }
+        }
+
+        // Quét trúng người chơi khác (PvP)
+        if (this.canHitPlayers(character)) {
+          this.damagePlayersNear(craneGroup.position, 2.5, 100, '🪶 -100 BẠCH HẠC!', '#2ed573', character, hitSet);
+        }
+
+        if (travelled >= RANGE) {
+          this.scene.remove(craneGroup);
+          wingMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // [Bạch Hạc 3] HÁM ĐỊA THẦN THÔNG (Giậm sụp nứt mặt đất chấn động 230 ST, thổi bay mọi vật thể)
+  castEarthquakeStomp(targetPos, character, monsters) {
+    const center = character ? character.position.clone() : targetPos.clone();
+    center.y = getTerrainHeight(center.x, center.z);
+
+    sound.playGiantSwordImpact();
+    if (this.controller) this.controller.addTrauma(0.8);
+    if (this.onScreenFlash) this.onScreenFlash('earth');
+
+    // Sụp đổ địa hình 2.5m
+    if (this.world && this.world.deformTerrain) {
+      this.world.deformTerrain(center.x, center.z, 15.0, 2.5, 'earth');
+    }
+
+    if (this.particles) {
+      this.particles.emitShockwave(center, 0xe67e22, 18.0, 0.7);
+      this.particles.emitShockwave(center, 0xffd32a, 12.0, 0.5);
+      this.particles.emitElementalParticles(center, 50, [0xe67e22, 0xd35400, 0x7f8c8d], [5, 14], 0.85, 6.0, 1.6);
+    }
+
+    // Sát thương cực đại hất tung & phá hủy vật thể
+    this.dealDamageAOE(center, 16.0, 230, '🌍 -230 HÁM ĐỊA!', '#e67e22', monsters, 'knockback', 'earth', 60.0, character);
+  }
+
   // TẠO HIỆU ỨNG PIXEL ART VẼ BẰNG CANVAS ĐẶT NẰM TRÊN MẶT ĐẤT
   spawnGroundDecalEffect(type, position, size, duration) {
     const pixelCanvas = new PixelCanvasEffect(64);
@@ -1129,6 +2131,8 @@ export class PixelFXManager {
         else if (type === 'ice') pixelCanvas.drawFrostNova(progress);
         else if (type === 'earth') pixelCanvas.drawEarthquake(progress);
         else if (type === 'sword') pixelCanvas.drawSwordArray(progress);
+        else if (type === 'bagua') pixelCanvas.drawBagua(progress);
+        else if (type === 'blood') pixelCanvas.drawBloodRune(progress);
 
         if (progress >= 1.0) {
           this.scene.remove(mesh);

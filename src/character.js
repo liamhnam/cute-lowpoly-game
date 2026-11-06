@@ -61,15 +61,16 @@ export class Character {
     this.castSkill = 0;
     this.castTime = 0;
     this.castDuration = 0.6;
+    this.speedBoostTimer = 0;
 
-    // Bảng màu trang phục Tiên Hiệp cổ phong
+    // Bảng màu trang phục Tiên Hiệp cổ phong - 5 Môn Phái
     this.outfitIndex = 0;
     this.outfits = [
-      { name: 'Hoàng Bào Đạo Sĩ (Kim Hoàng)', clothes: 0xf6c344, hat: 0x2d3436 },
-      { name: 'Thanh Vân Tiên Bào (Lam Ngọc)', clothes: 0x54a0ff, hat: 0x1dd1a1 },
-      { name: 'Tử Tiêu Kiếm Tông (Tử Kim)', clothes: 0x8854d0, hat: 0xf1c40f },
-      { name: 'Hồng Trần Ma Tu (Chu Sa Hắc Bào)', clothes: 0xeb3b5a, hat: 0x2d3436 },
-      { name: 'Bạch Hạc Chân Nhân (Bạch Ngọc)', clothes: 0xf5f6fa, hat: 0x00d2d3 },
+      { id: 'dao_gia', name: 'Hoàng Bào Đạo Sĩ (Thái Thanh Đạo Gia)', sectName: 'Thái Thanh Đạo Gia', clothes: 0xf6c344, hat: 0x2d3436, icon: '🐉' },
+      { id: 'thanh_van', name: 'Thanh Vân Tiên Bào (Thanh Vân Tiên Tông)', sectName: 'Thanh Vân Tiên Tông', clothes: 0x54a0ff, hat: 0x1dd1a1, icon: '❄️' },
+      { id: 'kiem_tong', name: 'Tử Tiêu Kiếm Tông (Vạn Kiếm Tông)', sectName: 'Tử Tiêu Kiếm Tông', clothes: 0x8854d0, hat: 0xf1c40f, icon: '⚔️' },
+      { id: 'ma_tu', name: 'Hồng Trần Ma Tu (Hồng Trần Ma Tông)', sectName: 'Hồng Trần Ma Tu', clothes: 0xeb3b5a, hat: 0x2d3436, icon: '🩸' },
+      { id: 'bach_hac', name: 'Bạch Hạc Chân Nhân (Bạch Hạc Tiên Tông)', sectName: 'Bạch Hạc Chân Nhân', clothes: 0xf5f6fa, hat: 0x00d2d3, icon: '🪶' },
     ];
 
     // Chỉ số Khí Huyết & Multiplayer PvP (2000 Máu)
@@ -707,20 +708,22 @@ export class Character {
     this.isCasting = true;
     this.castSkill = skillNum;
     this.castTime = 0;
-    const durations = { 1: 0.5, 2: 0.32, 3: 0.6, 4: 0.75, 5: 1.35, 6: 1.0 };
+    const durations = { 1: 0.5, 2: 0.45, 3: 1.1, 4: 0.75, 5: 1.35, 6: 1.0 };
     this.castDuration = durations[skillNum] || 0.6;
     this.drawSword();
 
-    const colors = {
-      1: 0x1dd1a1, // Chân Long Bảo Thuật - ngọc bích
-      2: 0x00d2d3, // Thuấn Bộ Trảm - thanh lam
-      3: 0x7bed9f, // Kiếm Trận Hộ Thể - lục ngọc
-      4: 0x48dbfb, // Thiên Kiếm Lạc - thiên thanh
-      5: 0xffd700, // Kim (Vạn Kiếm Quy Tông)
-      6: 0xa29bfe, // Lôi tím (Đại Canh Kiếm Trận)
-    };
+    // Màu sắc hào quang ma pháp theo từng Môn Phái và Chiêu thức
+    const sectColors = [
+      { 1: 0x1dd1a1, 2: 0xf1c40f, 3: 0xa29bfe }, // Đạo Gia (Chân Long, Bát Quái, Đại Canh)
+      { 1: 0x00d2d3, 2: 0x7ed6df, 3: 0x54a0ff }, // Thanh Vân (Huyền Băng, Phong Trảm, Băng Vũ)
+      { 1: 0xa29bfe, 2: 0x7bed9f, 3: 0xffd700 }, // Tử Tiêu (Thuấn Bộ, Hộ Thể, Vạn Kiếm)
+      { 1: 0xff4757, 2: 0x8854d0, 3: 0xeb3b5a }, // Ma Tu (Huyết Ma, Hắc Động, Ma Bạo)
+      { 1: 0xffd32a, 2: 0x2ed573, 3: 0xe67e22 }, // Bạch Hạc (Thiên Lôi, Bạch Hạc, Hám Địa)
+    ];
 
-    const color = colors[skillNum] || 0xffffff;
+    const currentSectColors = sectColors[this.outfitIndex % sectColors.length] || sectColors[0];
+    const color = currentSectColors[skillNum] || 0xffd700;
+
     if (this.castAuraMat) {
       this.castAuraMat.color.setHex(color);
       this.castAuraMat.opacity = 0.95;
@@ -731,26 +734,22 @@ export class Character {
     // Kiếm quang theo màu kỹ năng
     this.flashBlade(color, 1.0);
 
-    if (skillNum === 5) {
-      // Vạn Kiếm: Bé gấu ngự không phi hành, lơ lửng ngự kiếm!
+    if (skillNum === 3 || skillNum === 5) {
+      // Chiêu Ultimate: Bé gấu ngự không phi hành, lơ lửng ngự kiếm!
       this.jumpVelocity = 5.5;
       this.isGrounded = false;
-      this.squashFactor = 1.25;
-      sound.playSwordSummon();
-    } else if (skillNum === 4) {
-      // Thiên Kiếm Lạc: nhún người giương kiếm chỉ trời
       this.squashFactor = 1.3;
       sound.playSwordSummon();
     } else if (skillNum === 2) {
-      this.squashFactor = 0.8;
-    } else if (skillNum === 3) {
       this.squashFactor = 0.85;
+    } else if (skillNum === 1) {
+      this.squashFactor = 1.15;
     }
 
     if (this.particles) {
       this.particles.emitElementalParticles(
         this.position.clone().add(new THREE.Vector3(0, 0.2, 0)),
-        14,
+        16,
         [color, 0xffffff],
         [3, 6],
         0.5,
@@ -791,7 +790,11 @@ export class Character {
     this.isMoving = moveLen > 0.05;
 
     // Tốc độ di chuyển
-    const targetSpeed = this.isMoving ? (this.isSprinting ? 9.8 : 5.4) : 0;
+    let targetSpeed = this.isMoving ? (this.isSprinting ? 9.8 : 5.4) : 0;
+    if (this.speedBoostTimer > 0) {
+      this.speedBoostTimer -= delta;
+      targetSpeed *= 1.5;
+    }
     this.speed = THREE.MathUtils.lerp(this.speed, targetSpeed, delta * 11);
 
     // Tính vector vận tốc theo hướng
@@ -872,10 +875,10 @@ export class Character {
       this.castAuraGroup.scale.set(auraScale, auraScale, auraScale);
       this.castAuraMat.opacity = Math.max(0, (1.0 - castProgress * 0.7) * 0.9);
 
-      // Từng dáng thi triển đặc trưng cho các kiếm chiêu:
+      // Từng dáng thi triển đặc trưng cho các kiếm chiêu tông môn:
       this.rightArm.rotation.y = 0;
       if (this.castSkill === 1) {
-        // [1] Chân Long Bảo Thuật: vung kiếm qua đầu rồi phóng thẳng về phía trước
+        // [1] Chiêu 1: Vung kiếm phóng uy áp thẳng về phía trước
         this.sword.rotation.x = Math.PI - 0.25;
         this.rightArm.rotation.z = 0;
         if (castProgress < 0.35) {
@@ -888,19 +891,7 @@ export class Character {
         }
         this.leftArm.rotation.x = -0.9;
       } else if (this.castSkill === 2) {
-        // [2] Thuấn Bộ Trảm: rạp người lao tới, kiếm kéo ngang ra sau
-        this.body.rotation.x = 0.5;
-        this.head.rotation.x = -0.2;
-        this.rightArm.rotation.x = 0.9;
-        this.rightArm.rotation.z = 0.6;
-        this.sword.rotation.x = Math.PI - 0.25;
-        this.leftArm.rotation.x = 0.6;
-        this.leftLeg.rotation.x = 0.7;
-        this.rightLeg.rotation.x = -0.7;
-        this.ears[0].rotation.z = -0.35;
-        this.ears[1].rotation.z = 0.35;
-      } else if (this.castSkill === 3) {
-        // [3] Kiếm Trận Hộ Thể: dựng kiếm trước ngực, tay trái kết kiếm chỉ
+        // [2] Chiêu 2: Dựng kiếm kết ấn trước ngực, chân đứng thế pháp trận
         this.body.rotation.x = -0.05;
         this.rightArm.rotation.x = -1.2;
         this.rightArm.rotation.z = -0.35;
@@ -908,56 +899,17 @@ export class Character {
         this.leftArm.rotation.x = -1.3;
         this.leftArm.rotation.z = 0.45;
         this.head.rotation.y = Math.sin(castProgress * 10) * 0.12;
-      } else if (this.castSkill === 4) {
-        // [4] Thiên Kiếm Lạc: giương thẳng kiếm chỉ trời, rồi chém xuống
-        if (castProgress < 0.6) {
-          this.body.rotation.x = -0.25;
-          this.head.rotation.x = -0.5;
-          this.rightArm.rotation.x = -3.0;
-          this.rightArm.rotation.z = 0.1;
-          this.sword.rotation.x = Math.PI - 0.1;
-          this.leftArm.rotation.x = 0.3;
-        } else {
-          this.body.rotation.x = 0.35;
-          this.head.rotation.x = 0.2;
-          this.rightArm.rotation.x = -1.0;
-          this.rightArm.rotation.z = 0;
-          this.leftArm.rotation.x = 0.5;
-        }
-      } else if (this.castSkill === 6) {
-        // [6] Đại Canh Kiếm Trận: giương kiếm chỉ trời, tay trái kết ấn, lôi quang bùng quanh người
-        this.body.rotation.x = -0.2;
-        this.head.rotation.x = -0.4;
-        this.rightArm.rotation.x = -3.0;
-        this.rightArm.rotation.z = 0.15;
-        this.sword.rotation.x = Math.PI - 0.1;
-        this.leftArm.rotation.x = -1.4;
-        this.leftArm.rotation.z = 0.5;
-        this.body.position.y = 0.2 + Math.sin(this.castTime * 30) * 0.03;
-        if (this.particles && Math.random() < 0.6) {
-          this.particles.emitElementalParticles(
-            this.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.4, 0.5 + Math.random() * 2.0, (Math.random() - 0.5) * 1.4)),
-            2,
-            [0xa29bfe, 0xffffff, 0x74b9ff],
-            [1, 4],
-            0.3,
-            0,
-            0.4
-          );
-        }
-      } else if (this.castSkill === 5) {
-        // [5] Vạn Kiếm Quy Tông: Ngự kiếm phi tiên, hai tay kết kiếm chỉ giương lên rồi trảm xuống!
+      } else if (this.castSkill === 3) {
+        // [3] Trấn Tông Tuyệt Kỹ: Ngự kiếm phi tiên, hai tay kết kiếm chỉ giương cao rồi trảm xuống diệt thế!
         this.body.position.y = 0.65 + Math.sin(this.castTime * 10) * 0.14;
         if (castProgress < 0.45) {
-          // Giai đoạn 1: Hai tay kết kiếm ấn giương cao lên trời, chuẩn bị vạn kiếm
           this.body.rotation.x = -0.28;
-          this.rightArm.rotation.x = -2.4;
+          this.rightArm.rotation.x = -2.6;
           this.rightArm.rotation.z = 0.35;
-          this.leftArm.rotation.x = -2.4;
+          this.leftArm.rotation.x = -2.6;
           this.leftArm.rotation.z = -0.35;
           this.head.rotation.x = -0.3;
         } else {
-          // Giai đoạn 2: Hai tay trảm thẳng về phía trước chỉ huy vạn kiếm phóng tới mục tiêu
           this.body.rotation.x = 0.28;
           this.rightArm.rotation.x = -1.62;
           this.rightArm.rotation.z = 0;
@@ -970,7 +922,7 @@ export class Character {
           this.particles.emitElementalParticles(
             this.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.6, 1.2, (Math.random() - 0.5) * 0.6)),
             2,
-            [0xffd700, 0xffffff, 0xffa502],
+            [0xffd700, 0xffffff, 0xa29bfe],
             [1, 3],
             0.35,
             0,
