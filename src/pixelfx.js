@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { sound } from './audio.js';
 import { getTerrainHeight } from './world.js';
 import { createSword } from './sword.js';
+import { createDragon, DRAGON_LENGTH } from './dragon.js';
 
 // --- PIXEL ART PROCEDURAL TEXTURE GENERATOR (Theo cảm hứng từ patch-gg/pixelfx) ---
 // Vẽ các frame hiệu ứng pixel art trực tiếp lên canvas 2D nhỏ (nearest-neighbor)
@@ -149,7 +150,7 @@ export class PixelFXManager {
 
     // Thời gian hồi chiêu của 5 kiếm chiêu (giây)
     this.cooldowns = {
-      1: { current: 0, max: 4.0, name: 'Phi Kiếm Thuật', icon: '🗡️' },
+      1: { current: 0, max: 6.0, name: 'Phi Kiếm Thuật', icon: '🗡️' },
       2: { current: 0, max: 5.0, name: 'Thuấn Bộ Trảm', icon: '💨' },
       3: { current: 0, max: 10.0, name: 'Kiếm Trận Hộ Thể', icon: '🌀' },
       4: { current: 0, max: 7.0, name: 'Thiên Kiếm Lạc', icon: '🌧️' },
@@ -266,76 +267,134 @@ export class PixelFXManager {
     return dir.lengthSq() > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 0, -1);
   }
 
-  // --- KIẾM CHIÊU 1: PHI KIẾM THUẬT ---
-  // Phóng tiên kiếm bay thẳng xuyên qua quái, hết tầm thì quay về tay và xuyên thêm lần nữa
+  // --- KIẾM CHIÊU 1: PHI KIẾM THUẬT · SONG LONG HỘ KIẾM ---
+  // Phóng tiên kiếm bay thẳng 50m, hai thần long xoắn quanh thân kiếm như dây xoắn kép.
+  // Kiếm và rồng tông trúng quái nào là gây sát thương; hết tầm thì kiếm phát nổ, kiếm hiện lại trên tay.
   castFlyingSword(targetPos, character, monsters) {
+    const RANGE = 50;
+    const SPEED = 30;
+    const SWORD_DAMAGE = 50;
+    const DRAGON_DAMAGE = 30;
+    const BLAST_RADIUS = 8;
+    const BLAST_DAMAGE = 80;
+    const HELIX_RADIUS = 2.2;
+    const DRAGON_SCALE = 1.1;
+
     const dir = PixelFXManager.flatDirection(character.position, targetPos);
+    const right = new THREE.Vector3(dir.z, 0, -dir.x);
+    const up = new THREE.Vector3(0, 1, 0);
+
     const sword = createSword(1.6);
     sword.visible = false;
     this.scene.add(sword);
 
-    const up = new THREE.Vector3(0, 1, 0);
+    // Hai rồng lệch pha nửa vòng xoắn
+    const dragons = [0, Math.PI].map((phase) => {
+      const d = createDragon(DRAGON_SCALE);
+      d.object.visible = false;
+      this.scene.add(d.object);
+      return { ...d, phase, hitSet: new Set() };
+    });
+
+    const start = new THREE.Vector3();
     const pos = new THREE.Vector3();
+    const swordHits = new Set();
     let elapsed = 0;
-    let phase = 'windup'; // windup → out → back
-    let hitSet = new Set();
+    let flight = 0; // quãng đường kiếm đã bay
+    let launched = false;
+
+    // Vị trí đầu rồng trên vòng xoắn quanh đường kiếm, ở quãng bay dist và thời điểm t
+    const helixPoint = (dist, t, phase) => {
+      const a = t * 5 + phase;
+      return start.clone()
+        .addScaledVector(dir, dist - 1.2)
+        .addScaledVector(right, Math.cos(a) * HELIX_RADIUS)
+        .addScaledVector(up, Math.sin(a) * HELIX_RADIUS * 0.6);
+    };
+
+    const hitMonsters = (point, radius, hitSet, damage, text, color) => {
+      for (const monster of monsters) {
+        if (monster.isDead || hitSet.has(monster)) continue;
+        if (monster.checkCollision(point, radius)) {
+          hitSet.add(monster);
+          this.damageMonster(monster, damage, text, color, point);
+          sound.playHit();
+          if (this.controller) this.controller.addTrauma(0.06);
+        }
+      }
+    };
+
+    const cleanup = () => {
+      this.scene.remove(sword);
+      for (const d of dragons) this.scene.remove(d.object);
+    };
 
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
 
-        if (phase === 'windup') {
+        // Vung kiếm lấy đà rồi mới phóng
+        if (!launched) {
           if (elapsed < 0.18) return true;
-          phase = 'out';
+          launched = true;
           elapsed = 0;
           character.setSwordThrown(true);
-          pos.copy(character.position).add(new THREE.Vector3(0, 1.2, 0)).addScaledVector(dir, 0.8);
+          start.copy(character.position).add(new THREE.Vector3(0, 1.2, 0)).addScaledVector(dir, 0.8);
           sword.visible = true;
-          sound.playSwordSlash();
+          for (const d of dragons) d.object.visible = true;
+          sound.playSwordSummon();
+          if (this.particles) this.particles.emitElementalParticles(start, 20, [0xe84118, 0xf1c40f, 0xffffff], [2, 5], 0.4, 0, 0.6);
         }
 
-        let moveDir;
-        let damage;
-        if (phase === 'out') {
-          moveDir = dir;
-          damage = 60;
-          pos.addScaledVector(dir, 36 * delta);
-          if (elapsed >= 0.6) {
-            phase = 'back';
-            hitSet = new Set();
-          }
-        } else {
-          const home = character.position.clone().add(new THREE.Vector3(0, 1.2, 0));
-          moveDir = home.clone().sub(pos);
-          const dist = moveDir.length();
-          moveDir.normalize();
-          damage = 40;
-          if (dist < 1.2 || elapsed > 3.0) {
-            this.scene.remove(sword);
-            character.setSwordThrown(false);
-            if (this.particles) this.particles.emitElementalParticles(home, 10, [0x1dd1a1, 0xffffff], [1, 3], 0.3, 0, 0.4);
-            return false;
-          }
-          pos.addScaledVector(moveDir, Math.min(dist, 40 * delta));
-        }
+        flight = Math.min(RANGE, flight + SPEED * delta);
+        pos.copy(start).addScaledVector(dir, flight);
+        // Bay thẳng nhưng không cắm vào dốc
+        pos.y = Math.max(pos.y, getTerrainHeight(pos.x, pos.z) + 0.8);
 
-        // Mũi kiếm hướng theo đường bay, rung nhẹ như kiếm có linh tính
         sword.position.copy(pos);
-        sword.quaternion.setFromUnitVectors(up, moveDir);
+        sword.quaternion.setFromUnitVectors(up, dir);
         sword.rotateY(Math.sin(elapsed * 30) * 0.3);
+        hitMonsters(pos, 1.2, swordHits, SWORD_DAMAGE, `🗡️ -${SWORD_DAMAGE}`, '#1dd1a1');
+
+        // Rồng hiện dần, xoắn quanh kiếm, đầu luôn hướng theo đường bay của chính nó
+        const grow = Math.min(1, elapsed / 0.3);
+        for (const d of dragons) {
+          const head = helixPoint(flight, elapsed, d.phase);
+          head.y = Math.max(head.y, getTerrainHeight(head.x, head.z) + 0.6);
+          d.object.position.copy(head);
+          d.object.lookAt(helixPoint(flight + SPEED * 0.05, elapsed + 0.05, d.phase));
+          d.object.scale.setScalar(DRAGON_SCALE * grow);
+          d.update(elapsed + d.phase);
+          d.object.updateMatrixWorld();
+
+          // Va chạm ở đầu và giữa thân rồng
+          const mid = d.object.localToWorld(new THREE.Vector3(0, 0, -DRAGON_LENGTH * 0.5));
+          hitMonsters(head, 1.4, d.hitSet, DRAGON_DAMAGE, `🐉 -${DRAGON_DAMAGE}`, '#e84118');
+          hitMonsters(mid, 1.4, d.hitSet, DRAGON_DAMAGE, `🐉 -${DRAGON_DAMAGE}`, '#e84118');
+
+          if (this.particles && Math.random() < 0.5) {
+            this.particles.emitElementalParticles(mid, 1, [0xe84118, 0xf1c40f, 0xffffff], [0.3, 1.0], 0.3, 0, 0.4);
+          }
+        }
 
         if (this.particles && Math.random() < 0.7) {
           this.particles.emitElementalParticles(pos, 1, [0x1dd1a1, 0x7bed9f, 0xffffff], [0.2, 0.8], 0.3, 0, 0.4);
         }
 
-        for (const monster of monsters) {
-          if (monster.isDead || hitSet.has(monster)) continue;
-          if (monster.checkCollision(pos, 1.2)) {
-            hitSet.add(monster);
-            this.damageMonster(monster, damage, `🗡️ -${damage}`, '#1dd1a1', pos);
-            sound.playHit();
-            if (this.controller) this.controller.addTrauma(0.05);
+        // Hết 50m: kiếm và song long nổ tung
+        if (flight >= RANGE) {
+          cleanup();
+          sound.playGiantSwordImpact();
+          if (this.onScreenFlash) this.onScreenFlash('sword');
+          if (this.controller) this.controller.addTrauma(0.5);
+          if (this.particles) {
+            this.particles.emitShockwave(pos, 0xf1c40f, BLAST_RADIUS * 2.2, 0.6);
+            this.particles.emitShockwave(pos, 0xe84118, BLAST_RADIUS * 1.4, 0.45);
+            this.particles.emitElementalParticles(pos, 45, [0xe84118, 0xf1c40f, 0x1dd1a1, 0xffffff], [6, 14], 0.9, 4, 1.2);
           }
+          this.dealDamageAOE(pos, BLAST_RADIUS, BLAST_DAMAGE, `🐉 -${BLAST_DAMAGE} LONG BẠO`, '#f1c40f', monsters, 'knockback', 'fire');
+          character.setSwordThrown(false);
+          return false;
         }
         return true;
       }

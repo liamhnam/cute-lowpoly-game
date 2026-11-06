@@ -9,6 +9,7 @@ import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
 import { MobileControlsManager } from './mobileControls.js';
 import { loadSwordModel } from './sword.js';
+import { loadDragonModel } from './dragon.js';
 
 class Game {
   constructor() {
@@ -108,6 +109,7 @@ class Game {
     // 3. Nhân vật Bé Gấu Tu Tiên mang hồ lô và pháp bảo
     this.character = new Character(this.scene, this.particles);
     loadSwordModel(); // Nạp tiên kiếm GLB nếu có, kiếm trên tay & kiếm chiêu tự đổi theo
+    loadDragonModel(); // Nạp thần long GLB nếu có cho chiêu Phi Kiếm
 
     // 4. Hệ thống chém kiếm & kiếm khí có vệt sáng & tương tác vật thể
     this.projectiles = new ProjectileSystem(this.scene, this.particles, this.world);
@@ -172,7 +174,7 @@ class Game {
         }
 
         // Kiểm tra tiêu hao Linh Lực (Mana)
-        const manaCost = { 1: 15, 2: 20, 3: 25, 4: 25, 5: 35 };
+        const manaCost = { 1: 20, 2: 20, 3: 25, 4: 25, 5: 35 };
         const cost = manaCost[skillNum] || 15;
 
         if (this.playerMp < cost) {
