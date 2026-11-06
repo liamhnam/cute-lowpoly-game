@@ -203,6 +203,7 @@ export class ThirdPersonController {
   }
 
   triggerShoot() {
+    if (this.character.isDead) return;
     this.character.triggerShootAnimation();
     this.addTrauma(0.08); // Rung nhẹ tạo cảm giác đầm tay
 
@@ -218,6 +219,7 @@ export class ThirdPersonController {
 
   // KÍCH HOẠT KỸ NĂNG VÀ TÍNH ĐIỂM RƠI MỤC TIÊU PHÍA TRƯỚC
   triggerSkill(skillNum) {
+    if (this.character.isDead) return;
     const forward = new THREE.Vector3(
       -Math.sin(this.yaw),
       0,
@@ -303,15 +305,17 @@ export class ThirdPersonController {
 
   update(delta) {
     const moveInput = new THREE.Vector2(0, 0);
-    if (this.keys.forward) moveInput.y += 1;
-    if (this.keys.backward) moveInput.y -= 1;
-    if (this.keys.left) moveInput.x -= 1;
-    if (this.keys.right) moveInput.x += 1;
+    if (!this.character.isDead) {
+      if (this.keys.forward) moveInput.y += 1;
+      if (this.keys.backward) moveInput.y -= 1;
+      if (this.keys.left) moveInput.x -= 1;
+      if (this.keys.right) moveInput.x += 1;
 
-    // Tích hợp vector di chuyển từ Cần gạt ảo Mobile (Analog Joystick)
-    if (this.joystickInput.lengthSq() > 0) {
-      moveInput.x += this.joystickInput.x;
-      moveInput.y += this.joystickInput.y;
+      // Tích hợp vector di chuyển từ Cần gạt ảo Mobile (Analog Joystick)
+      if (this.joystickInput.lengthSq() > 0) {
+        moveInput.x += this.joystickInput.x;
+        moveInput.y += this.joystickInput.y;
+      }
     }
 
     let worldMoveVector = new THREE.Vector3(0, 0, 0);

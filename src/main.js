@@ -8,6 +8,8 @@ import { Monster } from './monsters.js';
 import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
 import { MobileControlsManager } from './mobileControls.js';
+import { NetworkManager } from './network.js';
+import { RemotePlayer } from './remotePlayer.js';
 
 class Game {
   constructor() {
@@ -16,16 +18,26 @@ class Game {
     this.monstersDefeated = 0;
     this.prevCooldowns = {};
 
-    // Khí Huyết, Linh Lực & Cảnh Giới Tu Vi
-    this.playerHp = 100;
-    this.playerMaxHp = 100;
+    // Khí Huyết, Linh Lực & Cảnh Giới Tu Vi (2000 Máu)
+    this.playerHp = 2000;
+    this.playerMaxHp = 2000;
     this.playerMp = 100;
     this.playerMaxMp = 100;
     this.currentRealm = '🌟 Luyện Khí Tầng 1';
 
+    // Multiplayer PvP
+    this.network = new NetworkManager();
+    this.remotePlayers = new Map(); // id -> RemotePlayer
+    this.playerStats = new Map(); // id -> { id, name, kills, deaths, hp, maxHp }
+    this.networkSendTimer = 0;
+    this.isOnline = false;
+    this.respawnCountdownInterval = null;
+    this.selectedOutfitIndex = 0;
+
     this.initScene();
     this.initLights();
     this.initGameEntities();
+    this.initMultiplayerHandlers();
     this.initUI();
 
     window.addEventListener('resize', () => this.onResize());
@@ -143,6 +155,8 @@ class Game {
 
     // 6. Hệ thống Kỹ Năng Đạo Pháp PixelFX
     this.pixelFX = new PixelFXManager(this.scene, this.world, this.particles);
+    this.pixelFX.remotePlayers = [];
+    this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source) => this.handleHitPlayer(targetId, dmg, hitPos, source);
 
     // 7. Bộ điều khiển góc nhìn thứ 3 tích hợp Rung lắc Camera (Trauma Shake)
     this.controller = new ThirdPersonController(
@@ -151,6 +165,9 @@ class Game {
       this.canvas,
       (muzzlePos, shootDir) => {
         this.projectiles.spawnBullet(muzzlePos, shootDir);
+        if (this.network.isConnected) {
+          this.network.sendShoot(muzzlePos, shootDir);
+        }
       },
       (skillNum, targetPos) => {
         // Kiểm tra hồi chiêu
@@ -172,6 +189,10 @@ class Game {
         const success = this.pixelFX.castSkill(skillNum, targetPos, this.character, this.monsters);
         if (success) {
           this.playerMp -= cost;
+
+          if (this.network.isConnected) {
+            this.network.sendSkill(skillNum, targetPos);
+          }
 
           const names = {
             1: 'Xích Viêm Thiên Hỏa ☄️',
@@ -222,6 +243,284 @@ class Game {
       this.triggerScreenFlash('sword');
       this.showNotification(`🎉 CHÚC MỪNG ĐẠO HỮU ĐỘT PHÁ CẢNH GIỚI: [${newRealm}]!`);
     }
+  }
+
+  handleHitPlayer(targetId, dmg, hitPos, source = 'blaster') {
+    if (this.network.isConnected) {
+      this.network.sendHit(targetId, dmg, hitPos, source);
+    }
+  }
+
+  initMultiplayerHandlers() {
+    this.network.on('connected', () => {
+      this.isOnline = true;
+      if (this.onlineBadge) {
+        this.onlineBadge.textContent = '🟢 Online: Đã kết nối';
+        this.onlineBadge.style.color = '#2ed573';
+      }
+      this.showNotification('🌐 Đã kết nối thành công tới Đấu Trường Online!');
+    });
+
+    this.network.on('disconnected', () => {
+      this.isOnline = false;
+      if (this.onlineBadge) {
+        this.onlineBadge.textContent = '🔴 Offline: Mất kết nối';
+        this.onlineBadge.style.color = '#ff4757';
+      }
+      this.showNotification('⚠️ Đã ngắt kết nối với máy chủ online.');
+    });
+
+    this.network.on('init', (data) => {
+      if (data.spawn) {
+        this.character.position.set(data.spawn.x, data.spawn.y || 0, data.spawn.z);
+        this.character.group.position.copy(this.character.position);
+      }
+      this.character.hp = data.hp || 2000;
+      this.character.maxHp = data.maxHp || 2000;
+      this.playerHp = this.character.hp;
+      this.playerMaxHp = this.character.maxHp;
+      this.character.updateBillboard();
+
+      this.playerStats.set(this.network.selfId, {
+        id: this.network.selfId,
+        name: this.character.name,
+        kills: 0,
+        deaths: 0,
+        hp: this.playerHp,
+        maxHp: this.playerMaxHp,
+      });
+
+      if (data.players && Array.isArray(data.players)) {
+        for (const p of data.players) {
+          this.addRemotePlayer(p);
+        }
+      }
+
+      this.updateOnlineBadge();
+      this.updateLeaderboard();
+    });
+
+    this.network.on('player_joined', (p) => {
+      this.addRemotePlayer(p);
+      this.showNotification(`🌟 Đạo hữu [${p.name}] giáng lâm Trường An!`);
+      this.updateOnlineBadge();
+      this.updateLeaderboard();
+    });
+
+    this.network.on('player_state', (state) => {
+      const rp = this.remotePlayers.get(state.id);
+      if (rp) {
+        rp.updateState(state);
+      }
+    });
+
+    this.network.on('player_shoot', (msg) => {
+      const rp = this.remotePlayers.get(msg.id);
+      if (rp) {
+        rp.triggerShoot();
+      }
+      const origin = new THREE.Vector3(msg.origin.x, msg.origin.y, msg.origin.z);
+      const dir = new THREE.Vector3(msg.direction.x, msg.direction.y, msg.direction.z);
+      this.projectiles.spawnBullet(origin, dir);
+      sound.playShoot();
+    });
+
+    this.network.on('player_skill', (msg) => {
+      const rp = this.remotePlayers.get(msg.id);
+      const targetPos = new THREE.Vector3(msg.targetPos.x, msg.targetPos.y, msg.targetPos.z);
+      if (rp) {
+        this.pixelFX.castSkill(msg.skillIndex, targetPos, rp, this.monsters);
+      }
+    });
+
+    this.network.on('player_damaged', (msg) => {
+      if (msg.targetId === this.network.selfId) {
+        const hitPos = msg.hitPos ? new THREE.Vector3(msg.hitPos.x, msg.hitPos.y, msg.hitPos.z) : null;
+        this.character.takeDamage(msg.damage, msg.attackerId, hitPos);
+        this.playerHp = msg.hp;
+        this.controller.addTrauma(0.28);
+        this.triggerScreenFlash('fire');
+
+        const selfStat = this.playerStats.get(this.network.selfId);
+        if (selfStat) selfStat.hp = msg.hp;
+      } else {
+        const rp = this.remotePlayers.get(msg.targetId);
+        if (rp) {
+          const hitPos = msg.hitPos ? new THREE.Vector3(msg.hitPos.x, msg.hitPos.y, msg.hitPos.z) : null;
+          rp.takeDamage(msg.damage, hitPos);
+          const stat = this.playerStats.get(msg.targetId);
+          if (stat) stat.hp = msg.hp;
+        }
+      }
+      this.updateLeaderboard();
+    });
+
+    this.network.on('player_killed', (msg) => {
+      const isKillerSelf = msg.killerId === this.network.selfId;
+      const isVictimSelf = msg.victimId === this.network.selfId;
+
+      this.addKillFeed(msg.killerName, msg.victimName, isKillerSelf, isVictimSelf);
+
+      const killerStat = this.playerStats.get(msg.killerId);
+      if (killerStat) killerStat.kills = msg.killerKills;
+      const victimStat = this.playerStats.get(msg.victimId);
+      if (victimStat) {
+        victimStat.deaths = msg.victimDeaths;
+        victimStat.hp = 0;
+      }
+
+      if (isVictimSelf) {
+        this.character.isDead = true;
+        this.character.hp = 0;
+        this.playerHp = 0;
+        this.showRespawnScreen(msg.killerName, 4.5);
+      } else {
+        const rp = this.remotePlayers.get(msg.victimId);
+        if (rp) {
+          rp.setDead(true);
+        }
+      }
+
+      if (isKillerSelf) {
+        this.showNotification(`⚔️ Bạn đã trảm sát [${msg.victimName}]! (+1 Chiến Công)`);
+      }
+
+      this.updateLeaderboard();
+    });
+
+    this.network.on('player_respawn', (msg) => {
+      if (msg.id === this.network.selfId) {
+        this.character.respawn(msg.spawn);
+        this.playerHp = msg.hp;
+        this.hideRespawnScreen();
+        this.showNotification('✨ Đã trùng sinh tại vị trí an toàn!');
+        const selfStat = this.playerStats.get(this.network.selfId);
+        if (selfStat) selfStat.hp = msg.hp;
+      } else {
+        const rp = this.remotePlayers.get(msg.id);
+        if (rp) {
+          rp.respawn(msg.spawn, msg.hp, msg.maxHp);
+          const stat = this.playerStats.get(msg.id);
+          if (stat) stat.hp = msg.hp;
+        }
+      }
+      this.updateLeaderboard();
+    });
+
+    this.network.on('player_left', (msg) => {
+      const rp = this.remotePlayers.get(msg.id);
+      if (rp) {
+        rp.destroy();
+        this.remotePlayers.delete(msg.id);
+        this.playerStats.delete(msg.id);
+        this.showNotification(`Đạo hữu [${msg.name}] đã rời Cổ Đô.`);
+        this.updateOnlineBadge();
+        this.updateLeaderboard();
+      }
+    });
+
+    this.network.on('pong', ({ ping }) => {
+      if (this.pingBadge) {
+        this.pingBadge.textContent = `📶 ${ping}ms`;
+        this.pingBadge.style.color = ping < 80 ? '#2ed573' : (ping < 180 ? '#ffa502' : '#ff4757');
+      }
+    });
+  }
+
+  addRemotePlayer(data) {
+    if (this.remotePlayers.has(data.id)) return;
+    const rp = new RemotePlayer(this.scene, this.particles, data);
+    this.remotePlayers.set(data.id, rp);
+    this.playerStats.set(data.id, {
+      id: data.id,
+      name: data.name,
+      kills: data.kills || 0,
+      deaths: data.deaths || 0,
+      hp: data.hp !== undefined ? data.hp : 2000,
+      maxHp: data.maxHp || 2000,
+    });
+  }
+
+  updateOnlineBadge() {
+    if (this.onlineBadge) {
+      const count = (this.remotePlayers ? this.remotePlayers.size : 0) + 1;
+      this.onlineBadge.textContent = `🌐 Online: ${count} người`;
+      this.onlineBadge.style.color = '#2ed573';
+    }
+  }
+
+  addKillFeed(killer, victim, isKillerSelf, isVictimSelf) {
+    const feed = document.getElementById('kill-feed');
+    if (!feed) return;
+    const item = document.createElement('div');
+    item.className = 'kill-feed-item';
+    if (isKillerSelf) item.classList.add('self-kill');
+    if (isVictimSelf) item.classList.add('self-victim');
+    item.innerHTML = `<strong>${killer}</strong> ⚔️ <em>${victim}</em>`;
+    feed.appendChild(item);
+
+    setTimeout(() => {
+      if (item.parentNode) item.parentNode.removeChild(item);
+    }, 5000);
+  }
+
+  showRespawnScreen(killerName, durationSeconds) {
+    const screen = document.getElementById('respawn-screen');
+    const killerEl = document.getElementById('respawn-killer-text');
+    const timerEl = document.getElementById('respawn-timer-text');
+    if (!screen) return;
+
+    if (killerEl) {
+      killerEl.textContent = `Bị hạ gục bởi: ${killerName}`;
+    }
+    screen.classList.add('show');
+
+    let remaining = durationSeconds;
+    if (timerEl) timerEl.textContent = `${remaining.toFixed(1)}s`;
+
+    clearInterval(this.respawnCountdownInterval);
+    this.respawnCountdownInterval = setInterval(() => {
+      remaining -= 0.1;
+      if (timerEl) {
+        timerEl.textContent = `${Math.max(0, remaining).toFixed(1)}s`;
+      }
+      if (remaining <= 0) {
+        clearInterval(this.respawnCountdownInterval);
+      }
+    }, 100);
+  }
+
+  hideRespawnScreen() {
+    clearInterval(this.respawnCountdownInterval);
+    const screen = document.getElementById('respawn-screen');
+    if (screen) screen.classList.remove('show');
+  }
+
+  updateLeaderboard() {
+    const tbody = document.getElementById('leaderboard-body');
+    if (!tbody) return;
+
+    const list = Array.from(this.playerStats.values()).sort((a, b) => {
+      if (b.kills !== a.kills) return b.kills - a.kills;
+      return a.deaths - b.deaths;
+    });
+
+    let html = '';
+    list.forEach((p, index) => {
+      const isSelf = p.id === (this.network.selfId || 'self');
+      const rowClass = isSelf ? 'self-row' : '';
+      const medal = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `#${index + 1}`));
+      html += `
+        <tr class="${rowClass}">
+          <td>${medal}</td>
+          <td>${p.name} ${isSelf ? '(Bạn)' : ''}</td>
+          <td style="color: #2ed573; font-weight: bold;">${p.kills}</td>
+          <td style="color: #ff4757;">${p.deaths}</td>
+          <td style="color: #00d2d3;">${Math.round(p.hp)}/${p.maxHp}</td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
   }
 
   triggerScreenFlash(type) {
@@ -382,6 +681,8 @@ class Game {
     this.stateBadge = document.getElementById('hud-state');
     this.killBadge = document.getElementById('hud-kills');
     this.realmBadge = document.getElementById('hud-realm');
+    this.onlineBadge = document.getElementById('hud-online');
+    this.pingBadge = document.getElementById('hud-ping');
     this.fpsBadge = document.getElementById('hud-fps');
     this.fps = 60;
 
@@ -389,6 +690,119 @@ class Game {
     this.textHp = document.getElementById('text-hp');
     this.barMp = document.getElementById('bar-mp');
     this.textMp = document.getElementById('text-mp');
+
+    // --- MODAL ĐĂNG NHẬP MULTIPLAYER ---
+    const loginModal = document.getElementById('login-modal');
+    const nameInput = document.getElementById('input-player-name');
+    const serverInput = document.getElementById('input-server-url');
+    const btnJoinOnline = document.getElementById('btn-join-online');
+    const btnPlayOffline = document.getElementById('btn-play-offline');
+    const outfitCards = document.querySelectorAll('.outfit-card');
+
+    const savedName = localStorage.getItem('playerName') || 'Hiệp Sĩ Bé Gấu';
+    if (nameInput) nameInput.value = savedName;
+
+    const defaultServerUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname || 'localhost'}:3000`;
+    if (serverInput) serverInput.value = defaultServerUrl;
+
+    outfitCards.forEach((card) => {
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        outfitCards.forEach((c) => c.classList.remove('active'));
+        card.classList.add('active');
+        this.selectedOutfitIndex = parseInt(card.dataset.index, 10) || 0;
+        this.character.setOutfit(this.selectedOutfitIndex);
+      });
+    });
+
+    const enterGame = async (isOnlineMode) => {
+      const name = (nameInput.value || 'Gấu Hiệp Sĩ').trim().substring(0, 18);
+      localStorage.setItem('playerName', name);
+      this.character.setName(name);
+      this.character.setOutfit(this.selectedOutfitIndex);
+
+      if (loginModal) loginModal.style.display = 'none';
+
+      if (isOnlineMode) {
+        const url = (serverInput.value || defaultServerUrl).trim();
+        if (this.onlineBadge) this.onlineBadge.textContent = '🌐 Đang kết nối...';
+        try {
+          await this.network.connect(url, { name, outfit: this.selectedOutfitIndex });
+        } catch (err) {
+          console.warn('Cannot connect to multiplayer server, running in offline mode:', err);
+          this.showNotification('⚠️ Không thể kết nối server, đang chơi chế độ Đơn!');
+          if (this.onlineBadge) {
+            this.onlineBadge.textContent = '🔴 Offline';
+            this.onlineBadge.style.color = '#ff4757';
+          }
+        }
+      } else {
+        if (this.onlineBadge) {
+          this.onlineBadge.textContent = '🗡️ Chế độ Chơi Đơn';
+          this.onlineBadge.style.color = '#70a1ff';
+        }
+      }
+
+      this.controller.requestLock();
+    };
+
+    if (btnJoinOnline) {
+      btnJoinOnline.addEventListener('click', (e) => {
+        e.stopPropagation();
+        enterGame(true);
+      });
+    }
+
+    if (btnPlayOffline) {
+      btnPlayOffline.addEventListener('click', (e) => {
+        e.stopPropagation();
+        enterGame(false);
+      });
+    }
+
+    if (nameInput) {
+      nameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          enterGame(true);
+        }
+      });
+    }
+
+    // --- LEADERBOARD TOGGLE ---
+    const leaderboardModal = document.getElementById('leaderboard-modal');
+    const btnLeaderboard = document.getElementById('btn-leaderboard');
+    const btnCloseLeaderboard = document.getElementById('btn-close-leaderboard');
+
+    const toggleLeaderboard = (show) => {
+      if (!leaderboardModal) return;
+      const willShow = show !== undefined ? show : !leaderboardModal.classList.contains('show');
+      if (willShow) {
+        this.updateLeaderboard();
+        leaderboardModal.classList.add('show');
+      } else {
+        leaderboardModal.classList.remove('show');
+      }
+    };
+
+    if (btnLeaderboard) {
+      btnLeaderboard.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleLeaderboard();
+      });
+    }
+    if (btnCloseLeaderboard) {
+      btnCloseLeaderboard.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleLeaderboard(false);
+      });
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Tab') {
+        e.preventDefault();
+        toggleLeaderboard();
+      }
+    });
   }
 
   showNotification(msg) {
@@ -429,6 +843,8 @@ class Game {
 
     // Hồi phục Linh Lực tự nhiên (8 linh lực / giây)
     this.playerMp = Math.min(this.playerMaxMp, this.playerMp + delta * 8.0);
+    this.playerHp = this.character.hp;
+    this.playerMaxHp = this.character.maxHp;
 
     // Cập nhật thanh Khí Huyết & Linh Lực trên HUD
     if (this.barHp && this.textHp) {
@@ -442,11 +858,37 @@ class Game {
       this.textMp.textContent = `${Math.round(this.playerMp)}/${this.playerMaxMp}`;
     }
 
+    // Gửi đồng bộ vị trí lên server (Network State Sync ~22 Hz)
+    if (this.network.isConnected && !this.character.isDead) {
+      this.networkSendTimer += delta;
+      if (this.networkSendTimer >= 0.045) {
+        this.networkSendTimer = 0;
+        this.network.sendState({
+          x: this.character.position.x,
+          y: this.character.position.y,
+          z: this.character.position.z,
+          rotY: this.character.rotationY,
+          isMoving: this.character.isMoving,
+          isSprinting: this.character.isSprinting,
+          isGrounded: this.character.isGrounded,
+          isCasting: this.character.isCasting,
+          castSkill: this.character.castSkill,
+        });
+      }
+    }
+
     // 1. Cập nhật nhân vật & điều khiển
     this.controller.update(delta);
 
-    // 2. Cập nhật đạn và va chạm với quái vật
-    this.projectiles.update(delta, this.monsters);
+    // Cập nhật danh sách người chơi khác (Remote Players)
+    const rpList = Array.from(this.remotePlayers.values());
+    this.pixelFX.remotePlayers = rpList;
+    for (const rp of rpList) {
+      rp.update(delta);
+    }
+
+    // 2. Cập nhật đạn và va chạm với người chơi khác + quái vật
+    this.projectiles.update(delta, this.monsters, rpList, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source));
 
     // 3. Cập nhật kỹ năng PixelFX & tàn phá địa hình
     this.pixelFX.update(delta);

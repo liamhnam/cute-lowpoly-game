@@ -313,6 +313,8 @@ export class PixelFXManager {
     };
 
     this.onCooldownUpdate = null;
+    this.remotePlayers = [];
+    this.onHitPlayer = null;
   }
 
   // VÒNG CHỈ ĐIỂM MA PHÁP DƯỚI ĐẤT (TARGETING TELEGRAPH RUNE)
@@ -1236,6 +1238,27 @@ export class PixelFXManager {
     if (this.world && this.world.interactWithArea) {
       const force = customForce !== null ? customForce : (amount >= 200 ? 55 : (amount >= 150 ? 25 : (amount >= 120 ? 19 : 14)));
       this.world.interactWithArea(epicenter, radius * 1.15, force, elementType);
+    }
+
+    // 2. Gây sát thương PvP diện rộng lên người chơi khác
+    if (this.remotePlayers && this.remotePlayers.length > 0) {
+      for (const rp of this.remotePlayers) {
+        if (!rp.isDead) {
+          const dist = rp.position.distanceTo(epicenter);
+          if (dist <= radius + 0.85) {
+            if (this.onHitPlayer) {
+              this.onHitPlayer(rp.id, amount, rp.position.clone().add(new THREE.Vector3(0, 1.2, 0)), elementType);
+            }
+            if (this.damageTexts) {
+              const hitPos = rp.position.clone().add(new THREE.Vector3(0, 1.8, 0));
+              this.damageTexts.spawn(text, hitPos, textColor);
+            }
+            if (this.particles) {
+              this.particles.emitHitSparkles(rp.position, 16);
+            }
+          }
+        }
+      }
     }
 
     if (!monsters) return;

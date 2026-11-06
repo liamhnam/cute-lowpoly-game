@@ -52,7 +52,7 @@ export class ProjectileSystem {
     }
   }
 
-  update(delta, monsters) {
+  update(delta, monsters, remotePlayers = [], onHitPlayer = null) {
     for (let i = this.projectiles.length - 1; i >= 0; i--) {
       const p = this.projectiles[i];
       p.life -= delta;
@@ -82,8 +82,26 @@ export class ProjectileSystem {
       const pos = p.mesh.position;
       let hit = false;
 
-      // 1. Kiểm tra va chạm với Quái vật
-      if (monsters && monsters.length > 0) {
+      // 1. Kiểm tra va chạm PvP với các người chơi khác (Remote Players)
+      if (remotePlayers && remotePlayers.length > 0) {
+        for (const rp of remotePlayers) {
+          if (!rp.isDead && rp.checkBulletCollision(pos, p.radius)) {
+            if (onHitPlayer) {
+              onHitPlayer(rp.id, 45, pos, 'blaster');
+            }
+            if (this.particles) {
+              this.particles.emitHitSparkles(pos, 14);
+              this.particles.emitShockwave(pos, 0x00f2fe, 2.5, 0.25);
+            }
+            sound.playHit();
+            hit = true;
+            break;
+          }
+        }
+      }
+
+      // 2. Kiểm tra va chạm với Quái vật
+      if (!hit && monsters && monsters.length > 0) {
         for (const monster of monsters) {
           if (!monster.isDead && monster.checkCollision(pos, p.radius)) {
             monster.takeDamage(25, pos);
