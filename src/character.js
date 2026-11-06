@@ -153,6 +153,9 @@ export class Character {
     this.freezeTimer = 0;
     this.slowTimer = 0;
     this.slowAmount = 0;
+    // Kháng hiệu ứng: còn > 0 thì miễn nhiễm đóng băng & làm chậm (Bát Quái Đại Canh Trận của Hoàng Bào Đạo Sĩ)
+    this.statusResistTimer = 0;
+    this.lastResistTextTime = 0;
     this.pixelFX = null;
 
     // Bảng màu trang phục Tiên Hiệp cổ phong - 5 Môn Phái
@@ -324,8 +327,24 @@ export class Character {
     this.parryTimer = duration;
   }
 
+  // Đang kháng hiệu ứng thì chặn đóng băng/làm chậm và hiện chữ báo (không quá 1 lần mỗi 0.8s)
+  resistsStatus() {
+    if (this.statusResistTimer <= 0) return false;
+    const now = performance.now();
+    if (now - this.lastResistTextTime > 800) {
+      this.lastResistTextTime = now;
+      if (this.pixelFX?.damageTexts) {
+        this.pixelFX.damageTexts.spawn('☯️ KHÁNG!', this.position.clone().add(new THREE.Vector3(0, 2.4, 0)), '#f1c40f');
+      }
+      if (this.particles) {
+        this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 8, [0xf1c40f, 0xffffff], [1, 3], 0.3, 0, 0.4);
+      }
+    }
+    return true;
+  }
+
   freeze(duration = 2.2) {
-    if (this.isDead) return;
+    if (this.isDead || this.resistsStatus()) return;
     this.freezeTimer = Math.max(this.freezeTimer, duration);
     if (this.particles) {
       this.particles.emitElementalParticles(
@@ -341,7 +360,7 @@ export class Character {
   }
 
   slow(duration = 2.5, amount = 0.45) {
-    if (this.isDead) return;
+    if (this.isDead || this.resistsStatus()) return;
     this.slowTimer = Math.max(this.slowTimer, duration);
     this.slowAmount = amount;
   }
@@ -387,6 +406,7 @@ export class Character {
 
   respawn(spawnPos) {
     this.isDead = false;
+    this.statusResistTimer = 0;
     this.hp = this.maxHp;
     this.position.set(spawnPos.x, spawnPos.y || 0, spawnPos.z);
     this.group.position.copy(this.position);
@@ -969,6 +989,18 @@ export class Character {
     }
     if (this.slowTimer > 0) {
       this.slowTimer -= delta;
+    }
+    if (this.statusResistTimer > 0) {
+      this.statusResistTimer -= delta;
+      // Đang kháng hiệu ứng thì không còn bị đóng băng/làm chậm dở dang từ trước
+      this.freezeTimer = 0;
+      this.slowTimer = 0;
+      if (this.particles && Math.random() < 0.08) {
+        this.particles.emitElementalParticles(
+          this.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 0.2 + Math.random() * 1.6, (Math.random() - 0.5) * 1.2)),
+          1, [0xf1c40f, 0xfff3b0], [0.3, 1], 0.25, 0, 0.5
+        );
+      }
     }
 
     const moveLen = inputVector.length();

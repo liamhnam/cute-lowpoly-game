@@ -325,6 +325,10 @@ class FloatingDamageText {
 // =========================================================================
 // BẢNG 5 MÔN PHÁI TIÊN HIỆP - MỖI PHÁI 3 CHIÊU THỨC ĐỘC NHẤT VỀ CƠ CHẾ
 // =========================================================================
+// Bát Quái Đại Canh Trận: tốc độ hồi chiêu 1 và 3 của người ra chiêu trong lúc trận còn hiệu lực
+// (1.6 = hồi nhanh hơn 60%, tức thời gian hồi chiêu rút ngắn còn ~62.5%)
+const BAGUA_COOLDOWN_RATE = 1.6;
+
 export const SECTS = [
   {
     id: 'dao_gia',
@@ -351,7 +355,7 @@ export const SECTS = [
         icon: '☯️',
         cd: 14.0,
         mana: 35,
-        desc: 'Trải trận Bát Quái 12m (10s): hồi +25 HP/s, giảm 30% ST nhận, địch vào trận bị chậm 50%, kèm 36 lôi kiếm Đại Canh xoáy lốc 30m'
+        desc: 'Trải trận Bát Quái 12m (10s): hồi +25 HP/s, giảm 30% ST nhận, địch vào trận bị chậm 50%, kèm 36 lôi kiếm Đại Canh xoáy lốc 30m. Trong trận: KHÁNG hiệu ứng (miễn đóng băng/làm chậm) và chiêu 1, 3 hồi nhanh hơn 60%'
       },
       {
         id: 3,
@@ -1599,6 +1603,17 @@ export class PixelFXManager {
     this.lastBaguaPos = center.clone();
     this.baguaTimer = BAGUA_DURATION;
 
+    // Hộ Thể: trong suốt thời gian trận, người ra chiêu kháng hiệu ứng (miễn đóng băng/làm chậm)
+    // và hồi chiêu nhanh hơn (xem BAGUA_COOLDOWN_RATE trong update)
+    if (character) {
+      character.statusResistTimer = BAGUA_DURATION;
+      character.freezeTimer = 0;
+      character.slowTimer = 0;
+      if (this.damageTexts) {
+        this.damageTexts.spawn('☯️ KHÁNG HIỆU ỨNG · HỒI CHIÊU NHANH', character.position.clone().add(new THREE.Vector3(0, 2.8, 0)), '#f1c40f');
+      }
+    }
+
     // 3. Hồi phục 150 HP tức thì cho caster
     if (character && character.hp < character.maxHp) {
       const heal = Math.min(150, character.maxHp - character.hp);
@@ -2373,10 +2388,14 @@ export class PixelFXManager {
     if (this.vortexTimer > 0) this.vortexTimer -= delta;
 
     // 1. Cập nhật thời gian hồi chiêu
+    // Hoàng Bào Đạo Sĩ đang trong Bát Quái Đại Canh Trận: chiêu 1 và 3 hồi nhanh hơn.
+    // Chiêu 2 (chính trận pháp) không được tăng tốc, nếu không có thể tự duy trì trận mãi mãi.
+    const resistActive = this.currentSectIndex === 0 && this.localCharacter && this.localCharacter.statusResistTimer > 0;
     for (const key in this.cooldowns) {
       const cd = this.cooldowns[key];
       if (cd.current > 0) {
-        cd.current = Math.max(0, cd.current - delta);
+        const rate = resistActive && key !== '2' ? BAGUA_COOLDOWN_RATE : 1;
+        cd.current = Math.max(0, cd.current - delta * rate);
       }
     }
 

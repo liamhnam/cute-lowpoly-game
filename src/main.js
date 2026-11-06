@@ -1086,6 +1086,10 @@ class Game {
       } else if (this.character.isMoving) {
         state = this.character.isSprinting ? 'Súc Địa Thành Thốn! ⚡' : 'Ngự Phong Hành 🚶';
       }
+      // Bát Quái Hộ Thể: kháng hiệu ứng + hồi chiêu nhanh, hiện thời gian còn lại
+      if (this.character.statusResistTimer > 0) {
+        state += ` · ☯️ Hộ Thể ${this.character.statusResistTimer.toFixed(1)}s`;
+      }
       this.stateBadge.textContent = state;
     }
 
