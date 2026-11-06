@@ -373,7 +373,7 @@ export const SECTS = [
         icon: '⛈️',
         cd: 40.0,
         mana: 50,
-        desc: 'Mây giông phủ trời, 10s sấm sét cực mạnh từ trên trời giáng xuống liên tục khắp 60m: địch trúng 120 ST mỗi tia, không có địch sấm vẫn đánh rền khắp vùng'
+        desc: 'Mây giông phủ trời, 20s sấm sét cực mạnh từ trên trời giáng xuống liên tục khắp 60m: địch trúng 120 ST mỗi tia, không có địch sấm vẫn đánh rền khắp vùng'
       }
     ]
   },
@@ -736,12 +736,12 @@ export class PixelFXManager {
   }
 
   // --- [Đạo Gia 4] THIÊN LÔI PHẠT THẾ ---
-  // 10 giây sấm sét cực mạnh từ trời giáng xuống liên tục trong 60m quanh người ra chiêu: có địch (quái, người chơi,
+  // 20 giây sấm sét cực mạnh từ trời giáng xuống liên tục trong 60m quanh người ra chiêu: có địch (quái, người chơi,
   // đạo ảnh) thì đánh thẳng vào địch, không có địch thì vẫn giáng xuống mặt đất khắp vùng. Mây giông đen che trời
   // và vòng ranh giới 60m đi theo người ra chiêu. Không phá hoại cảnh vật, chỉ trúng địch.
   // Chỉ máy của người ra chiêu mới báo sát thương PvP (xem canHitPlayers); máy khác chỉ dựng lại hiệu ứng.
   castHeavenlyThunder(character, monsters) {
-    const DURATION = 10;
+    const DURATION = 20;
     const RANGE = 60;
     const STRIKE_INTERVAL = 0.25;   // 4 tia mỗi giây
     const DAMAGE = 120;             // mỗi tia: một địch đứng một mình chịu ~480 ST/giây
