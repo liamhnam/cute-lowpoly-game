@@ -546,11 +546,11 @@ export const SECTS = [
       {
         id: 3,
         name: 'Thả Rắm Diệt Thế',
-        tag: 'KHÍ ĐỘC HOÀNG KIM',
+        tag: 'KHÍ ĐỘC BẤT ĐỘNG',
         icon: '💨',
         cd: 9.0,
         mana: 30,
-        desc: 'Làm động tác chổng mông thả rắm siêu thanh! Nổ khói vàng mù mịt gây 260 ST diện rộng và nhiễm độc rút máu'
+        desc: 'Chổng mông thả rắm siêu thanh! Nổ khói vàng mù mịt 260 ST, BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái, Phân thân) trong suốt thời gian hiệu lực & trúng độc rút máu'
       }
     ]
   }
@@ -2964,7 +2964,7 @@ export class PixelFXManager {
             }
 
             // Bất động toàn bộ địch trong 5 giây trong bán kính 12.5m!
-            this.freezeArea(center, 12.5, 5.0, monsters);
+            this.freezeArea(center, 12.5, 5.0, monsters, character);
             this.damageTexts.spawn('🏛️ BỐC SỐ LÀM DỊCH VỤ CÔNG! BẤT ĐỘNG 5S!', center.clone().add(new THREE.Vector3(0, 8.5, 0)), '#ffd700');
           }
           return true;
@@ -2986,7 +2986,7 @@ export class PixelFXManager {
 
           // Giữ trạng thái bất động trong suốt 5s
           if (groundedTime < stunDuration) {
-            this.freezeArea(center, 12.5, 1.0, monsters);
+            this.freezeArea(center, 12.5, 1.0, monsters, character);
           }
 
           if (groundedTime >= stunDuration) {
@@ -3012,7 +3012,7 @@ export class PixelFXManager {
     });
   }
 
-  // [NAMCAM 3] THẢ RẮM DIỆT THẾ (Chổng mông nổ khói vàng mù mịt 260 ST diện rộng + trúng độc rút máu)
+  // [NAMCAM 3] THẢ RẮM DIỆT THẾ (Chổng mông nổ khói vàng mù mịt 260 ST diện rộng + BẤT ĐỘNG TOÀN DIỆN quái, người chơi, phân thân trong suốt thời gian hiệu lực)
   castToxicFart(targetPos, character, monsters) {
     if (character.triggerFartAnimation) {
       character.triggerFartAnimation();
@@ -3028,46 +3028,51 @@ export class PixelFXManager {
       Math.cos(character.rotationY || 0)
     ).normalize();
     const fartPos = origin.clone().addScaledVector(backDir, 0.8);
+    const fartRadius = 10.5;
 
     const cloudPuffs = [];
-    const puffCount = 18;
-    const puffGeo = new THREE.DodecahedronGeometry(1.2, 1);
+    const puffCount = 22;
+    const puffGeo = new THREE.DodecahedronGeometry(1.3, 1);
     const puffMat = new THREE.MeshStandardMaterial({
       color: 0xf1c40f,
       roughness: 0.95,
       transparent: true,
-      opacity: 0.82,
+      opacity: 0.85,
       flatShading: true,
     });
 
     for (let i = 0; i < puffCount; i++) {
       const puff = new THREE.Mesh(puffGeo, puffMat);
       const angle = (i / puffCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-      const dist = 0.5 + Math.random() * 2.0;
+      const dist = 0.5 + Math.random() * 2.5;
       puff.position.set(
         fartPos.x + Math.cos(angle) * dist,
-        fartPos.y + 0.4 + Math.random() * 0.8,
+        fartPos.y + 0.4 + Math.random() * 0.9,
         fartPos.z + Math.sin(angle) * dist
       );
       puff.scale.setScalar(0.4);
       puff.userData = {
-        maxScale: 2.2 + Math.random() * 1.6,
-        vx: Math.cos(angle) * (2.5 + Math.random() * 3.5),
-        vz: Math.sin(angle) * (2.5 + Math.random() * 3.5),
-        vy: 0.4 + Math.random() * 0.8,
+        maxScale: 2.6 + Math.random() * 1.8,
+        vx: Math.cos(angle) * (2.8 + Math.random() * 3.8),
+        vz: Math.sin(angle) * (2.8 + Math.random() * 3.8),
+        vy: 0.4 + Math.random() * 0.9,
       };
       this.scene.add(puff);
       cloudPuffs.push(puff);
     }
 
     if (this.canHitPlayers(character)) {
-      this.dealDamageAOE(fartPos, 9.5, 260, '💨 -260 THẢ RẮM DIỆT THẾ!', '#f1c40f', monsters, 'slow', 'poison', null, character);
+      this.dealDamageAOE(fartPos, fartRadius, 260, '💨 -260 THẢ RẮM DIỆT THẾ!', '#f1c40f', monsters, 'freeze', 'poison', null, character);
     }
     if (this.particles) {
-      this.particles.emitShockwave(fartPos, 0xf1c40f, 9.5, 0.4);
+      this.particles.emitShockwave(fartPos, 0xf1c40f, fartRadius, 0.45);
     }
 
-    const duration = 3.6;
+    // Lập tức khống chế bất động toàn bộ mục tiêu (quái vật, người chơi, phân thân) trong vùng!
+    this.freezeArea(fartPos, fartRadius, 1.5, monsters, character);
+    this.damageTexts.spawn('💨 THÚI QUÁ KHÔNG THỞ ĐƯỢC! BẤT ĐỘNG!', fartPos.clone().add(new THREE.Vector3(0, 2.8, 0)), '#ffd32a');
+
+    const duration = 4.0;
     let elapsed = 0;
     let tickTimer = 0;
 
@@ -3085,13 +3090,17 @@ export class PixelFXManager {
 
           const progress = elapsed / duration;
           p.scale.setScalar(THREE.MathUtils.lerp(0.4, p.userData.maxScale, Math.min(1.0, elapsed * 2.5)));
-          puffMat.opacity = Math.max(0, 0.82 * (1.0 - progress));
+          puffMat.opacity = Math.max(0, 0.85 * (1.0 - progress));
         }
 
+        // DUY TRÌ BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái vật, Phân thân) TRONG SUỐT THỜI GIAN KHÓI VÀNG CÒN TỒN TẠI!
+        this.freezeArea(fartPos, fartRadius, 1.2, monsters, character);
+
+        // Độc rút máu định kỳ
         if (tickTimer >= 0.4) {
           tickTimer = 0;
           if (this.canHitPlayers(character)) {
-            this.dealDamageAOE(fartPos, 9.0, 22, '☣️ -22 ĐỘC RẮM', '#badc58', monsters, 'slow', 'poison', null, character);
+            this.dealDamageAOE(fartPos, fartRadius, 25, '☣️ -25 ĐỘC RẮM', '#badc58', monsters, 'freeze', 'poison', null, character);
           }
         }
 
@@ -3108,18 +3117,51 @@ export class PixelFXManager {
     });
   }
 
-  // Khống chế đóng băng vùng chỉ định
-  freezeArea(center, radius, duration, monsters) {
+  // Khống chế đóng băng / bất động vùng chỉ định (áp dụng lên quái vật, người chơi, phân thân)
+  freezeArea(center, radius, duration, monsters, caster = null) {
+    // 1. Quái vật
     for (const m of monsters || []) {
       if (m.isDead) continue;
       if (m.position.distanceTo(center) <= radius + (m.hitRadius || 1.0)) {
         if (m.freeze) m.freeze(duration);
       }
     }
+
+    // 2. Người chơi khác (Remote Players)
     for (const rp of this.remotePlayers || []) {
       if (rp.isDead) continue;
+      if (caster && rp.id === caster.id) continue;
       if (rp.position.distanceTo(center) <= radius + 0.85) {
         if (rp.freeze) rp.freeze(duration);
+      }
+    }
+
+    // 3. Người chơi chính (nếu bị dính chiêu của kẻ khác)
+    if (this.localCharacter && !this.localCharacter.isDead && caster !== this.localCharacter) {
+      if (this.localCharacter.position.distanceTo(center) <= radius + 0.85) {
+        if (this.localCharacter.freeze) this.localCharacter.freeze(duration);
+      }
+    }
+
+    // 4. Phân thân (Đạo ảnh Nhất Khí Hóa Tam Thanh: cả local lẫn remote)
+    if (this.cloneManager) {
+      for (const c of this.cloneManager.local || []) {
+        if (c.body && !c.body.isDead) {
+          if (caster && c.body === caster) continue;
+          if (c.body.position.distanceTo(center) <= radius + 0.85) {
+            if (c.body.freeze) c.body.freeze(duration);
+          }
+        }
+      }
+      for (const clones of (this.cloneManager.remote ? this.cloneManager.remote.values() : [])) {
+        for (const r of clones.values()) {
+          if (r.body && !r.body.isDead) {
+            if (caster && r.body === caster) continue;
+            if (r.body.position.distanceTo(center) <= radius + 0.85) {
+              if (r.body.freeze) r.body.freeze(duration);
+            }
+          }
+        }
       }
     }
   }
