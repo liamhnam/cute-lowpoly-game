@@ -154,7 +154,6 @@ export class PixelFXManager {
       3: { current: 0, max: 10.0, name: 'Kiếm Trận Hộ Thể', icon: '🌀' },
       4: { current: 0, max: 7.0, name: 'Thiên Kiếm Lạc', icon: '🌧️' },
       5: { current: 0, max: 9.0, name: 'Vạn Kiếm Quy Tông', icon: '⚔️' },
-      // Tuyệt kỹ Kiếm Nộ: hồi chiêu bằng thời gian kiếm trận còn hoạt động
       6: { current: 0, max: 10.0, name: 'Đại Canh Kiếm Trận', icon: '⚡' },
     };
 
@@ -622,7 +621,7 @@ export class PixelFXManager {
     });
   }
 
-  // --- TUYỆT KỸ KIẾM NỘ: ĐẠI CANH KIẾM TRẬN ---
+  // --- KIẾM CHIÊU 6: ĐẠI CANH KIẾM TRẬN ---
   // 36 lôi kiếm xoáy vòng liên tục quanh người suốt 10 giây như cơn lốc kiếm.
   // Bán kính quỹ đạo mỗi thanh co giãn từ 3m tới 30m để quét kín cả vùng, kiếm quét trúng quái là gây sát thương.
   castDaiCanhSwordArray(character, monsters) {

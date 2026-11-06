@@ -378,7 +378,7 @@ export class ThirdPersonController {
       case 'KeyE':
         if (isDown) this.triggerSkill(5);
         break;
-      // Đại Canh Kiếm Trận (cần đầy Kiếm Nộ)
+      // Đại Canh Kiếm Trận
       case 'Digit6':
       case 'Numpad6':
       case 'KeyR':

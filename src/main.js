@@ -22,9 +22,6 @@ class Game {
     this.playerMaxHp = 100;
     this.playerMp = 100;
     this.playerMaxMp = 100;
-    // Kiếm Nộ: tích theo đòn đánh thường / kiếm khí trúng quái, đầy mới dùng được Đại Canh Kiếm Trận
-    this.playerRage = 0;
-    this.playerMaxRage = 100;
     this.currentRealm = '🌟 Luyện Khí Tầng 1';
 
     this.initScene();
@@ -165,15 +162,10 @@ class Game {
           return false;
         }
 
-        // Đại Canh Kiếm Trận: không tốn Linh Lực mà xả toàn bộ Kiếm Nộ
+        // Đại Canh Kiếm Trận: không tốn Linh Lực, chỉ chờ hồi chiêu
         if (skillNum === 6) {
-          if (this.playerRage < this.playerMaxRage) {
-            this.showNotification(`⚡ Kiếm Nộ chưa đầy (${Math.floor(this.playerRage)}/${this.playerMaxRage})! Chém trúng yêu ma để tích nộ...`);
-            return false;
-          }
           const success = this.pixelFX.castSkill(6, targetPos, this.character, this.monsters);
           if (success) {
-            this.playerRage = 0;
             this.showNotification('⚡ ĐẠI CANH KIẾM TRẬN! Ba mươi sáu lôi kiếm xoáy diệt yêu ma!');
           }
           return success;
@@ -206,16 +198,6 @@ class Game {
     );
 
     this.pixelFX.controller = this.controller;
-
-    // Tích Kiếm Nộ khi đánh thường / kiếm khí trúng quái
-    const rageGain = { sweep: 8, thrust: 12, qi: 10 };
-    this.projectiles.onMonsterHit = (source) => {
-      const wasFull = this.playerRage >= this.playerMaxRage;
-      this.playerRage = Math.min(this.playerMaxRage, this.playerRage + (rageGain[source] || 0));
-      if (!wasFull && this.playerRage >= this.playerMaxRage) {
-        this.showNotification('⚡ Kiếm Nộ đã đầy! Bấm [R] khai mở Đại Canh Kiếm Trận!');
-      }
-    };
 
     // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí
     this.controller.onChargedRelease = (origin, attackDir, power) => {
@@ -426,10 +408,6 @@ class Game {
     this.textHp = document.getElementById('text-hp');
     this.barMp = document.getElementById('bar-mp');
     this.textMp = document.getElementById('text-mp');
-    this.barRage = document.getElementById('bar-rage');
-    this.textRage = document.getElementById('text-rage');
-    this.rageSlot = document.getElementById('skill-slot-6');
-    this.rageOverlay = document.getElementById('skill-rage-6');
   }
 
   showNotification(msg) {
@@ -481,15 +459,6 @@ class Game {
       const mpRatio = Math.max(0, this.playerMp / this.playerMaxMp);
       this.barMp.style.width = `${mpRatio * 100}%`;
       this.textMp.textContent = `${Math.round(this.playerMp)}/${this.playerMaxMp}`;
-    }
-    if (this.barRage && this.textRage) {
-      const rageRatio = this.playerRage / this.playerMaxRage;
-      const isFull = rageRatio >= 1;
-      this.barRage.style.width = `${rageRatio * 100}%`;
-      this.barRage.classList.toggle('full', isFull);
-      this.textRage.textContent = `${Math.round(this.playerRage)}/${this.playerMaxRage}`;
-      if (this.rageOverlay) this.rageOverlay.style.height = `${(1 - rageRatio) * 100}%`;
-      if (this.rageSlot) this.rageSlot.classList.toggle('rage-ready', isFull);
     }
 
     // 1. Cập nhật nhân vật & điều khiển

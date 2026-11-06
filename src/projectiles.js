@@ -17,8 +17,6 @@ export class ProjectileSystem {
     this.world = world;
     this.projectiles = [];
     this.slashArcs = [];
-    this.onMonsterHit = null; // (source: 'sweep' | 'thrust' | 'qi') → dùng để tích Kiếm Nộ
-
     // Hình quạt vệt chém của từng kiểu đòn (nằm ngang, hướng về +x trước khi xoay)
     this.slashGeos = {};
     for (const [name, s] of Object.entries(MELEE_STYLES)) {
@@ -86,9 +84,7 @@ export class ProjectileSystem {
         monster.position.z - (dz / Math.max(dist, 0.001)) * Math.min(dist, monster.hitRadius)
       );
       monster.takeDamage(style.damage, hitPos);
-      if (style.knockback > 0) monster.knockback(center, style.knockback);
-      if (this.onMonsterHit) this.onMonsterHit(styleName);
-      if (this.particles) {
+      if (style.knockback > 0) monster.knockback(center, style.knockback);      if (this.particles) {
         this.particles.emitHitSparkles(hitPos, 14);
         this.particles.emitShockwave(hitPos, style.color, 2.5, 0.25);
       }
@@ -191,9 +187,7 @@ export class ProjectileSystem {
           if (monster.isDead || p.hitMonsters.has(monster)) continue;
           if (monster.checkCollision(pos, p.radius)) {
             monster.takeDamage(p.damage, pos);
-            p.hitMonsters.add(monster);
-            if (this.onMonsterHit) this.onMonsterHit('qi');
-            if (this.particles) {
+            p.hitMonsters.add(monster);            if (this.particles) {
               this.particles.emitHitSparkles(pos, 12);
               this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
             }
