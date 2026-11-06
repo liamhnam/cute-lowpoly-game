@@ -2566,45 +2566,364 @@ export class PixelFXManager {
     });
   }
 
-  // [NAMCAM 2] KIOSK DỊCH VỤ CÔNG (Rớt từ trời xuống 160 ST, khống chế điện từ 5s toàn vùng)
+  // [NAMCAM] Dựng mô hình 3D Kiosk Dịch Vụ Công chân thực theo ảnh mẫu (Tỉ lệ chuẩn x3 khổng lồ)
+  createKiosk3DModel() {
+    const root = new THREE.Group();
+
+    const whiteMat = new THREE.MeshStandardMaterial({
+      color: 0xfafafa,
+      roughness: 0.25,
+      metalness: 0.08,
+    });
+    const blackTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x1b1c1e,
+      roughness: 0.35,
+      metalness: 0.2,
+    });
+    const darkMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x2d3436,
+      roughness: 0.45,
+      metalness: 0.4,
+    });
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xdfe6e9,
+      roughness: 0.15,
+      metalness: 0.85,
+    });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0a192f,
+      roughness: 0.1,
+      metalness: 0.5,
+      emissive: 0x00cec9,
+      emissiveIntensity: 0.25,
+    });
+
+    // 1. CHÂN ĐẾ NẶNG (BASE PEDESTAL x3)
+    const baseBottom = new THREE.Mesh(
+      new THREE.BoxGeometry(3.8, 0.26, 3.0),
+      blackTrimMat
+    );
+    baseBottom.position.y = 0.13;
+    root.add(baseBottom);
+
+    const baseStep = new THREE.Mesh(
+      new THREE.BoxGeometry(3.5, 0.16, 2.7),
+      darkMetalMat
+    );
+    baseStep.position.y = 0.32;
+    root.add(baseStep);
+
+    // 4 chân cao su dưới đế
+    const footGeo = new THREE.CylinderGeometry(0.14, 0.16, 0.08, 12);
+    [
+      [-1.7, 0.04, -1.3],
+      [1.7, 0.04, -1.3],
+      [-1.7, 0.04, 1.3],
+      [1.7, 0.04, 1.3]
+    ].forEach(([fx, fy, fz]) => {
+      const foot = new THREE.Mesh(footGeo, blackTrimMat);
+      foot.position.set(fx, fy, fz);
+      root.add(foot);
+    });
+
+    // 2. THÂN DƯỚI DẠNG KHỐI TRỤ (LOWER CABINET TOWER)
+    // Cao 4.2m, rộng 3.1m, sâu 1.8m
+    const lowerHeight = 4.2;
+    const lowerY = 0.4 + lowerHeight / 2; // 2.5
+    const bodyMain = new THREE.Mesh(
+      new THREE.BoxGeometry(3.1, lowerHeight, 1.8),
+      whiteMat
+    );
+    bodyMain.position.set(0, lowerY, 0);
+    root.add(bodyMain);
+
+    // Ốp viền đen 2 bên sườn máy (đặc trưng từ ảnh mẫu)
+    const trimLeft = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, lowerHeight, 1.84),
+      blackTrimMat
+    );
+    trimLeft.position.set(-1.55, lowerY, 0);
+    root.add(trimLeft);
+
+    const trimRight = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, lowerHeight, 1.84),
+      blackTrimMat
+    );
+    trimRight.position.set(1.55, lowerY, 0);
+    root.add(trimRight);
+
+    // Cánh cửa kỹ thuật bảo trì phía dưới (Front maintenance door)
+    const frontDoor = new THREE.Mesh(
+      new THREE.BoxGeometry(2.6, 2.0, 0.04),
+      new THREE.MeshStandardMaterial({ color: 0xe6e8ea, roughness: 0.35 })
+    );
+    frontDoor.position.set(0, 1.5, 0.92);
+    root.add(frontDoor);
+
+    // Ổ khoá và chìa khóa cắm ở cửa dưới
+    const lockCylinder = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 0.06, 16),
+      chromeMat
+    );
+    lockCylinder.rotation.x = Math.PI / 2;
+    lockCylinder.position.set(-1.0, 1.7, 0.95);
+    root.add(lockCylinder);
+
+    const keyRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.07, 0.02, 8, 16),
+      chromeMat
+    );
+    keyRing.position.set(-1.0, 1.62, 0.98);
+    root.add(keyRing);
+
+    // Khay xuất giấy tờ A4 (A4 Document dispenser tray bên trái)
+    const docBayOuter = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.95, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0xdfdfdf, roughness: 0.4 })
+    );
+    docBayOuter.position.set(-0.55, 3.25, 0.94);
+    root.add(docBayOuter);
+
+    const docSlotInner = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.7, 0.14),
+      darkMetalMat
+    );
+    docSlotInner.position.set(-0.55, 3.25, 0.97);
+    root.add(docSlotInner);
+
+    const docTrayLip = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.08, 0.22),
+      whiteMat
+    );
+    docTrayLip.position.set(-0.55, 2.85, 1.02);
+    root.add(docTrayLip);
+
+    // Hốc máy in phiếu số thứ tự (Receipt printer bên phải)
+    const printerSlot = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 0.45, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0xe6e8ea, roughness: 0.3 })
+    );
+    printerSlot.position.set(0.8, 3.45, 0.94);
+    root.add(printerSlot);
+
+    // Mẩu giấy in số thứ tự thò ra ngoài
+    const receiptPaper = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.2, 0.03),
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    receiptPaper.position.set(0.8, 3.37, 0.99);
+    receiptPaper.rotation.x = 0.22;
+    root.add(receiptPaper);
+
+    // Cửa kính quét mã QR / Barcode / CCCD
+    const scannerWindow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.65, 0.42, 0.06),
+      glassMat
+    );
+    scannerWindow.position.set(0.8, 2.85, 0.94);
+    root.add(scannerWindow);
+
+    // Khe cắm căn cước công dân gắn chip (CCCD slot)
+    const cardSlot = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.06, 0.08),
+      darkMetalMat
+    );
+    cardSlot.position.set(0.8, 3.85, 0.94);
+    root.add(cardSlot);
+
+    // Bảng tên thương hiệu "KIOSK DỊCH VỤ CÔNG"
+    let badgeTex = null;
+    if (typeof document !== 'undefined') {
+      const badgeCanvas = document.createElement('canvas');
+      badgeCanvas.width = 512;
+      badgeCanvas.height = 100;
+      const bctx = badgeCanvas.getContext('2d');
+      bctx.fillStyle = '#dfe4ea';
+      bctx.beginPath();
+      bctx.roundRect(10, 10, 492, 80, 24);
+      bctx.fill();
+      bctx.strokeStyle = '#b2bec3';
+      bctx.lineWidth = 4;
+      bctx.stroke();
+
+      bctx.fillStyle = '#0984e3';
+      bctx.font = 'bold 36px "Segoe UI", Arial, sans-serif';
+      bctx.textAlign = 'center';
+      bctx.textBaseline = 'middle';
+      bctx.fillText('KIOSK DỊCH VỤ CÔNG', 256, 50);
+
+      badgeTex = new THREE.CanvasTexture(badgeCanvas);
+      const badgeMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.6, 0.48),
+        new THREE.MeshBasicMaterial({ map: badgeTex, transparent: true })
+      );
+      badgeMesh.position.set(0, 4.18, 0.92);
+      root.add(badgeMesh);
+    }
+
+    // 3. ĐẦU MÁY VÁT NGHIÊNG & MÀN HÌNH CẢM ỨNG (UPPER TILTED HEAD & SCREEN)
+    // Nghiêng về sau ~18 độ (-0.32 rad) như thiết kế công thái học trong ảnh
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 4.5, 0.15);
+    headGroup.rotation.x = -0.32;
+    root.add(headGroup);
+
+    const headHeight = 3.6;
+    const headDepth = 1.4;
+    const headBox = new THREE.Mesh(
+      new THREE.BoxGeometry(3.1, headHeight, headDepth),
+      whiteMat
+    );
+    headBox.position.set(0, headHeight / 2, 0);
+    headGroup.add(headBox);
+
+    // Viền đen 2 bên đầu máy
+    const headTrimLeft = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, headHeight, headDepth + 0.04),
+      blackTrimMat
+    );
+    headTrimLeft.position.set(-1.55, headHeight / 2, 0);
+    headGroup.add(headTrimLeft);
+
+    const headTrimRight = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, headHeight, headDepth + 0.04),
+      blackTrimMat
+    );
+    headTrimRight.position.set(1.55, headHeight / 2, 0);
+    headGroup.add(headTrimRight);
+
+    // Mái che đỉnh đầu máy vát đen
+    const topCap = new THREE.Mesh(
+      new THREE.BoxGeometry(3.35, 0.18, headDepth + 0.1),
+      blackTrimMat
+    );
+    topCap.position.set(0, headHeight + 0.08, 0);
+    headGroup.add(topCap);
+
+    // Màn hình cảm ứng lớn phát sáng (Windows 10/11 Desktop + Cổng DVC)
+    let screenTex = null;
+    if (typeof document !== 'undefined') {
+      const screenCanvas = document.createElement('canvas');
+      screenCanvas.width = 640;
+      screenCanvas.height = 420;
+      const sctx = screenCanvas.getContext('2d');
+
+      // Gradient nền xanh Windows huyền thoại
+      const grad = sctx.createLinearGradient(0, 0, 640, 420);
+      grad.addColorStop(0, '#0052d4');
+      grad.addColorStop(0.5, '#4364f7');
+      grad.addColorStop(1, '#6fb1fc');
+      sctx.fillStyle = grad;
+      sctx.fillRect(0, 0, 640, 420);
+
+      // Chùm sáng vệt kính Windows bloom
+      sctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      sctx.beginPath();
+      sctx.moveTo(320, 0);
+      sctx.lineTo(640, 420);
+      sctx.lineTo(160, 420);
+      sctx.closePath();
+      sctx.fill();
+
+      // Logo Windows 4 ô vuông
+      sctx.fillStyle = '#ffffff';
+      const logoX = 320, logoY = 165, size = 44, gap = 8;
+      sctx.fillRect(logoX - size - gap / 2, logoY - size - gap / 2, size, size);
+      sctx.fillRect(logoX + gap / 2, logoY - size - gap / 2, size, size);
+      sctx.fillRect(logoX - size - gap / 2, logoY + gap / 2, size, size);
+      sctx.fillRect(logoX + gap / 2, logoY + gap / 2, size, size);
+
+      // Tiêu đề Cổng Dịch Vụ Công
+      sctx.fillStyle = '#ffffff';
+      sctx.font = 'bold 28px "Segoe UI", Arial, sans-serif';
+      sctx.textAlign = 'center';
+      sctx.fillText('CỔNG DỊCH VỤ CÔNG QUỐC GIA', 320, 270);
+
+      sctx.fillStyle = '#ffd32a';
+      sctx.font = 'bold 22px "Segoe UI", Arial, sans-serif';
+      sctx.fillText('--- CHẠM MÀN HÌNH ĐỂ BỐC SỐ ---', 320, 310);
+
+      // Thanh Taskbar dưới cùng
+      sctx.fillStyle = 'rgba(15, 20, 35, 0.9)';
+      sctx.fillRect(0, 375, 640, 45);
+      sctx.fillStyle = '#00a8ff';
+      sctx.fillRect(16, 386, 22, 22); // Nút Start
+      sctx.fillStyle = '#ffffff';
+      sctx.font = '16px monospace';
+      sctx.textAlign = 'right';
+      sctx.fillText('12:00 PM | 🇻🇳', 620, 403);
+
+      screenTex = new THREE.CanvasTexture(screenCanvas);
+    }
+
+    const screenMat = new THREE.MeshStandardMaterial({
+      map: screenTex,
+      color: 0xffffff,
+      roughness: 0.12,
+      metalness: 0.1,
+      emissive: 0x0078d7,
+      emissiveIntensity: 0.5,
+    });
+
+    const screenMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.7, 1.9),
+      screenMat
+    );
+    screenMesh.position.set(0, 1.9, headDepth / 2 + 0.02);
+    headGroup.add(screenMesh);
+
+    // Cụm Camera nhận diện khuôn mặt / eKYC phía trên màn hình
+    const cameraBar = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.16, 0.04),
+      blackTrimMat
+    );
+    cameraBar.position.set(0, 3.15, headDepth / 2 + 0.02);
+    headGroup.add(cameraBar);
+
+    const lensDot = new THREE.Mesh(
+      new THREE.CircleGeometry(0.04, 16),
+      new THREE.MeshBasicMaterial({ color: 0x00d2d3 })
+    );
+    lensDot.position.set(-0.15, 3.15, headDepth / 2 + 0.05);
+    headGroup.add(lensDot);
+
+    const irDot = new THREE.Mesh(
+      new THREE.CircleGeometry(0.03, 16),
+      new THREE.MeshBasicMaterial({ color: 0xff3838 })
+    );
+    irDot.position.set(0.15, 3.15, headDepth / 2 + 0.05);
+    headGroup.add(irDot);
+
+    return { root, screenMat, badgeTex, screenTex };
+  }
+
+  // [NAMCAM 2] KIOSK DỊCH VỤ CÔNG (Dựng mô hình 3D Kiosk thực tế gấp 3 lần, rớt từ trời cao 42m, giáng 180 ST, khống chế điện từ 5s toàn vùng 12m)
   castKioskStrike(targetPos, character, monsters) {
     if (character.triggerSkillCast) character.triggerSkillCast(2);
-    const center = targetPos ? targetPos.clone() : character.position.clone().add(new THREE.Vector3(0, 0, 7));
+    const center = targetPos ? targetPos.clone() : character.position.clone().add(new THREE.Vector3(0, 0, 8));
     center.y = getTerrainHeight(center.x, center.z);
 
-    this.spawnTelegraph(center, 0x00d2d3, 0.85, 8.0);
+    // Bán kính cảnh báo mở rộng theo kích thước x3 (12.0m)
+    this.spawnTelegraph(center, 0x00d2d3, 0.9, 12.0);
 
-    const kioskGroup = new THREE.Group();
-    const loader = new THREE.TextureLoader();
-    const kioskTex = loader.load('./images/kiosk.png');
+    const { root: kioskGroup, screenMat, badgeTex, screenTex } = this.createKiosk3DModel();
 
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3, metalness: 0.1 });
-    const screenMat = new THREE.MeshBasicMaterial({ map: kioskTex, transparent: true });
+    // Hướng mặt trước màn hình Kiosk về phía người chơi
+    if (character && character.position) {
+      kioskGroup.lookAt(character.position.x, kioskGroup.position.y, character.position.z);
+    }
 
-    // Hộp máy Kiosk
-    const kioskBox = new THREE.Mesh(
-      new THREE.BoxGeometry(1.2, 2.5, 0.7),
-      [bodyMat, bodyMat, bodyMat, bodyMat, screenMat, bodyMat]
-    );
-    kioskBox.position.y = 1.25;
-    kioskGroup.add(kioskBox);
-
-    // Chân đế Kiosk
-    const basePlate = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.12, 1.0), new THREE.MeshStandardMaterial({ color: 0x1e272e, roughness: 0.6 }));
-    basePlate.position.y = 0.06;
-    kioskGroup.add(basePlate);
-
-    // Khởi đầu rơi từ trời cao
-    kioskGroup.position.set(center.x, center.y + 24.0, center.z);
+    // Khởi đầu rơi từ trời cao 42m
+    kioskGroup.position.set(center.x, center.y + 42.0, center.z);
     this.scene.add(kioskGroup);
 
     let state = 'falling';
-    const fallSpeed = 42;
+    const fallSpeed = 58;
     let groundedTime = 0;
     const stunDuration = 5.0;
 
-    // Vành đai điện từ xung quanh Kiosk
-    const lightningGeo = new THREE.RingGeometry(7.4, 8.0, 32);
+    // Vành đai điện từ xung quanh Kiosk (bán kính 12m)
+    const lightningGeo = new THREE.RingGeometry(11.2, 12.0, 36);
     lightningGeo.rotateX(-Math.PI / 2);
     const lightningMat = new THREE.MeshBasicMaterial({
       color: 0x00d2d3,
@@ -2614,7 +2933,7 @@ export class PixelFXManager {
       blending: THREE.AdditiveBlending,
     });
     const lightningRing = new THREE.Mesh(lightningGeo, lightningMat);
-    lightningRing.position.set(center.x, center.y + 0.1, center.z);
+    lightningRing.position.set(center.x, center.y + 0.12, center.z);
     lightningRing.visible = false;
     this.scene.add(lightningRing);
 
@@ -2623,7 +2942,7 @@ export class PixelFXManager {
         if (state === 'falling') {
           kioskGroup.position.y -= fallSpeed * delta;
           if (this.particles) {
-            this.particles.emitElementalParticles(kioskGroup.position, 2, [0x00d2d3, 0xffffff], [0.3, 0.8], 0.2, 0, 0.3);
+            this.particles.emitElementalParticles(kioskGroup.position, 3, [0x00d2d3, 0xffffff, 0x74b9ff], [0.4, 1.2], 0.3, 0, 0.4);
           }
 
           if (kioskGroup.position.y <= center.y) {
@@ -2633,20 +2952,20 @@ export class PixelFXManager {
 
             if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
             if (sound.playThunder) sound.playThunder();
-            if (this.controller) this.controller.addTrauma(0.35);
+            if (this.controller) this.controller.addTrauma(0.45);
 
             if (this.particles) {
-              this.particles.emitShockwave(center, 0x00d2d3, 8.5, 0.35);
-              this.particles.emitHitSparkles(center, 24);
+              this.particles.emitShockwave(center, 0x00d2d3, 13.5, 0.45);
+              this.particles.emitHitSparkles(center, 36);
             }
 
             if (this.canHitPlayers(character)) {
-              this.dealDamageAOE(center, 8.0, 160, '🏛️ -160 KIOSK THIÊN PHẠT!', '#00d2d3', monsters, 'freeze', 'electric', null, character);
+              this.dealDamageAOE(center, 12.0, 180, '🏛️ -180 KIOSK THIÊN PHẠT!', '#00d2d3', monsters, 'freeze', 'electric', null, character);
             }
 
-            // Bất động toàn bộ địch trong 5 giây!
-            this.freezeArea(center, 8.5, 5.0, monsters);
-            this.damageTexts.spawn('🏛️ BỐC SỐ LÀM DỊCH VỤ CÔNG! BẤT ĐỘNG 5S!', center.clone().add(new THREE.Vector3(0, 3.2, 0)), '#ffd700');
+            // Bất động toàn bộ địch trong 5 giây trong bán kính 12.5m!
+            this.freezeArea(center, 12.5, 5.0, monsters);
+            this.damageTexts.spawn('🏛️ BỐC SỐ LÀM DỊCH VỤ CÔNG! BẤT ĐỘNG 5S!', center.clone().add(new THREE.Vector3(0, 8.5, 0)), '#ffd700');
           }
           return true;
         }
@@ -2656,25 +2975,34 @@ export class PixelFXManager {
           lightningRing.rotation.y += delta * 6;
           lightningMat.opacity = Math.sin(groundedTime * 18) * 0.3 + 0.65;
 
-          if (this.particles && Math.random() < 0.45) {
+          if (this.particles && Math.random() < 0.6) {
             const zapPos = center.clone().add(new THREE.Vector3(
-              (Math.random() - 0.5) * 8.0,
-              0.5 + Math.random() * 2.5,
-              (Math.random() - 0.5) * 8.0
+              (Math.random() - 0.5) * 12.0,
+              0.5 + Math.random() * 4.0,
+              (Math.random() - 0.5) * 12.0
             ));
-            this.particles.emitElementalParticles(zapPos, 4, [0x00d2d3, 0xf1c40f, 0xffffff], [0.5, 1.5], 0.3, 0, 0.3);
+            this.particles.emitElementalParticles(zapPos, 5, [0x00d2d3, 0xf1c40f, 0xffffff], [0.6, 1.8], 0.4, 0, 0.4);
           }
 
           // Giữ trạng thái bất động trong suốt 5s
           if (groundedTime < stunDuration) {
-            this.freezeArea(center, 8.5, 1.0, monsters);
+            this.freezeArea(center, 12.5, 1.0, monsters);
           }
 
           if (groundedTime >= stunDuration) {
             this.scene.remove(kioskGroup);
             this.scene.remove(lightningRing);
-            kioskBox.geometry.dispose();
+            kioskGroup.traverse((child) => {
+              if (child.isMesh) {
+                child.geometry?.dispose();
+                if (Array.isArray(child.material)) child.material.forEach((m) => m?.dispose());
+                else child.material?.dispose();
+              }
+            });
             lightningGeo.dispose();
+            lightningMat.dispose();
+            badgeTex?.dispose();
+            screenTex?.dispose();
             return false;
           }
           return true;
