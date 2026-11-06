@@ -550,7 +550,7 @@ export const SECTS = [
         icon: '💨',
         cd: 9.0,
         mana: 30,
-        desc: 'Chổng mông thả rắm siêu thanh! Nổ khói vàng mù mịt 260 ST, BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái, Phân thân) trong suốt thời gian hiệu lực & trúng độc rút máu'
+        desc: 'Chổng mông thả rắm siêu thanh! Nổ khói vàng bao phủ siêu rộng 31.5m (gấp 3 lần) gây 260 ST, BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái, Phân thân) suốt thời gian hiệu lực & trúng độc rút máu'
       }
     ]
   }
@@ -3012,7 +3012,7 @@ export class PixelFXManager {
     });
   }
 
-  // [NAMCAM 3] THẢ RẮM DIỆT THẾ (Chổng mông nổ khói vàng mù mịt 260 ST diện rộng + BẤT ĐỘNG TOÀN DIỆN quái, người chơi, phân thân trong suốt thời gian hiệu lực)
+  // [NAMCAM 3] THẢ RẮM DIỆT THẾ (Chổng mông nổ khói vàng mù mịt phạm vi siêu rộng 31.5m gấp 3 lần, 260 ST + BẤT ĐỘNG TOÀN DIỆN quái, người chơi, phân thân)
   castToxicFart(targetPos, character, monsters) {
     if (character.triggerFartAnimation) {
       character.triggerFartAnimation();
@@ -3028,11 +3028,12 @@ export class PixelFXManager {
       Math.cos(character.rotationY || 0)
     ).normalize();
     const fartPos = origin.clone().addScaledVector(backDir, 0.8);
-    const fartRadius = 10.5;
+    // Tăng phạm vi gấp 3 lần: 10.5m -> 31.5m
+    const fartRadius = 31.5;
 
     const cloudPuffs = [];
-    const puffCount = 22;
-    const puffGeo = new THREE.DodecahedronGeometry(1.3, 1);
+    const puffCount = 56;
+    const puffGeo = new THREE.DodecahedronGeometry(2.2, 1);
     const puffMat = new THREE.MeshStandardMaterial({
       color: 0xf1c40f,
       roughness: 0.95,
@@ -3043,19 +3044,19 @@ export class PixelFXManager {
 
     for (let i = 0; i < puffCount; i++) {
       const puff = new THREE.Mesh(puffGeo, puffMat);
-      const angle = (i / puffCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-      const dist = 0.5 + Math.random() * 2.5;
+      const angle = (i / puffCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.45;
+      const dist = 1.0 + Math.random() * 6.5;
       puff.position.set(
         fartPos.x + Math.cos(angle) * dist,
-        fartPos.y + 0.4 + Math.random() * 0.9,
+        fartPos.y + 0.5 + Math.random() * 1.6,
         fartPos.z + Math.sin(angle) * dist
       );
       puff.scale.setScalar(0.4);
       puff.userData = {
-        maxScale: 2.6 + Math.random() * 1.8,
-        vx: Math.cos(angle) * (2.8 + Math.random() * 3.8),
-        vz: Math.sin(angle) * (2.8 + Math.random() * 3.8),
-        vy: 0.4 + Math.random() * 0.9,
+        maxScale: 5.5 + Math.random() * 4.2,
+        vx: Math.cos(angle) * (6.5 + Math.random() * 9.5),
+        vz: Math.sin(angle) * (6.5 + Math.random() * 9.5),
+        vy: 0.6 + Math.random() * 1.8,
       };
       this.scene.add(puff);
       cloudPuffs.push(puff);
@@ -3065,12 +3066,12 @@ export class PixelFXManager {
       this.dealDamageAOE(fartPos, fartRadius, 260, '💨 -260 THẢ RẮM DIỆT THẾ!', '#f1c40f', monsters, 'freeze', 'poison', null, character);
     }
     if (this.particles) {
-      this.particles.emitShockwave(fartPos, 0xf1c40f, fartRadius, 0.45);
+      this.particles.emitShockwave(fartPos, 0xf1c40f, fartRadius, 0.55);
     }
 
-    // Lập tức khống chế bất động toàn bộ mục tiêu (quái vật, người chơi, phân thân) trong vùng!
+    // Lập tức khống chế bất động toàn bộ mục tiêu (quái vật, người chơi, phân thân) trong vùng 31.5m!
     this.freezeArea(fartPos, fartRadius, 1.5, monsters, character);
-    this.damageTexts.spawn('💨 THÚI QUÁ KHÔNG THỞ ĐƯỢC! BẤT ĐỘNG!', fartPos.clone().add(new THREE.Vector3(0, 2.8, 0)), '#ffd32a');
+    this.damageTexts.spawn('💨 THÚI QUÁ KHÔNG THỞ ĐƯỢC! BẤT ĐỘNG 31.5M!', fartPos.clone().add(new THREE.Vector3(0, 3.5, 0)), '#ffd32a');
 
     const duration = 4.0;
     let elapsed = 0;
@@ -3085,15 +3086,15 @@ export class PixelFXManager {
           p.position.x += p.userData.vx * delta;
           p.position.z += p.userData.vz * delta;
           p.position.y += p.userData.vy * delta;
-          p.userData.vx *= 0.94;
-          p.userData.vz *= 0.94;
+          p.userData.vx *= 0.95;
+          p.userData.vz *= 0.95;
 
           const progress = elapsed / duration;
-          p.scale.setScalar(THREE.MathUtils.lerp(0.4, p.userData.maxScale, Math.min(1.0, elapsed * 2.5)));
+          p.scale.setScalar(THREE.MathUtils.lerp(0.4, p.userData.maxScale, Math.min(1.0, elapsed * 2.2)));
           puffMat.opacity = Math.max(0, 0.85 * (1.0 - progress));
         }
 
-        // DUY TRÌ BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái vật, Phân thân) TRONG SUỐT THỜI GIAN KHÓI VÀNG CÒN TỒN TẠI!
+        // DUY TRÌ BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái vật, Phân thân) TRONG SUỐT VÙNG 31.5M KHI KHÓI VÀNG CÒN TỒN TẠI!
         this.freezeArea(fartPos, fartRadius, 1.2, monsters, character);
 
         // Độc rút máu định kỳ
