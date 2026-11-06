@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import { getTerrainHeight } from './world.js';
 
+// Giữ nút tấn công quá CHARGE_START giây thì bắt đầu tụ lực, đầy lực ở CHARGE_FULL giây
+const CHARGE_START = 0.25;
+const CHARGE_FULL = 1.2;
+
 export class ThirdPersonController {
   constructor(camera, character, domElement, onShoot, onCastSkill) {
     this.camera = camera;
@@ -27,6 +31,11 @@ export class ThirdPersonController {
 
     // Hồi chiêu giữa hai đòn chém thường
     this.attackCooldown = 0;
+
+    // Giữ nút tấn công để tụ lực kiếm khí
+    this.isAttackHeld = false;
+    this.attackHoldTime = 0;
+    this.onChargedRelease = null;
 
     // Thông số Camera Orbit góc nhìn thứ 3
     this.cameraDistance = 8.5;
@@ -106,6 +115,8 @@ export class ThirdPersonController {
         document.mozPointerLockElement === this.domElement ||
         document.webkitPointerLockElement === this.domElement;
 
+      if (!this.isLocked) this.cancelAttackHold();
+
       if (this.onLockChange) {
         this.onLockChange(this.isLocked);
       }
@@ -126,9 +137,18 @@ export class ThirdPersonController {
     this.domElement.addEventListener('mousedown', (e) => {
       if (this.isMobileActive) return;
       if (this.isLocked && e.button === 0) {
-        this.triggerShoot();
+        this.beginAttackHold();
       }
     });
+
+    window.addEventListener('mouseup', (e) => {
+      if (this.isMobileActive) return;
+      if (e.button === 0) {
+        this.releaseAttackHold();
+      }
+    });
+
+    window.addEventListener('blur', () => this.cancelAttackHold());
 
     // Di chuột xoay camera khi pointer locked
     window.addEventListener('mousemove', (e) => {
@@ -202,26 +222,67 @@ export class ThirdPersonController {
     this.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
-  // Đòn đánh thường: chém kiếm + phóng kiếm khí theo hướng camera
-  triggerShoot() {
-    if (this.attackCooldown > 0) return;
-    this.attackCooldown = 0.32;
-
-    const forward = new THREE.Vector3(
+  getAttackForward() {
+    return new THREE.Vector3(
       -Math.sin(this.yaw),
       0,
       -Math.cos(this.yaw)
     ).normalize();
+  }
 
+  getAttackOrigin() {
+    const origin = this.character.position.clone();
+    origin.y += 1.0;
+    return origin;
+  }
+
+  // Đòn đánh thường: chém kiếm cận chiến theo hướng camera
+  triggerShoot() {
+    if (this.attackCooldown > 0) return;
+    this.attackCooldown = 0.32;
+
+    const forward = this.getAttackForward();
     this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z));
     this.addTrauma(0.08); // Rung nhẹ tạo cảm giác đầm tay
 
-    const origin = this.character.position.clone();
-    origin.y += 1.0;
-
     if (this.onShoot) {
-      this.onShoot(origin, forward);
+      this.onShoot(this.getAttackOrigin(), forward);
     }
+  }
+
+  // Nhấn giữ nút tấn công (chuột trái / F / J / nút Pháp Kích)
+  beginAttackHold() {
+    if (this.isAttackHeld) return; // bỏ qua auto-repeat của phím
+    this.isAttackHeld = true;
+    this.attackHoldTime = 0;
+  }
+
+  // Thả nút: nhấp nhanh thì chém, giữ đủ lâu thì phóng kiếm khí theo lực tụ
+  releaseAttackHold() {
+    if (!this.isAttackHeld) return;
+    const holdTime = this.attackHoldTime;
+    this.cancelAttackHold();
+
+    if (holdTime < CHARGE_START) {
+      this.triggerShoot();
+      return;
+    }
+
+    const power = THREE.MathUtils.clamp((holdTime - CHARGE_START) / (CHARGE_FULL - CHARGE_START), 0, 1);
+    const forward = this.getAttackForward();
+    this.attackCooldown = 0.32;
+    this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z));
+    this.addTrauma(0.12 + power * 0.25);
+
+    if (this.onChargedRelease) {
+      this.onChargedRelease(this.getAttackOrigin(), forward, power);
+    }
+  }
+
+  cancelAttackHold() {
+    this.isAttackHeld = false;
+    this.attackHoldTime = 0;
+    this.character.setChargeLevel(0, false);
   }
 
   // KÍCH HOẠT KỸ NĂNG VÀ TÍNH ĐIỂM RƠI MỤC TIÊU PHÍA TRƯỚC
@@ -272,7 +333,8 @@ export class ThirdPersonController {
         break;
       case 'KeyF':
       case 'KeyJ':
-        if (isDown) this.triggerShoot();
+        if (isDown) this.beginAttackHold();
+        else this.releaseAttackHold();
         break;
       case 'KeyC':
         if (isDown && this.onOutfitChange) {
@@ -311,6 +373,15 @@ export class ThirdPersonController {
 
   update(delta) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
+
+    if (this.isAttackHeld) {
+      this.attackHoldTime += delta;
+      if (this.attackHoldTime >= CHARGE_START) {
+        const power = Math.min(1, (this.attackHoldTime - CHARGE_START) / (CHARGE_FULL - CHARGE_START));
+        const forward = this.getAttackForward();
+        this.character.setChargeLevel(power, true, Math.atan2(forward.x, forward.z));
+      }
+    }
 
     const moveInput = new THREE.Vector2(0, 0);
     if (this.keys.forward) moveInput.y += 1;

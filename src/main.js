@@ -151,7 +151,6 @@ class Game {
       this.canvas,
       (origin, attackDir) => {
         this.projectiles.slash(origin, attackDir, this.monsters);
-        this.projectiles.spawnSwordQi(origin.clone().addScaledVector(attackDir, 0.6), attackDir);
       },
       (skillNum, targetPos) => {
         // Kiểm tra hồi chiêu
@@ -188,6 +187,14 @@ class Game {
     );
 
     this.pixelFX.controller = this.controller;
+
+    // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí
+    this.controller.onChargedRelease = (origin, attackDir, power) => {
+      this.projectiles.spawnSwordQi(origin.clone().addScaledVector(attackDir, 0.6), attackDir, power);
+      if (power >= 1) {
+        this.showNotification('⚔️ Kiếm khí đại thành! Xuyên phá vạn vật!');
+      }
+    };
     this.pixelFX.onScreenFlash = (type) => this.triggerScreenFlash(type);
 
     this.controller.onOutfitChange = (outfitName) => {
@@ -480,7 +487,10 @@ class Game {
     }
     if (this.stateBadge) {
       let state = 'Đang Tĩnh Tọa (Idle)';
-      if (!this.character.isGrounded) {
+      if (this.character.isCharging) {
+        const pct = Math.round(this.character.chargeLevel * 100);
+        state = pct >= 100 ? 'Kiếm Khí Đại Thành! ⚔️' : `Tụ Kiếm Khí ${pct}% ⚔️`;
+      } else if (!this.character.isGrounded) {
         state = 'Đạp Vân Phi Hành 🦘';
       } else if (this.character.isCasting) {
         const skillNames = {

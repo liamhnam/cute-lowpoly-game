@@ -39,7 +39,6 @@ export class MobileControlsManager {
 
     // Trạng thái Auto-fire cho nút Pháp Kích khi giữ ngón tay
     this.isShootingHeld = false;
-    this.shootInterval = null;
 
     // DOM Elements
     this.container = null;
@@ -115,7 +114,7 @@ export class MobileControlsManager {
         </button>
 
         <!-- Nút Pháp Kích Chính (Tấn công thường / Chém kiếm & kiếm khí) -->
-        <button id="btn-m-shoot" class="m-btn m-btn-xl btn-shoot" title="Kiếm Pháp (Giữ để chém liên tục)">
+        <button id="btn-m-shoot" class="m-btn m-btn-xl btn-shoot" title="Kiếm Pháp (Nhấn: chém · Giữ rồi thả: phóng kiếm khí)">
           <div class="shoot-ripple"></div>
           <span class="m-icon">⚔️</span>
           <span class="m-label">PHÁP KÍCH</span>
@@ -359,7 +358,7 @@ export class MobileControlsManager {
     const sprintBtn = document.getElementById('btn-m-sprint');
     const outfitBtn = document.getElementById('btn-m-outfit');
 
-    // 1. Nút Pháp Kích (Bắn thường + Auto-fire khi giữ)
+    // 1. Nút Pháp Kích (Nhấn: chém · Giữ rồi thả: phóng kiếm khí tụ lực)
     if (shootBtn) {
       const startShooting = (e) => {
         e.preventDefault();
@@ -368,24 +367,17 @@ export class MobileControlsManager {
         shootBtn.classList.add('pressed');
 
         if (this.controller) {
-          this.controller.triggerShoot();
+          this.controller.beginAttackHold();
         }
-
-        clearInterval(this.shootInterval);
-        this.shootInterval = setInterval(() => {
-          if (this.controller) {
-            this.controller.triggerShoot();
-            this.triggerHaptic(12);
-          }
-        }, 220);
       };
 
       const stopShooting = (e) => {
         e.preventDefault();
         e.stopPropagation();
         shootBtn.classList.remove('pressed');
-        clearInterval(this.shootInterval);
-        this.shootInterval = null;
+        if (this.controller) {
+          this.controller.releaseAttackHold();
+        }
       };
 
       shootBtn.addEventListener('touchstart', startShooting, { passive: false });

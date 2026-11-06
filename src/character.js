@@ -31,6 +31,10 @@ export class Character {
     this.slashSide = 1;
     this.slashFacing = 0;
 
+    // Tụ lực kiếm khí (0..1)
+    this.isCharging = false;
+    this.chargeLevel = 0;
+
     // Kỹ năng & Thi triển phép thuật (Skill Casting)
     this.isCasting = false;
     this.castSkill = 0;
@@ -411,6 +415,27 @@ export class Character {
     sound.playSwordSlash();
   }
 
+  // Cập nhật mức tụ lực; facing (radian) là hướng nhân vật quay mặt khi đang tụ
+  setChargeLevel(level, charging, facing = this.slashFacing) {
+    if (charging && level >= 1 && this.chargeLevel < 1) {
+      sound.playSwordSummon(); // Báo hiệu tụ đầy lực
+      if (this.particles) {
+        this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 16, [0xffd700, 0xffffff], [2, 5], 0.4, 2.0, 0.6);
+      }
+    }
+    if (!charging && this.isCharging) {
+      this.bladeGlowMat.color.setHex(0x00d2d3);
+      this.rightArm.rotation.z = 0;
+      this.body.rotation.y = 0;
+    }
+    this.isCharging = charging;
+    this.chargeLevel = charging ? level : 0;
+    if (charging) {
+      this.slashFacing = facing;
+      this.targetRotationY = facing;
+    }
+  }
+
   // KÍCH HOẠT ANIMATION VÀ VÒNG MA PHÁP THI TRIỂN KỸ NĂNG CỦA BÉ GẤU
   triggerSkillCast(skillNum) {
     this.isCasting = true;
@@ -489,7 +514,7 @@ export class Character {
       this.velocity.x = inputVector.x * this.speed;
       this.velocity.z = inputVector.z * this.speed;
       // Đang chém thì giữ hướng mặt về phía đòn chém
-      this.targetRotationY = this.slashTimer > 0 ? this.slashFacing : Math.atan2(inputVector.x, inputVector.z);
+      this.targetRotationY = (this.slashTimer > 0 || this.isCharging) ? this.slashFacing : Math.atan2(inputVector.x, inputVector.z);
     } else {
       this.velocity.x = THREE.MathUtils.lerp(this.velocity.x, 0, delta * 8);
       this.velocity.z = THREE.MathUtils.lerp(this.velocity.z, 0, delta * 8);
@@ -717,6 +742,28 @@ export class Character {
         this.rightArm.rotation.z = 0;
         this.body.rotation.y = 0;
         this.bladeGlowMat.color.setHex(0x00d2d3);
+      }
+    } else if (this.isCharging) {
+      // Kéo kiếm ra sau hông, kiếm quang sáng dần từ lam sang hoàng kim
+      const c = this.chargeLevel;
+      this.rightArm.rotation.x = 0.55 + c * 0.25;
+      this.rightArm.rotation.y = 0;
+      this.rightArm.rotation.z = 0.7;
+      this.body.rotation.y = 0.3 * c;
+      this.sword.rotation.x = Math.PI - 0.25;
+      const pulse = c >= 1 ? 0.5 + 0.5 * Math.sin(this.animTime * 6) : c;
+      this.bladeGlowMat.color.setHex(0x00d2d3).lerp(new THREE.Color(0xffd700), pulse);
+
+      if (this.particles && Math.random() < 0.15 + c * 0.35) {
+        this.particles.emitElementalParticles(
+          this.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 0.6 + Math.random() * 0.8, (Math.random() - 0.5) * 1.2)),
+          1,
+          c >= 1 ? [0xffd700, 0xffffff] : [0x00f2fe, 0xffffff],
+          [0.5, 1.5],
+          0.25,
+          0,
+          0.4
+        );
       }
     } else {
       this.sword.rotation.x = THREE.MathUtils.lerp(this.sword.rotation.x, Math.PI / 2, delta * 12);
