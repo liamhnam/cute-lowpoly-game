@@ -65,6 +65,7 @@ export class Character {
     // Bảng màu trang phục Tiên Hiệp cổ phong
     this.outfitIndex = 0;
     this.outfits = [
+      { name: 'Hoàng Bào Đạo Sĩ (Kim Hoàng)', clothes: 0xf6c344, hat: 0x2d3436 },
       { name: 'Thanh Vân Tiên Bào (Lam Ngọc)', clothes: 0x54a0ff, hat: 0x1dd1a1 },
       { name: 'Tử Tiêu Kiếm Tông (Tử Kim)', clothes: 0x8854d0, hat: 0xf1c40f },
       { name: 'Hồng Trần Ma Tu (Chu Sa Hắc Bào)', clothes: 0xeb3b5a, hat: 0x2d3436 },
@@ -156,14 +157,17 @@ export class Character {
       opacity: 0.65,
     });
 
-    // Áo yếm / quần áo
+    // Đạo bào
     this.clothesMat = new THREE.MeshStandardMaterial({
       color: this.outfits[0].clothes,
       roughness: 0.7,
       flatShading: true,
     });
 
-    // Mũ Beret xinh xắn
+    // Viền cổ áo, đai lưng, cổ tay áo đạo bào
+    const trimMat = new THREE.MeshStandardMaterial({ color: 0x8e2b2b, roughness: 0.6, flatShading: true });
+
+    // Mũ đạo sĩ
     this.hatMat = new THREE.MeshStandardMaterial({
       color: this.outfits[0].hat,
       roughness: 0.6,
@@ -186,12 +190,33 @@ export class Character {
     bodyMesh.receiveShadow = true;
     this.body.add(bodyMesh);
 
-    // Cúc áo nhỏ xinh
-    const buttonMat = new THREE.MeshStandardMaterial({ color: 0xfff0c2, roughness: 0.5 });
-    for (let b = 0; b < 2; b++) {
-      const button = new THREE.Mesh(new THREE.DodecahedronGeometry(0.06, 0), buttonMat);
-      button.position.set(0, 0.75 - b * 0.18, 0.52);
-      this.body.add(button);
+    // Vạt đạo bào xoè dài phủ xuống tận chân
+    const robeSkirt = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.64, 0.46, 10), this.clothesMat);
+    robeSkirt.position.y = 0.33;
+    robeSkirt.castShadow = true;
+    this.body.add(robeSkirt);
+
+    // Cổ áo giao lĩnh: hai vạt viền chéo nhau hình chữ V trước ngực
+    for (const side of [-1, 1]) {
+      const collar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.46, 0.05), trimMat);
+      collar.position.set(side * 0.1, 0.93, 0.46);
+      collar.rotation.z = -side * 0.5;
+      collar.rotation.x = -0.25;
+      this.body.add(collar);
+    }
+
+    // Đai lưng và nút thắt đai
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(0.585, 0.585, 0.1, 10), trimMat);
+    belt.position.y = 0.56;
+    this.body.add(belt);
+    const beltKnot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.12, 0.06), trimMat);
+    beltKnot.position.set(0.12, 0.54, 0.57);
+    this.body.add(beltKnot);
+    for (const side of [-1, 1]) {
+      const sash = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.22, 0.03), trimMat);
+      sash.position.set(0.12 + side * 0.04, 0.4, 0.6);
+      sash.rotation.z = side * 0.15;
+      this.body.add(sash);
     }
 
     // 2. ĐẦU GẤU
@@ -260,19 +285,44 @@ export class Character {
     createEar(1);
     createEar(-1);
 
-    // Mũ Beret
+    // Mũ đạo sĩ: thân mũ đen, đỉnh mũ phẳng vuông, phía trước gắn thái cực đồ
     const hatGroup = new THREE.Group();
-    hatGroup.position.set(0.1, 0.5, -0.05);
-    hatGroup.rotation.z = -0.2;
-    hatGroup.rotation.x = -0.1;
+    hatGroup.position.set(0, 0.5, -0.02);
+    hatGroup.rotation.x = -0.12;
 
-    const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 0.16, 8), this.hatMat);
+    const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.36, 0.3, 8), this.hatMat);
     hatBase.castShadow = true;
     hatGroup.add(hatBase);
 
-    const hatPompom = new THREE.Mesh(new THREE.DodecahedronGeometry(0.1, 0), snoutMat);
-    hatPompom.position.y = 0.16;
-    hatGroup.add(hatPompom);
+    const hatTop = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.05, 0.5), this.hatMat);
+    hatTop.position.y = 0.17;
+    hatTop.rotation.y = Math.PI / 4;
+    hatTop.castShadow = true;
+    hatGroup.add(hatTop);
+
+    const hatBand = new THREE.Mesh(new THREE.CylinderGeometry(0.365, 0.365, 0.05, 8), trimMat);
+    hatBand.position.y = -0.12;
+    hatGroup.add(hatBand);
+
+    // Thái cực đồ: hai nửa âm dương và hai chấm
+    const taiji = new THREE.Group();
+    taiji.position.set(0, 0.02, 0.335);
+    taiji.rotation.x = 0.1;
+    const yangMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const yinMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const yang = new THREE.Mesh(new THREE.CircleGeometry(0.08, 16, Math.PI / 2, Math.PI), yangMat);
+    const yin = new THREE.Mesh(new THREE.CircleGeometry(0.08, 16, -Math.PI / 2, Math.PI), yinMat);
+    taiji.add(yang, yin);
+    for (const side of [-1, 1]) {
+      const swirl = new THREE.Mesh(new THREE.CircleGeometry(0.04, 12), side > 0 ? yangMat : yinMat);
+      swirl.position.set(0, side * 0.04, 0.002);
+      const dot = new THREE.Mesh(new THREE.CircleGeometry(0.013, 8), side > 0 ? yinMat : yangMat);
+      dot.position.set(0, side * 0.04, 0.004);
+      taiji.add(swirl, dot);
+    }
+    const taijiRim = new THREE.Mesh(new THREE.RingGeometry(0.08, 0.095, 16), new THREE.MeshBasicMaterial({ color: 0xf1c40f }));
+    taiji.add(taijiRim);
+    hatGroup.add(taiji);
 
     this.head.add(hatGroup);
     this.body.add(this.head);
@@ -326,6 +376,20 @@ export class Character {
     this.leftArm.add(armMeshL);
     this.body.add(this.leftArm);
 
+    // Tay áo đạo bào rộng xoè ra ở cổ tay, viền đỏ sẫm
+    const sleeveGeo = new THREE.CylinderGeometry(0.13, 0.21, 0.28, 8);
+    const cuffGeo = new THREE.CylinderGeometry(0.215, 0.215, 0.045, 8);
+    const addSleeve = (arm) => {
+      const sleeve = new THREE.Mesh(sleeveGeo, this.clothesMat);
+      sleeve.position.y = -0.12;
+      sleeve.castShadow = true;
+      arm.add(sleeve);
+      const cuff = new THREE.Mesh(cuffGeo, trimMat);
+      cuff.position.y = -0.27;
+      arm.add(cuff);
+    };
+    addSleeve(this.leftArm);
+
     // 5. TAY PHẢI VÀ THANH TIÊN KIẾM LOW POLY
     this.rightArm = new THREE.Group();
     this.rightArm.position.set(0.48, 0.85, 0);
@@ -333,6 +397,7 @@ export class Character {
     armMeshR.position.y = -0.16;
     armMeshR.castShadow = true;
     this.rightArm.add(armMeshR);
+    addSleeve(this.rightArm);
 
     // Điểm cầm kiếm trên tay: trục +y của nhóm là hướng lưỡi kiếm
     this.sword = new THREE.Group();

@@ -623,15 +623,16 @@ export class PixelFXManager {
   }
 
   // --- TUYỆT KỸ KIẾM NỘ: ĐẠI CANH KIẾM TRẬN ---
-  // 12 lôi kiếm truy sát liên tục mọi quái trong 50m quanh người suốt 10 giây.
-  // Mỗi thanh tự chọn mục tiêu, chém xuyên qua rồi vòng lại chém tiếp, kéo theo vệt sét lập loè.
+  // 36 lôi kiếm xoáy vòng liên tục quanh người suốt 10 giây như cơn lốc kiếm.
+  // Bán kính quỹ đạo mỗi thanh co giãn từ 3m tới 30m để quét kín cả vùng, kiếm quét trúng quái là gây sát thương.
   castDaiCanhSwordArray(character, monsters) {
-    const SWORD_COUNT = 12;
-    const RANGE = 50;
+    const SWORD_COUNT = 36;
+    const RANGE = 30;
+    const MIN_RADIUS = 3;
     const DURATION = 10;
-    const HUNT_SPEED = 30;
-    const IDLE_SPEED = 16;
-    const TURN_RATE = 7;
+    const ORBIT_SPEED = 22; // tốc độ dài trên quỹ đạo (m/s)
+    const MAX_SPIN = 4;     // giới hạn tốc độ góc khi kiếm ở gần tâm (rad/s)
+    const INTRO = 0.6;      // thời gian kiếm bung từ người ra quỹ đạo
     const DAMAGE = 18;
     const HIT_INTERVAL = 0.5; // một thanh kiếm chém lại cùng một con sau ít nhất 0.5s
     const TRAIL_POINTS = 14;
@@ -642,7 +643,7 @@ export class PixelFXManager {
     if (this.controller) this.controller.addTrauma(0.5);
     this.spawnTelegraph(character.position.clone(), 0xa29bfe, 1.2, RANGE);
 
-    // Vòng ranh giới kiếm trận 50m đi theo người
+    // Vòng ranh giới kiếm trận 30m đi theo người
     const borderMat = new THREE.MeshBasicMaterial({
       color: 0xa29bfe,
       transparent: true,
@@ -671,22 +672,20 @@ export class PixelFXManager {
     const swords = [];
     for (let i = 0; i < SWORD_COUNT; i++) {
       const angle = (i / SWORD_COUNT) * Math.PI * 2;
-      const out = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
       const mesh = createSword(1.3);
-      mesh.position.copy(character.position).addScaledVector(out, 1.5);
+      mesh.position.copy(character.position);
       mesh.position.y += 1.5;
       this.scene.add(mesh);
       swords.push({
         mesh,
-        // Bung lên trời toả ra bốn phía rồi mới lao đi săn
-        vel: out.clone().multiplyScalar(8).add(new THREE.Vector3(0, 14, 0)),
-        target: null,
-        retarget: 0.4 + Math.random() * 0.4,
-        overshoot: 0,
+        vel: new THREE.Vector3(),
+        angle,
+        // Mỗi thanh co giãn bán kính với nhịp và pha riêng để luôn có kiếm ở mọi khoảng cách
+        breathe: 0.45 + Math.random() * 0.35,
+        radiusPhase: (i * 2.399) % (Math.PI * 2), // góc vàng: rải đều pha giữa các thanh
         hitTimers: new Map(),
         history: [],
         strands: [makeStrand(coreMat), makeStrand(glowMat)],
-        orbitPhase: angle,
       });
     }
 
@@ -706,15 +705,9 @@ export class PixelFXManager {
       }
     };
 
-    const pickTarget = (center) => {
-      const candidates = monsters.filter((m) => !m.isDead && Math.hypot(m.position.x - center.x, m.position.z - center.z) <= RANGE);
-      return candidates.length ? candidates[Math.floor(Math.random() * candidates.length)] : null;
-    };
-
     let elapsed = 0;
     let lastHitSound = -1;
-    const desiredPoint = new THREE.Vector3();
-    const desiredVel = new THREE.Vector3();
+    const prevPos = new THREE.Vector3();
 
     this.activeEffects.push({
       update: (delta) => {
@@ -756,44 +749,26 @@ export class PixelFXManager {
           const s = swords[i];
           for (const [m, timer] of s.hitTimers) s.hitTimers.set(m, timer - delta);
 
-          if (s.overshoot > 0) {
-            // Vừa chém xuyên qua: giữ đà lao thẳng một nhịp rồi mới vòng lại
-            s.overshoot -= delta;
-          } else {
-            s.retarget -= delta;
-            const lost = !s.target || s.target.isDead ||
-              Math.hypot(s.target.position.x - center.x, s.target.position.z - center.z) > RANGE;
-            if (lost || s.retarget <= 0) {
-              s.target = pickTarget(center);
-              s.retarget = 2 + Math.random() * 1.5;
-            }
+          // Bán kính quỹ đạo co giãn giữa MIN_RADIUS và RANGE; lúc mở chiêu thì bung dần từ người ra
+          let radius = MIN_RADIUS + (RANGE - MIN_RADIUS) * (0.5 - 0.5 * Math.cos(s.breathe * elapsed + s.radiusPhase));
+          if (elapsed < INTRO) radius = THREE.MathUtils.lerp(1.0, radius, elapsed / INTRO);
 
-            let speed;
-            if (s.target) {
-              desiredPoint.copy(s.target.position);
-              desiredPoint.y += s.target.hitHeight * 0.45;
-              speed = HUNT_SPEED;
-            } else {
-              // Không còn yêu ma: lượn vòng hộ vệ quanh người
-              const a = elapsed * 1.6 + s.orbitPhase;
-              desiredPoint.set(center.x + Math.cos(a) * 6, center.y + 3.5 + Math.sin(elapsed * 3 + i) * 0.6, center.z + Math.sin(a) * 6);
-              speed = IDLE_SPEED;
-            }
-            desiredVel.subVectors(desiredPoint, s.mesh.position).normalize().multiplyScalar(speed);
-            s.vel.lerp(desiredVel, Math.min(1, TURN_RATE * delta)).setLength(speed);
-          }
+          // Xoáy cùng chiều, tốc độ dài gần như đều nên kiếm ở xa không bị chậm
+          s.angle += Math.min(MAX_SPIN, ORBIT_SPEED / Math.max(radius, 1)) * delta;
 
-          s.mesh.position.addScaledVector(s.vel, delta);
-          // Không cắm xuống đất
-          const groundY = getTerrainHeight(s.mesh.position.x, s.mesh.position.z) + 0.6;
-          if (s.mesh.position.y < groundY) {
-            s.mesh.position.y = groundY;
-            s.vel.y = Math.abs(s.vel.y);
-          }
-          s.mesh.quaternion.setFromUnitVectors(up, s.vel.clone().normalize());
+          prevPos.copy(s.mesh.position);
+          const x = center.x + Math.cos(s.angle) * radius;
+          const z = center.z + Math.sin(s.angle) * radius;
+          // Bay nhấp nhô ngang tầm thân quái, không cắm xuống đất
+          const y = Math.max(getTerrainHeight(x, z) + 0.6, center.y + 1.8 + Math.sin(elapsed * 2.2 + i * 0.7) * 1.2);
+          s.mesh.position.set(x, y, z);
+
+          // Mũi kiếm hướng theo chiều bay
+          s.vel.subVectors(s.mesh.position, prevPos).divideScalar(Math.max(delta, 0.001));
+          if (s.vel.lengthSq() > 0.0001) s.mesh.quaternion.setFromUnitVectors(up, s.vel.clone().normalize());
           updateTrail(s);
 
-          if (this.particles && Math.random() < 0.35) {
+          if (this.particles && Math.random() < 0.15) {
             this.particles.emitElementalParticles(s.mesh.position, 1, [0xa29bfe, 0xffffff, 0x74b9ff], [0.3, 1.2], 0.2, 0, 0.3);
           }
 
@@ -801,7 +776,6 @@ export class PixelFXManager {
             if (monster.isDead || (s.hitTimers.get(monster) || 0) > 0) continue;
             if (monster.checkCollision(s.mesh.position, 0.9)) {
               s.hitTimers.set(monster, HIT_INTERVAL);
-              s.overshoot = 0.3;
               this.damageMonster(monster, DAMAGE, `⚡ -${DAMAGE}`, '#a29bfe', s.mesh.position);
               if (this.particles) this.particles.emitShockwave(s.mesh.position, 0xa29bfe, 2.2, 0.2);
               if (elapsed - lastHitSound > 0.07) {

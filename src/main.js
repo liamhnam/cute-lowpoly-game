@@ -174,7 +174,7 @@ class Game {
           const success = this.pixelFX.castSkill(6, targetPos, this.character, this.monsters);
           if (success) {
             this.playerRage = 0;
-            this.showNotification('⚡ ĐẠI CANH KIẾM TRẬN! Mười hai lôi kiếm tru diệt yêu ma!');
+            this.showNotification('⚡ ĐẠI CANH KIẾM TRẬN! Ba mươi sáu lôi kiếm xoáy diệt yêu ma!');
           }
           return success;
         }
