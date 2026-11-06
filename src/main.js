@@ -9,7 +9,6 @@ import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
 import { MobileControlsManager } from './mobileControls.js';
 import { loadSwordModel } from './sword.js';
-import { loadDragonModel } from './dragon.js';
 import { NetworkManager } from './network.js';
 import { RemotePlayer } from './remotePlayer.js';
 import { CloneManager } from './clones.js';
@@ -122,7 +121,6 @@ class Game {
     // 3. Nhân vật Bé Gấu Tu Tiên mang hồ lô và pháp bảo
     this.character = new Character(this.scene, this.particles);
     loadSwordModel(); // Nạp tiên kiếm GLB nếu có, kiếm trên tay & kiếm chiêu tự đổi theo
-    loadDragonModel(); // Nạp thần long GLB nếu có cho chiêu Thiên Long Cự Kiếm
 
     // 4. Hệ thống chém kiếm & kiếm khí có vệt sáng & tương tác vật thể
     this.projectiles = new ProjectileSystem(this.scene, this.particles, this.world);

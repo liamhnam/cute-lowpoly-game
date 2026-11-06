@@ -714,7 +714,7 @@ export class Character {
 
     // Màu sắc hào quang ma pháp theo từng Môn Phái và Chiêu thức
     const sectColors = [
-      { 1: 0xffd54a, 2: 0xf1c40f, 3: 0xa29bfe }, // Đạo Gia (Thiên Long Cự Kiếm, Bát Quái Đại Canh, Phân Thân)
+      { 1: 0xffd54a, 2: 0xf1c40f, 3: 0xa29bfe }, // Đạo Gia (Cự Kiếm Phá Thiên, Bát Quái Đại Canh, Phân Thân)
       { 1: 0x00d2d3, 2: 0x7ed6df, 3: 0x54a0ff }, // Thanh Vân (Huyền Băng, Phong Trảm, Băng Vũ)
       { 1: 0xa29bfe, 2: 0x7bed9f, 3: 0xffd700 }, // Tử Tiêu (Thuấn Bộ, Hộ Thể, Vạn Kiếm)
       { 1: 0xff4757, 2: 0x8854d0, 3: 0xeb3b5a }, // Ma Tu (Huyết Ma, Hắc Động, Ma Bạo)

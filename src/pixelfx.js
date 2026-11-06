@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { sound } from './audio.js';
 import { getTerrainHeight } from './world.js';
 import { createSword, SWORD_LENGTH } from './sword.js';
-import { createDragon } from './dragon.js';
 
 // --- PIXEL ART PROCEDURAL TEXTURE GENERATOR (Theo cảm hứng từ patch-gg/pixelfx) ---
 // Vẽ các frame hiệu ứng pixel art trực tiếp lên canvas 2D nhỏ (nearest-neighbor)
@@ -334,16 +333,16 @@ export const SECTS = [
     colorHex: 0xf6c344,
     themeColor: '#f1c40f',
     icon: '🐉',
-    desc: 'Đạo gia chính thống: Thiên Long Cự Kiếm 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân',
+    desc: 'Đạo gia chính thống: Cự Kiếm Phá Thiên 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân',
     skills: [
       {
         id: 1,
-        name: 'Thiên Long Cự Kiếm',
+        name: 'Cự Kiếm Phá Thiên',
         tag: 'CỰ KIẾM',
         icon: '🗡️',
         cd: 6.0,
         mana: 25,
-        desc: 'Phóng to thanh kiếm đang cầm thành cự kiếm hơn cả bản thể cùng Hắc Kim Chân Long bay thẳng 50m: kiếm chém 50 ST, rồng tông 70 ST, cuối đường nổ 80 ST'
+        desc: 'Phóng to thanh kiếm đang cầm thành cự kiếm hơn cả bản thể rồi phóng thẳng 50m: tông trúng 120 ST, cuối đường nổ 80 ST'
       },
       {
         id: 2,
@@ -708,15 +707,14 @@ export class PixelFXManager {
     return dir.lengthSq() > 0.0001 ? dir.normalize() : new THREE.Vector3(0, 0, -1);
   }
 
-  // --- KIẾM CHIÊU 1: THIÊN LONG CỰ KIẾM ---
-  // Thanh kiếm đang cầm phóng to ra thành cự kiếm lớn hơn cả bản thể rồi phóng thẳng 50m, một thần long bay
-  // cùng, thân uốn lượn hình chữ S. Cự kiếm (dọc cả lưỡi) và rồng tông trúng quái nào là gây sát thương;
-  // hết tầm thì nổ ở mũi kiếm, kiếm nhỏ hiện lại trên tay.
+  // --- KIẾM CHIÊU 1: CỰ KIẾM PHÁ THIÊN ---
+  // Thanh kiếm đang cầm phóng to ra thành cự kiếm lớn hơn cả bản thể rồi phóng thẳng 50m.
+  // Cự kiếm (dọc cả lưỡi) tông trúng quái nào là gây sát thương; hết tầm thì nổ ở mũi kiếm,
+  // kiếm nhỏ hiện lại trên tay.
   castFlyingSword(targetPos, character, monsters) {
     const RANGE = 50;
     const SPEED = 16;
-    const SWORD_DAMAGE = 50;
-    const DRAGON_DAMAGE = 70;
+    const SWORD_DAMAGE = 120;
     const BLAST_RADIUS = 8;
     const BLAST_DAMAGE = 80;
     const SWORD_SCALE = 4.0;                          // kiếm phóng to 4 lần: dài ~5m, gấp ~2.5 lần nhân vật
@@ -724,18 +722,9 @@ export class PixelFXManager {
     const BLADE_LEN = SWORD_LENGTH * SWORD_SCALE;
     const BLADE_HIT_RADIUS = 1.6;                     // bán kính va chạm quanh lưỡi cự kiếm
     const GROW_TIME = 0.4;                            // kiếm trên tay phình to trong chừng này giây rồi mới phóng
-    const DRAGON_THICK = 1.7;  // độ to thân rồng
-    const BODY_SPAN = 8.0;     // thân rồng trải dài 8m dọc đường bay
-    const HEAD_LEAD = 2.4;     // đầu rồng nhô lên ngang giữa lưỡi cự kiếm, thân kéo dài về sau
-    const RIDE_HEIGHT = 1.1;   // rồng bay phía trên lưỡi kiếm để không xuyên qua thân kiếm
-    const SWAY_SIDE = 1.3;     // biên độ lượn ngang ở đuôi (m)
-    const SWAY_UP = 0.35;      // biên độ nhấp nhô dọc (m)
-    const WAVE_COUNT = 1.1;    // số bước sóng chữ S dọc thân
-    const WAVE_SPEED = 3.5;    // sóng chạy từ đầu xuống đuôi (rad/s)
     const GOLD_SPARK = [0xffd54a, 0xfff3b0, 0xffffff];
 
     const dir = PixelFXManager.flatDirection(character.position, targetPos);
-    const right = new THREE.Vector3(dir.z, 0, -dir.x);
     const up = new THREE.Vector3(0, 1, 0);
 
     // Điểm cầm kiếm: ngang ngực, hơi lệch về phía trước. Kiếm nhỏ trên tay ẩn đi, cự kiếm phình ra từ đúng chỗ đó.
@@ -750,31 +739,11 @@ export class PixelFXManager {
     sound.playSwordSummon();
     if (this.particles) this.particles.emitElementalParticles(start, 16, GOLD_SPARK, [2, 6], 0.4, 0, 0.6);
 
-    const dragon = createDragon(DRAGON_THICK);
-    dragon.object.visible = false;
-    this.scene.add(dragon.object);
-    const dragonHits = new Set();
-
     const pos = new THREE.Vector3();
     const swordHits = new Set();
     let elapsed = 0;
     let flight = 0; // quãng đường kiếm đã bay
     let launched = false;
-
-    // Điểm trên thân rồng ở s (0 = đầu, 1 = đuôi): nằm trên đường kiếm, lệch ngang/dọc theo sóng chữ S
-    // chạy từ đầu xuống đuôi. Đầu lượn nhẹ, càng về đuôi càng lượn rộng; lúc mới phóng thì biên độ nở dần.
-    // Phần thân chưa ra khỏi điểm phóng thì dồn ở đó, như rồng đang trườn ra.
-    const bodyPoint = (s) => {
-      const u = Math.max(0, flight + HEAD_LEAD - s * BODY_SPAN);
-      const sway = (0.2 + 0.8 * Math.min(1, s * 2.5)) * Math.min(1, elapsed / 0.4);
-      const phase = s * WAVE_COUNT * Math.PI * 2 - elapsed * WAVE_SPEED;
-      const p = start.clone()
-        .addScaledVector(dir, u)
-        .addScaledVector(right, Math.sin(phase) * SWAY_SIDE * sway)
-        .addScaledVector(up, RIDE_HEIGHT + Math.cos(phase) * SWAY_UP * sway);
-      p.y = Math.max(p.y, getTerrainHeight(p.x, p.z) + 0.4);
-      return p;
-    };
 
     // Điểm trên lưỡi cự kiếm cách chuôi t * BLADE_LEN (t = 0 chuôi, 1 mũi)
     const bladePoint = (t) => pos.clone().addScaledVector(dir, BLADE_LEN * t);
@@ -791,11 +760,6 @@ export class PixelFXManager {
         }
       }
       this.damagePlayersNear(point, radius, damage, text, color, character, hitSet);
-    };
-
-    const cleanup = () => {
-      this.scene.remove(sword);
-      this.scene.remove(dragon.object);
     };
 
     this.activeEffects.push({
@@ -819,7 +783,6 @@ export class PixelFXManager {
           if (t < 1) return true;
           launched = true;
           elapsed = 0;
-          dragon.object.visible = true;
           if (this.controller) this.controller.addTrauma(0.2);
         }
 
@@ -836,26 +799,14 @@ export class PixelFXManager {
           hitMonsters(bladePoint(t), BLADE_HIT_RADIUS, swordHits, SWORD_DAMAGE, `🗡️ -${SWORD_DAMAGE}`, '#ffd54a');
         }
 
-        // Thân rồng uốn theo sóng chữ S sau mũi kiếm
-        dragon.pose(bodyPoint);
-
-        // Va chạm ở đầu, một phần ba và hai phần ba thân
-        for (const s of [0, 0.33, 0.66]) {
-          hitMonsters(bodyPoint(s), 1.5, dragonHits, DRAGON_DAMAGE, `🐉 -${DRAGON_DAMAGE}`, '#f9ca24');
-        }
-
-        if (this.particles && Math.random() < 0.6) {
-          this.particles.emitElementalParticles(bodyPoint(Math.random()), 1, [0x1c1c22, 0x2d3436, 0xf9ca24], [0.3, 1.0], 0.3, 0, 0.4);
-        }
-
         if (this.particles && Math.random() < 0.9) {
           // Tia vàng bắn ra dọc theo lưỡi cự kiếm
           this.particles.emitElementalParticles(bladePoint(Math.random()), 2, GOLD_SPARK, [0.3, 1.2], 0.3, 0, 0.4);
         }
 
-        // Hết 50m: cự kiếm cắm xuống nổ ở mũi kiếm cùng thần long
+        // Hết 50m: cự kiếm cắm xuống nổ ở mũi kiếm
         if (flight >= RANGE) {
-          cleanup();
+          this.scene.remove(sword);
           const tip = bladePoint(0.9);
           sound.playGiantSwordImpact();
           if (this.onScreenFlash) this.onScreenFlash('sword');
