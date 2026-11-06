@@ -114,8 +114,8 @@ export class MobileControlsManager {
           <span class="m-label">ĐẠP VÂN</span>
         </button>
 
-        <!-- Nút Pháp Kích Chính (Tấn công thường / Phi Tiên Đạn) -->
-        <button id="btn-m-shoot" class="m-btn m-btn-xl btn-shoot" title="Phi Tiên Pháp Kích (Giữ để bắn liên tục)">
+        <!-- Nút Pháp Kích Chính (Tấn công thường / Chém kiếm & kiếm khí) -->
+        <button id="btn-m-shoot" class="m-btn m-btn-xl btn-shoot" title="Kiếm Pháp (Giữ để chém liên tục)">
           <div class="shoot-ripple"></div>
           <span class="m-icon">⚔️</span>
           <span class="m-label">PHÁP KÍCH</span>

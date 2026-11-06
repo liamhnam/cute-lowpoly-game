@@ -25,8 +25,11 @@ export class Character {
     this.animTime = 0;
     this.footstepTimer = 0;
     this.squashFactor = 1.0;
-    this.gunRecoil = 0;
-    this.muzzleFlashTimer = 0;
+    // Chém kiếm (Sword Slash)
+    this.slashTimer = 0;
+    this.slashDuration = 0.26;
+    this.slashSide = 1;
+    this.slashFacing = 0;
 
     // Kỹ năng & Thi triển phép thuật (Skill Casting)
     this.isCasting = false;
@@ -298,7 +301,7 @@ export class Character {
     this.leftArm.add(armMeshL);
     this.body.add(this.leftArm);
 
-    // 5. TAY PHẢI VÀ KHẨU SÚNG BLASTER LOW POLY SIÊU CUTE!
+    // 5. TAY PHẢI VÀ THANH TIÊN KIẾM LOW POLY
     this.rightArm = new THREE.Group();
     this.rightArm.position.set(0.48, 0.85, 0);
     const armMeshR = new THREE.Mesh(armGeo, this.furMat);
@@ -306,60 +309,49 @@ export class Character {
     armMeshR.castShadow = true;
     this.rightArm.add(armMeshR);
 
-    // Khẩu súng Mega Blaster
-    this.gun = new THREE.Group();
-    this.gun.position.set(0.05, -0.28, 0.18);
-    this.gun.rotation.x = -Math.PI / 2 + 0.1;
+    // Tiên kiếm: trục +y của nhóm là hướng lưỡi kiếm
+    this.sword = new THREE.Group();
+    this.sword.position.set(0.02, -0.3, 0.06);
+    this.sword.rotation.x = Math.PI / 2;
 
-    // Thân súng chính
-    const gunBodyMat = new THREE.MeshStandardMaterial({
-      color: 0xff6348,
-      roughness: 0.4,
-      flatShading: true,
-    });
-    const gunBody = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.22, 0.45), gunBodyMat);
-    gunBody.castShadow = true;
-    this.gun.add(gunBody);
+    // Chuôi kiếm
+    const hiltMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, roughness: 0.8, flatShading: true });
+    const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.22, 6), hiltMat);
+    hilt.castShadow = true;
+    this.sword.add(hilt);
 
-    // Nòng súng tròn to (Megaphone Blaster)
-    const barrelMat = new THREE.MeshStandardMaterial({
-      color: 0xffc048,
-      roughness: 0.3,
-      flatShading: true,
-    });
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.12, 0.32, 8), barrelMat);
-    barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(0, 0.02, 0.32);
-    barrel.castShadow = true;
-    this.gun.add(barrel);
+    // Tua kiếm đỏ ở đốc
+    const swordTassel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.01, 0.16, 4), new THREE.MeshBasicMaterial({ color: 0xee5253 }));
+    swordTassel.position.y = -0.18;
+    this.sword.add(swordTassel);
 
-    // Lõi năng lượng phát sáng
-    this.coreMat = new THREE.MeshBasicMaterial({ color: 0x00d2d3 });
-    const core = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), this.coreMat);
-    core.position.set(0, 0.12, -0.05);
-    this.gun.add(core);
+    // Đốc chắn tay vàng
+    const guardMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, roughness: 0.3, metalness: 0.4, flatShading: true });
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.05, 0.08), guardMat);
+    guard.position.y = 0.13;
+    guard.castShadow = true;
+    this.sword.add(guard);
 
-    // Điểm đầu nòng súng (Muzzle Point)
-    this.muzzleNode = new THREE.Object3D();
-    this.muzzleNode.position.set(0, 0.02, 0.52);
-    this.gun.add(this.muzzleNode);
+    // Lưỡi kiếm bạc
+    const bladeMat = new THREE.MeshStandardMaterial({ color: 0xdfe6e9, roughness: 0.25, metalness: 0.6, flatShading: true });
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.85, 0.03), bladeMat);
+    blade.position.y = 0.58;
+    blade.castShadow = true;
+    this.sword.add(blade);
 
-    // Hiệu ứng Muzzle Flash hình ngôi sao phát sáng
-    const flashGeo = new THREE.DodecahedronGeometry(0.22, 0);
-    this.flashMat = new THREE.MeshBasicMaterial({
-      color: 0xfffa65,
-      transparent: true,
-      opacity: 0.95,
-    });
-    this.muzzleFlash = new THREE.Mesh(flashGeo, this.flashMat);
-    this.muzzleFlash.visible = false;
-    this.muzzleNode.add(this.muzzleFlash);
+    const bladeTip = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.064, 0.16, 4), bladeMat);
+    bladeTip.rotation.y = Math.PI / 4;
+    bladeTip.scale.z = 0.35;
+    bladeTip.position.y = 1.08;
+    this.sword.add(bladeTip);
 
-    // Ánh sáng chớp nòng súng rọi sáng môi trường
-    this.muzzleLight = new THREE.PointLight(0xffdd59, 0, 8, 2.0);
-    this.muzzleNode.add(this.muzzleLight);
+    // Đường kiếm quang phát sáng giữa lưỡi
+    this.bladeGlowMat = new THREE.MeshBasicMaterial({ color: 0x00d2d3 });
+    const bladeGlow = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.8, 0.04), this.bladeGlowMat);
+    bladeGlow.position.y = 0.58;
+    this.sword.add(bladeGlow);
 
-    this.rightArm.add(this.gun);
+    this.rightArm.add(this.sword);
     this.body.add(this.rightArm);
 
     // 6. CHÂN
@@ -406,20 +398,17 @@ export class Character {
     }
   }
 
-  triggerShootAnimation() {
-    this.gunRecoil = 0.35; // Giật súng lùi lại dứt khoát
-    this.muzzleFlashTimer = 0.09;
-    this.muzzleFlash.visible = true;
-    this.muzzleFlash.scale.setScalar(1.0 + Math.random() * 0.5);
-    this.muzzleFlash.rotation.z = Math.random() * Math.PI;
-    if (this.muzzleLight) {
-      this.muzzleLight.intensity = 2.8;
-    }
+  // Chém kiếm theo hướng facing (radian), luân phiên chém trái/phải
+  triggerSlashAnimation(facing) {
+    this.slashTimer = this.slashDuration;
+    this.slashSide = -this.slashSide;
+    this.slashFacing = facing;
+    this.targetRotationY = facing;
 
-    // Lõi súng lóe sáng
-    this.coreMat.color.setHex(0xffffff);
+    // Kiếm quang lóe sáng
+    this.bladeGlowMat.color.setHex(0xffffff);
 
-    sound.playShoot();
+    sound.playSwordSlash();
   }
 
   // KÍCH HOẠT ANIMATION VÀ VÒNG MA PHÁP THI TRIỂN KỸ NĂNG CỦA BÉ GẤU
@@ -445,8 +434,8 @@ export class Character {
     this.castAuraGroup.visible = true;
     this.castAuraGroup.scale.set(0.3, 0.3, 0.3);
 
-    // Cập nhật màu lõi năng lượng súng theo kỹ năng
-    this.coreMat.color.setHex(color);
+    // Cập nhật màu kiếm quang theo kỹ năng
+    this.bladeGlowMat.color.setHex(color);
 
     if (skillNum === 5) {
       // Vạn Kiếm: Bé gấu ngự không phi hành, lơ lửng ngự kiếm!
@@ -478,12 +467,6 @@ export class Character {
     }
   }
 
-  getMuzzleWorldPosition() {
-    const worldPos = new THREE.Vector3();
-    this.muzzleNode.getWorldPosition(worldPos);
-    return worldPos;
-  }
-
   cycleOutfit() {
     this.outfitIndex = (this.outfitIndex + 1) % this.outfits.length;
     const current = this.outfits[this.outfitIndex];
@@ -505,7 +488,8 @@ export class Character {
     if (this.isMoving) {
       this.velocity.x = inputVector.x * this.speed;
       this.velocity.z = inputVector.z * this.speed;
-      this.targetRotationY = Math.atan2(inputVector.x, inputVector.z);
+      // Đang chém thì giữ hướng mặt về phía đòn chém
+      this.targetRotationY = this.slashTimer > 0 ? this.slashFacing : Math.atan2(inputVector.x, inputVector.z);
     } else {
       this.velocity.x = THREE.MathUtils.lerp(this.velocity.x, 0, delta * 8);
       this.velocity.z = THREE.MathUtils.lerp(this.velocity.z, 0, delta * 8);
@@ -555,25 +539,7 @@ export class Character {
       this.contactShadow.scale.set(s, s, s);
     }
 
-    // Giảm dần ánh sáng nòng súng
-    if (this.muzzleLight && this.muzzleLight.intensity > 0) {
-      this.muzzleLight.intensity = THREE.MathUtils.lerp(this.muzzleLight.intensity, 0, delta * 18);
-    }
-
-    // Muzzle flash timer
-    if (this.muzzleFlashTimer > 0) {
-      this.muzzleFlashTimer -= delta;
-      if (this.muzzleFlashTimer <= 0) {
-        this.muzzleFlash.visible = false;
-        this.coreMat.color.setHex(0x00d2d3);
-      }
-    }
-
     this.squashFactor = THREE.MathUtils.lerp(this.squashFactor, 1.0, delta * 9);
-    this.gunRecoil = THREE.MathUtils.lerp(this.gunRecoil, 0, delta * 14);
-
-    // Cập nhật lùi nòng súng khi bắn
-    this.gun.position.z = 0.18 - this.gunRecoil;
 
     // ANIMATION TIẾN TRÌNH
     const animSpeed = this.isMoving ? (this.isSprinting ? 14.5 : 9.5) : 3.2;
@@ -732,6 +698,28 @@ export class Character {
         this.body.rotation.x = -0.18;
         this.head.rotation.x = -0.22;
       }
+    }
+
+    // --- ANIMATION CHÉM KIẾM (đè lên tư thế tay phải) ---
+    if (this.slashTimer > 0) {
+      this.slashTimer -= delta;
+      const p = 1.0 - Math.max(0, this.slashTimer) / this.slashDuration;
+      const ease = 1.0 - Math.pow(1.0 - p, 3);
+      // Vung tay ngang trước mặt: rotation.z quét cung, rotation.x đưa tay ra trước
+      this.rightArm.rotation.x = -1.35;
+      this.rightArm.rotation.y = 0;
+      this.rightArm.rotation.z = this.slashSide * THREE.MathUtils.lerp(1.5, -1.3, ease);
+      this.body.rotation.y = this.slashSide * THREE.MathUtils.lerp(0.35, -0.35, ease);
+      // Lưỡi kiếm duỗi thẳng theo cánh tay khi chém
+      this.sword.rotation.x = Math.PI - 0.25;
+
+      if (this.slashTimer <= 0) {
+        this.rightArm.rotation.z = 0;
+        this.body.rotation.y = 0;
+        this.bladeGlowMat.color.setHex(0x00d2d3);
+      }
+    } else {
+      this.sword.rotation.x = THREE.MathUtils.lerp(this.sword.rotation.x, Math.PI / 2, delta * 12);
     }
 
     // Squash & Stretch toàn thân

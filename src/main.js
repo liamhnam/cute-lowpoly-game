@@ -107,7 +107,7 @@ class Game {
     // 3. Nhân vật Bé Gấu Tu Tiên mang hồ lô và pháp bảo
     this.character = new Character(this.scene, this.particles);
 
-    // 4. Hệ thống đạn súng Phi Tiên Đạn có vệt sáng & tương tác vật thể
+    // 4. Hệ thống chém kiếm & kiếm khí có vệt sáng & tương tác vật thể
     this.projectiles = new ProjectileSystem(this.scene, this.particles, this.world);
 
     // 5. Yêu Ma quấy nhiễu các phường thị Kinh Thành Cổ
@@ -149,8 +149,9 @@ class Game {
       this.camera,
       this.character,
       this.canvas,
-      (muzzlePos, shootDir) => {
-        this.projectiles.spawnBullet(muzzlePos, shootDir);
+      (origin, attackDir) => {
+        this.projectiles.slash(origin, attackDir, this.monsters);
+        this.projectiles.spawnSwordQi(origin.clone().addScaledVector(attackDir, 0.6), attackDir);
       },
       (skillNum, targetPos) => {
         // Kiểm tra hồi chiêu

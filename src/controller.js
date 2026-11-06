@@ -25,6 +25,9 @@ export class ThirdPersonController {
     // Rung lắc Camera mượt mà (Screen Trauma / Shake)
     this.trauma = 0;
 
+    // Hồi chiêu giữa hai đòn chém thường
+    this.attackCooldown = 0;
+
     // Thông số Camera Orbit góc nhìn thứ 3
     this.cameraDistance = 8.5;
     this.minDistance = 4.0;
@@ -114,12 +117,9 @@ export class ThirdPersonController {
 
     this.domElement.addEventListener('click', (e) => {
       if (this.isMobileActive) return;
+      // Khi đã khóa chuột, đòn đánh do sự kiện mousedown xử lý
       if (!this.isLocked) {
         this.requestLock();
-      } else {
-        if (e.button === 0) {
-          this.triggerShoot();
-        }
       }
     });
 
@@ -202,17 +202,25 @@ export class ThirdPersonController {
     this.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
+  // Đòn đánh thường: chém kiếm + phóng kiếm khí theo hướng camera
   triggerShoot() {
-    this.character.triggerShootAnimation();
+    if (this.attackCooldown > 0) return;
+    this.attackCooldown = 0.32;
+
+    const forward = new THREE.Vector3(
+      -Math.sin(this.yaw),
+      0,
+      -Math.cos(this.yaw)
+    ).normalize();
+
+    this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z));
     this.addTrauma(0.08); // Rung nhẹ tạo cảm giác đầm tay
 
-    const shootDir = new THREE.Vector3();
-    this.camera.getWorldDirection(shootDir);
-
-    const muzzlePos = this.character.getMuzzleWorldPosition();
+    const origin = this.character.position.clone();
+    origin.y += 1.0;
 
     if (this.onShoot) {
-      this.onShoot(muzzlePos, shootDir);
+      this.onShoot(origin, forward);
     }
   }
 
@@ -302,6 +310,8 @@ export class ThirdPersonController {
   }
 
   update(delta) {
+    if (this.attackCooldown > 0) this.attackCooldown -= delta;
+
     const moveInput = new THREE.Vector2(0, 0);
     if (this.keys.forward) moveInput.y += 1;
     if (this.keys.backward) moveInput.y -= 1;
