@@ -253,7 +253,7 @@ export class ThirdPersonController {
     const forward = this.getAttackForward();
     this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z), step);
     const dashDist = (this.character.sectStats?.dashDist !== undefined) ? this.character.sectStats.dashDist : 1.6;
-    if (step === 2) this.character.startDash(forward, dashDist, 0.15); // Nhát đâm lướt tới
+    if (step === 2 && !this.character.sectStats?.isRangedBasic) this.character.startDash(forward, dashDist, 0.15); // Nhát đâm lướt tới (chỉ cận chiến)
     this.addTrauma(step === 2 ? 0.16 : 0.08); // Rung nhẹ tạo cảm giác đầm tay
 
     if (this.onShoot) {

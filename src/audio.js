@@ -245,6 +245,32 @@ class SoundManager {
     osc.stop(now + 0.14);
   }
 
+  // Tiếng phóng phi vũ / phi tiêu lông vũ rít nhẹ trong gió (Bạch Hạc Chân Nhân)
+  playFeatherShoot() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2400 + Math.random() * 200, now);
+    osc.frequency.exponentialRampToValueAtTime(750, now + 0.09);
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(1100, now);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.11);
+  }
+
   // Tiếng Thiên Kiếm khổng lồ cắm phập xuống đất rền vang
   playGiantSwordImpact() {
     if (this.muted || !this.ctx) return;

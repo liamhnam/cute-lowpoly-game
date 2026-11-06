@@ -160,8 +160,8 @@ wss.on('connection', (ws) => {
             id: playerId,
             origin: msg.origin,
             direction: msg.direction,
-            // Loại đòn kiếm: chém combo (step 0-2) hoặc kiếm khí tụ lực (power 0-1)
-            kind: msg.kind === 'qi' ? 'qi' : 'slash',
+            // Loại đòn kiếm: chém combo (step 0-2), phi vũ lông vũ hoặc kiếm khí tụ lực (power 0-1)
+            kind: msg.kind === 'qi' ? 'qi' : (msg.kind === 'feather' ? 'feather' : 'slash'),
             step: Math.min(2, Math.max(0, Math.floor(Number(msg.step) || 0))),
             power: Math.min(1, Math.max(0, Number(msg.power) || 0)),
           });

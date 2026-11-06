@@ -83,12 +83,13 @@ export const SECT_STATS = [
     damageMult: 1.0,
     defenseMult: 1.18, // Nhận thêm 18% sát thương khi bị đánh (kính pháo)
     cdMult: 0.92,
-    slashColor: 0xffffff,
+    slashColor: 0x00d2d3,
     slashSpeedMult: 1.15,
-    projectileSpeed: 44, // kiếm khí bay nhanh nhất
-    dashDist: 1.8,
-    pro: 'Tốc chạy nhanh nhất game (+22%), sét giật lan',
-    con: 'Phòng thủ yếu nhất (nhận thêm +18% sát thương khi bị đánh)',
+    projectileSpeed: 46, // phi vũ & kiếm khí bay nhanh nhất
+    dashDist: 0.2, // đòn đánh thường tầm xa không bị lao vào cận chiến
+    isRangedBasic: true, // Đòn đánh thường tầm xa: Phi Vũ Tiên Tiễn
+    pro: 'Đánh thường tầm xa (Phi Vũ), tốc chạy nhanh nhất (+22%), sấm sét giật',
+    con: 'Máu mỏng nhất (1600 HP), kính pháo nhận thêm +18% sát thương',
   },
 ];
 
@@ -846,8 +847,13 @@ export class Character {
     this.slashFacing = facing;
     this.targetRotationY = facing;
 
-    this.flashBlade(step === 2 ? 0xffffff : 0x7bed9f, step === 2 ? 1.0 : 0.7);
-    sound.playSwordSlash();
+    const flashColor = this.sectStats?.slashColor || (step === 2 ? 0xffffff : 0x7bed9f);
+    this.flashBlade(flashColor, step === 2 ? 1.0 : 0.7);
+    if (this.sectStats?.isRangedBasic && sound.playFeatherShoot) {
+      sound.playFeatherShoot();
+    } else {
+      sound.playSwordSlash();
+    }
   }
 
   // Cập nhật mức tụ lực; facing (radian) là hướng nhân vật quay mặt khi đang tụ

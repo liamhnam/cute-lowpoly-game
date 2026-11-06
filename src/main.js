@@ -171,13 +171,22 @@ class Game {
       this.canvas,
       (origin, attackDir, comboStep) => {
         const sectStats = this.character.sectStats;
-        this.projectiles.slash(
-          origin, attackDir, this.monsters, comboStep === 2 ? 'thrust' : 'sweep',
-          this.pixelFX.remotePlayers, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source),
-          sectStats, this.character
-        );
-        if (this.network.isConnected) {
-          this.network.sendShoot(origin, attackDir, { kind: 'slash', step: comboStep });
+        if (sectStats?.isRangedBasic) {
+          this.projectiles.spawnFeatherDart(
+            origin, attackDir, comboStep, true, sectStats, this.character
+          );
+          if (this.network.isConnected) {
+            this.network.sendShoot(origin, attackDir, { kind: 'feather', step: comboStep });
+          }
+        } else {
+          this.projectiles.slash(
+            origin, attackDir, this.monsters, comboStep === 2 ? 'thrust' : 'sweep',
+            this.pixelFX.remotePlayers, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source),
+            sectStats, this.character
+          );
+          if (this.network.isConnected) {
+            this.network.sendShoot(origin, attackDir, { kind: 'slash', step: comboStep });
+          }
         }
       },
       (skillNum, targetPos) => {
@@ -360,10 +369,18 @@ class Game {
       const rpSectStats = rp ? (SECT_STATS[rp.outfitIndex] || null) : null;
       if (msg.kind === 'qi') {
         this.projectiles.spawnSwordQi(origin, dir, msg.power || 0, false, rpSectStats, rp);
+        sound.playSwordSlash();
+      } else if (msg.kind === 'feather') {
+        this.projectiles.spawnFeatherDart(origin, dir, msg.step || 0, false, rpSectStats, rp);
+        if (sound.playFeatherShoot) {
+          sound.playFeatherShoot();
+        } else {
+          sound.playSwordSlash();
+        }
       } else {
         this.projectiles.slash(origin, dir, this.monsters, msg.step === 2 ? 'thrust' : 'sweep', [], null, rpSectStats, rp);
+        sound.playSwordSlash();
       }
-      sound.playSwordSlash();
     });
 
     this.network.on('player_skill', (msg) => {

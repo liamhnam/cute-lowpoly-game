@@ -47,6 +47,49 @@ export class ProjectileSystem {
     });
     this.qiFullMat = this.qiMat.clone();
     this.qiFullMat.color.setHex(0xffd700); // Kiếm khí đầy lực màu hoàng kim
+
+    // Phi vũ / Lôi vũ tiễn của Bạch Hạc Chân Nhân
+    this.featherCoreGeo = new THREE.ConeGeometry(0.08, 0.95, 4);
+    this.featherCoreGeo.rotateX(Math.PI / 2);
+    this.featherWingGeo = new THREE.PlaneGeometry(0.32, 0.85);
+
+    this.featherCoreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    this.featherWingMat = new THREE.MeshBasicMaterial({
+      color: 0x00d2d3,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    this.featherLightningMat = new THREE.MeshBasicMaterial({
+      color: 0xf1c40f,
+      transparent: true,
+      opacity: 0.9,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+  }
+
+  // Tạo mesh lông vũ tiễn tiên đạo
+  createFeatherMesh(isLightning = false) {
+    const group = new THREE.Group();
+    const core = new THREE.Mesh(this.featherCoreGeo, this.featherCoreMat);
+    const wingMat = isLightning ? this.featherLightningMat : this.featherWingMat;
+    const wing1 = new THREE.Mesh(this.featherWingGeo, wingMat);
+    const wing2 = new THREE.Mesh(this.featherWingGeo, wingMat);
+    wing2.rotation.z = Math.PI / 2;
+    group.add(core);
+    group.add(wing1);
+    group.add(wing2);
+    return group;
   }
 
   // Góc xoay quanh trục Y để đưa hướng +x của hình cung về hướng dir
@@ -193,6 +236,65 @@ export class ProjectileSystem {
     }
   }
 
+  // Bắn phi vũ / lôi vũ tiễn tầm xa của Bạch Hạc Chân Nhân
+  // comboStep 0: 1 lông vũ đơn (38 ST)
+  // comboStep 1: 1 lông vũ tăng tốc (40 ST)
+  // comboStep 2 (Finisher): 3 lông vũ tỏa hình quạt (mỗi tia 34 ST, xuyên phá)
+  spawnFeatherDart(origin, direction, comboStep = 0, isLocal = true, sectStats = null, sourceCharacter = null) {
+    const baseDir = new THREE.Vector3(direction.x, 0, direction.z).normalize();
+    const dmgMult = sectStats?.damageMult || 1.0;
+    const speed = sectStats?.projectileSpeed || 46;
+    const isFinisher = comboStep === 2;
+
+    const angles = isFinisher ? [-0.14, 0, 0.14] : [0];
+    const baseDamage = isFinisher ? 34 : (comboStep === 1 ? 40 : 38);
+    const actualDamage = Math.round(baseDamage * dmgMult);
+
+    for (let i = 0; i < angles.length; i++) {
+      const ang = angles[i];
+      const dir = baseDir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), ang);
+      const mesh = this.createFeatherMesh(isFinisher);
+
+      mesh.position.copy(origin);
+      if (isFinisher && angles.length > 1) {
+        const perp = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(ang * 1.2);
+        mesh.position.add(perp);
+      }
+      mesh.lookAt(mesh.position.clone().add(dir));
+      this.scene.add(mesh);
+
+      const life = 0.54; // Tầm bay ~25m (46 m/s * 0.54s)
+      this.projectiles.push({
+        mesh,
+        dir,
+        velocity: dir.clone().multiplyScalar(speed),
+        life,
+        maxLife: life,
+        size: isFinisher ? 1.25 : 1.0,
+        radius: isFinisher ? 0.6 : 0.5,
+        damage: actualDamage,
+        pierce: isFinisher, // Phát bắn kết liễu đâm xuyên qua mục tiêu
+        hitMonsters: new Set(),
+        hitPlayers: new Set(),
+        isLocal,
+        color: isFinisher ? 0xf1c40f : 0x00d2d3,
+        trailTimer: 0,
+        sectStats,
+        sourceCharacter,
+        isFeather: true,
+        isLightning: isFinisher,
+        spinSpeed: 16,
+        leadOffset: 0.4,
+        growWithLife: false,
+      });
+    }
+
+    if (this.particles) {
+      const colors = isFinisher ? [0xffffff, 0x00d2d3, 0xf1c40f] : [0xffffff, 0x00d2d3];
+      this.particles.emitElementalParticles(origin, isFinisher ? 8 : 4, colors, [0.8, 1.8], 0.2, 0, 0.35);
+    }
+  }
+
   update(delta, monsters, remotePlayers = [], onHitPlayer = null) {
     for (let i = this.slashArcs.length - 1; i >= 0; i--) {
       const s = this.slashArcs[i];
@@ -212,27 +314,48 @@ export class ProjectileSystem {
       p.life -= delta;
       p.trailTimer += delta;
 
-      // Di chuyển kiếm khí
+      // Di chuyển kiếm khí / phi vũ
       p.mesh.position.addScaledVector(p.velocity, delta);
 
-      // Kiếm khí nở rộng dần theo tầm bay
-      p.mesh.scale.setScalar(p.size * (1.0 + (p.maxLife - p.life) * 0.4));
+      // Kiếm khí nở rộng dần theo tầm bay (phi vũ giữ kích thước ổn định)
+      if (p.growWithLife !== false) {
+        p.mesh.scale.setScalar(p.size * (1.0 + (p.maxLife - p.life) * 0.4));
+      }
+
+      // Xoay xoắn quanh trục bay (nòng phi tiêu)
+      if (p.spinSpeed) {
+        p.mesh.rotateZ(p.spinSpeed * delta);
+      }
 
       // Điểm va chạm nằm ở mép cung phía trước
-      const pos = p.mesh.position.clone().addScaledVector(p.dir, 0.95 * p.size);
+      const lead = p.leadOffset !== undefined ? p.leadOffset : 0.95 * p.size;
+      const pos = p.mesh.position.clone().addScaledVector(p.dir, lead);
 
-      // Hạt đuôi năng lượng (Qi Trail)
+      // Hạt đuôi năng lượng (Qi Trail / Feather Trail)
       if (p.trailTimer > 0.035 && this.particles) {
         p.trailTimer = 0;
-        this.particles.emitElementalParticles(
-          pos,
-          p.pierce ? 3 : 1,
-          p.pierce ? [0xffd700, 0xffa502, 0xffffff] : [0x00f2fe, 0x4facfe, 0xffffff],
-          [0.2, 0.8],
-          0.3,
-          0,
-          0.45
-        );
+        if (p.isFeather) {
+          const colors = p.isLightning ? [0xffffff, 0x00d2d3, 0xf1c40f] : [0xffffff, 0x00d2d3, 0x74b9ff];
+          this.particles.emitElementalParticles(
+            pos,
+            p.isLightning ? 2 : 1,
+            colors,
+            [0.15, 0.45],
+            0.15,
+            0,
+            0.35
+          );
+        } else {
+          this.particles.emitElementalParticles(
+            pos,
+            p.pierce ? 3 : 1,
+            p.pierce ? [0xffd700, 0xffa502, 0xffffff] : [0x00f2fe, 0x4facfe, 0xffffff],
+            [0.2, 0.8],
+            0.3,
+            0,
+            0.45
+          );
+        }
       }
 
       let hit = false;
@@ -244,11 +367,18 @@ export class ProjectileSystem {
           if (rp.checkBulletCollision(pos, p.radius)) {
             p.hitPlayers.add(rp.id);
             if (onHitPlayer) {
-              onHitPlayer(rp.id, p.damage, pos, 'sword_qi');
+              onHitPlayer(rp.id, p.damage, pos, p.isFeather ? 'feather_dart' : 'sword_qi');
             }
             if (this.particles) {
-              this.particles.emitHitSparkles(pos, 14);
-              this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
+              if (p.isFeather) {
+                this.particles.emitElementalParticles(pos, 10, [0xffffff, 0x00d2d3, 0x74b9ff], [0.8, 1.8], 0.25, 1, 0.4);
+                if (p.isLightning) {
+                  this.particles.emitShockwave(pos, 0x00d2d3, 2.8, 0.25);
+                }
+              } else {
+                this.particles.emitHitSparkles(pos, 14);
+                this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
+              }
             }
             sound.playHit();
             if (p.sectStats?.lifesteal && p.sourceCharacter) {
@@ -270,8 +400,15 @@ export class ProjectileSystem {
             monster.takeDamage(p.damage, pos);
             p.hitMonsters.add(monster);
             if (this.particles) {
-              this.particles.emitHitSparkles(pos, 12);
-              this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
+              if (p.isFeather) {
+                this.particles.emitElementalParticles(pos, 10, [0xffffff, 0x00d2d3, 0x74b9ff], [0.8, 1.8], 0.25, 1, 0.4);
+                if (p.isLightning) {
+                  this.particles.emitShockwave(pos, 0x00d2d3, 2.8, 0.25);
+                }
+              } else {
+                this.particles.emitHitSparkles(pos, 12);
+                this.particles.emitShockwave(pos, p.color, 2.5 * p.size, 0.25);
+              }
             }
             sound.playHit();
             if (p.sectStats?.lifesteal && p.sourceCharacter) {
@@ -297,8 +434,12 @@ export class ProjectileSystem {
       const groundY = getTerrainHeight(pos.x, pos.z);
       if (!hit && pos.y <= groundY + 0.18) {
         if (this.particles) {
-          this.particles.emitHitSparkles(pos, 8);
-          this.particles.emitShockwave(pos, p.color, 2.0, 0.25);
+          if (p.isFeather) {
+            this.particles.emitElementalParticles(pos, 6, [0xffffff, 0x00d2d3], [0.4, 1.0], 0.2, 0, 0.3);
+          } else {
+            this.particles.emitHitSparkles(pos, 8);
+            this.particles.emitShockwave(pos, p.color, 2.0, 0.25);
+          }
         }
         sound.playHit();
         hit = true;
