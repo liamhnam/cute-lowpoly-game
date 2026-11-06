@@ -6,7 +6,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 // được nhuộm sang tông hoàng kim khi nạp. Chưa có file thì dùng kiếm vàng dựng bằng code. Mọi thanh kiếm đều theo một quy ước:
 // gốc toạ độ ở chỗ cầm, lưỡi kiếm hướng +y, mũi kiếm ở y ≈ SWORD_LENGTH.
 
-const SWORD_MODEL_URL = `${import.meta.env.BASE_URL}models/jade_green_jian.glb`;
+const SWORD_MODEL_URL = `${import.meta.env?.BASE_URL || './'}models/jade_green_jian.glb`;
 export const SWORD_LENGTH = 1.25;
 
 // Chỉnh tay khi model nạp vào bị ngược đầu, hoặc muốn ẩn vỏ kiếm có sẵn trong model

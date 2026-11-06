@@ -34,6 +34,9 @@ export class RemotePlayer {
 
     this.animTime = 0;
     this.hitFlashTimer = 0;
+    this.freezeTimer = 0;
+    this.slowTimer = 0;
+    this.slowAmount = 0;
 
     // Chém kiếm (đồng bộ từ đòn của người chơi này)
     this.slashTimer = 0;
@@ -308,6 +311,14 @@ export class RemotePlayer {
     this.isGrounded = state.isGrounded !== undefined ? state.isGrounded : true;
     this.isCasting = Boolean(state.isCasting);
     this.castSkill = Number(state.castSkill) || 0;
+    if (state.outfit !== undefined && state.outfit !== this.outfitIndex) {
+      this.outfitIndex = Number(state.outfit);
+      const outfit = this.outfits[this.outfitIndex % this.outfits.length];
+      if (outfit) {
+        if (this.clothesMat) this.clothesMat.color.setHex(outfit.clothes);
+        if (this.hatMat) this.hatMat.color.setHex(outfit.hat);
+      }
+    }
   }
 
   // Animation chém kiếm khi nhận đòn của người chơi này qua mạng; step 0/1 chém ngang, step 2 đâm tới
@@ -325,6 +336,26 @@ export class RemotePlayer {
 
   // Thuấn Bộ Trảm: vị trí thật đến từ đồng bộ mạng nên không tự lướt trên máy này
   startDash() {}
+
+  freeze(duration = 2.2) {
+    this.freezeTimer = duration;
+    if (this.particles) {
+      this.particles.emitElementalParticles(
+        this.position.clone().add(new THREE.Vector3(0, 0.8, 0)),
+        10,
+        [0x00d2d3, 0x7ed6df, 0xffffff],
+        [1, 4],
+        0.4,
+        2.0,
+        0.5
+      );
+    }
+  }
+
+  slow(duration = 2.5, amount = 0.45) {
+    this.slowTimer = duration;
+    this.slowAmount = amount;
+  }
 
   takeDamage(dmg, hitPos) {
     this.hp = Math.max(0, this.hp - dmg);
@@ -378,6 +409,9 @@ export class RemotePlayer {
 
   update(delta) {
     if (this.isDead) return;
+
+    if (this.freezeTimer > 0) this.freezeTimer -= delta;
+    if (this.slowTimer > 0) this.slowTimer -= delta;
 
     // Phục hồi màu sắc sau khi dính sát thương chớp đỏ
     if (this.hitFlashTimer > 0) {

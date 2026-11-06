@@ -131,91 +131,62 @@
       z-index: 1000;
     }
 
-    /* THANH TRÊN CÙNG: KHUNG BẢNG TU TIÊN PIXEL */
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-
-    .title-card {
-      pointer-events: auto;
-      background: #fdfbf7;
-      padding: 12px 18px;
-      box-shadow:
-        0 -3px 0 0 #2f3542,
-        0 3px 0 0 #2f3542,
-        -3px 0 0 0 #2f3542,
-        3px 0 0 0 #2f3542,
-        0 0 0 2px #d4ac0d,
-        0 8px 20px rgba(0, 0, 0, 0.15);
-      max-width: 440px;
-    }
-
-    .title-card h1 {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.72rem;
-      line-height: 1.4;
-      color: #2c3e50;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .title-card h1 span {
-      color: #e67e22;
-      background: #fef5e7;
-      padding: 2px 6px;
-      border: 1px dashed #e67e22;
-      font-size: 0.6rem;
-    }
-
-    .title-card p {
-      font-size: 0.95rem;
-      color: #57606f;
-      margin-top: 5px;
-      line-height: 1.25;
-      font-family: 'VT323', monospace;
-    }
-
-    /* THANH MÁU & LINH LỰC RETRO PIXEL */
-    .status-bars-container {
-      margin-top: 8px;
+    /* ========================================================
+       UI TINH GỌN (CHỈ GIỮ MÁU, MANA, KỸ NĂNG, CÀI ĐẶT)
+       ======================================================== */
+    /* 1. THANH MÁU & MANA (GÓC TRÊN BÊN TRÁI) */
+    .player-bars-compact {
+      position: absolute;
+      top: 16px;
+      left: 16px;
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 6px;
+      background: rgba(30, 39, 46, 0.92);
+      padding: 8px 12px;
+      border: 2px solid #1e272e;
+      box-shadow:
+        0 -2px 0 0 #1e272e,
+        0 2px 0 0 #1e272e,
+        -2px 0 0 0 #1e272e,
+        2px 0 0 0 #1e272e,
+        0 0 0 1px #f1c40f,
+        0 8px 20px rgba(0, 0, 0, 0.4);
+      z-index: 10005;
+      pointer-events: auto;
+      min-width: 210px;
     }
 
     .pixel-bar-row {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.88rem;
-      font-weight: 700;
     }
 
     .pixel-bar-label {
-      width: 78px;
+      width: 44px;
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.52rem;
+      font-size: 0.5rem;
+      letter-spacing: 0.5px;
     }
 
-    .pixel-bar-label.hp { color: #d63031; }
-    .pixel-bar-label.mp { color: #0984e3; }
+    .pixel-bar-label.hp { color: #ff4757; }
+    .pixel-bar-label.mp { color: #00d2d3; }
+
     .pixel-bar-outer {
       flex: 1;
       height: 14px;
-      background: #2f3542;
-      border: 2px solid #1e272e;
+      background: #1e272e;
+      border: 1px solid #57606f;
       position: relative;
       overflow: hidden;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
     }
 
     .pixel-bar-inner {
       height: 100%;
       width: 100%;
-      transition: width 0.15s steps(10);
+      transition: width 0.15s ease-out;
     }
 
     .pixel-bar-inner.hp {
@@ -225,89 +196,133 @@
     .pixel-bar-inner.mp {
       background: repeating-linear-gradient(90deg, #00d2d3, #00d2d3 8px, #54a0ff 8px, #54a0ff 12px);
     }
+
     .pixel-bar-num {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
       font-family: 'VT323', monospace;
-      font-size: 0.82rem;
+      font-size: 0.88rem;
+      font-weight: 700;
       color: #ffffff;
       text-shadow: 1px 1px 0 #000;
+      pointer-events: none;
     }
 
-    .status-badges {
+    /* 2. NÚT CÀI ĐẶT (GÓC TRÊN BÊN PHẢI) */
+    .btn-settings-trigger {
+      position: absolute;
+      top: 16px;
+      right: 16px;
       display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
-    }
-
-    .badge {
-      display: inline-flex;
       align-items: center;
-      gap: 4px;
-      background: #edf8eb;
-      color: #2b7740;
-      padding: 2px 8px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      border: 1px solid #10ac84;
-    }
-
-    .badge-realm {
-      background: #fbf0d9;
-      color: #b7791f;
-      border-color: #f1c40f;
-    }
-
-    .badge-kills {
-      background: #ffeaa7;
-      color: #d35400;
-      border-color: #e67e22;
-    }
-
-    /* CÁC NÚT HÀNH ĐỘNG GÓC TRÊN BÊN PHẢI (PIXEL JADE BUTTONS) */
-    .top-actions {
-      display: flex;
-      gap: 8px;
-      pointer-events: auto;
-    }
-
-    .action-btn {
-      background: #fdfbf7;
-      border: none;
-      padding: 6px 12px;
-      font-family: 'VT323', monospace;
-      font-size: 1.1rem;
-      color: #2c3e50;
+      gap: 6px;
+      background: rgba(30, 39, 46, 0.92);
+      border: 2px solid #f1c40f;
+      color: #f1c40f;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.54rem;
+      padding: 8px 14px;
       cursor: pointer;
       box-shadow:
         0 -2px 0 0 #1e272e,
         0 2px 0 0 #1e272e,
         -2px 0 0 0 #1e272e,
         2px 0 0 0 #1e272e,
-        0 4px 8px rgba(0, 0, 0, 0.12);
-      transition: all 0.1s steps(2);
-      display: flex;
-      align-items: center;
-      gap: 6px;
+        0 4px 15px rgba(0, 0, 0, 0.4);
+      z-index: 10005;
+      pointer-events: auto;
+      transition: all 0.15s;
     }
 
-    .action-btn:hover {
+    .btn-settings-trigger:hover {
       background: #f1c40f;
       color: #1e272e;
       transform: translateY(-2px);
     }
 
-    .action-btn:active {
+    .btn-settings-trigger:active {
       transform: translateY(1px);
     }
 
-    .action-btn.active {
-      background: #e8f9eb;
-      color: #2e7d32;
-      border-bottom: 2px solid #10ac84;
+    /* 3. MODAL CÀI ĐẶT */
+    #settings-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(10, 15, 24, 0.85);
+      backdrop-filter: blur(4px);
+      z-index: 10015;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .settings-box {
+      background: #1e272e;
+      border: 3px solid #f1c40f;
+      padding: 24px 28px;
+      box-shadow:
+        0 0 30px rgba(0, 0, 0, 0.8),
+        0 0 15px rgba(241, 196, 15, 0.3);
+      max-width: 380px;
+      width: 90%;
+      position: relative;
+      animation: modalPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .settings-box h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.85rem;
+      color: #f1c40f;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px #000;
+    }
+
+    .settings-items {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .settings-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #2f3640;
+      border: 2px solid #57606f;
+      color: #f5f6fa;
+      font-family: 'VT323', monospace;
+      font-size: 1.25rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .settings-btn:hover {
+      border-color: #f1c40f;
+      background: #353b48;
+      color: #f1c40f;
+    }
+
+    .settings-btn.active {
+      border-color: #2ed573;
+    }
+
+    .settings-close {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      background: none;
+      border: none;
+      color: #ff4757;
+      font-size: 1.6rem;
+      cursor: pointer;
+      line-height: 1;
     }
 
     /* THANH KỸ NĂNG: ĐẠO PHÙ & NGỌC BÀI PIXEL (TALISMAN SKILL BAR) */
@@ -1067,27 +1082,13 @@
       display: none !important;
     }
 
-    /* Xóa bỏ hoàn toàn khung viền chữ nhật, đổ bóng của Title Card trên mobile */
-    body.mobile-ui-active .title-card {
-      background: transparent !important;
-      box-shadow: none !important;
-      border: none !important;
-      padding: 0 !important;
-      pointer-events: none !important;
-      max-width: 130px !important;
-    }
-
-    /* Thanh Khí Huyết & Linh Lực mini nổi góc trên trái cực kỳ tinh gọn */
-    body.mobile-ui-active .status-bars-container {
-      margin-top: 0 !important;
-      gap: 3px !important;
-      width: 125px !important;
-      background: rgba(30, 39, 46, 0.75) !important;
-      padding: 4px 6px !important;
-      border-radius: 4px !important;
-      border: 1px solid rgba(241, 196, 15, 0.45) !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
-      pointer-events: auto !important;
+    /* Thanh Máu & Mana mini góc trên trái cho mobile */
+    body.mobile-ui-active .player-bars-compact {
+      top: 10px !important;
+      left: 10px !important;
+      padding: 5px 8px !important;
+      min-width: 140px !important;
+      background: rgba(30, 39, 46, 0.85) !important;
     }
 
     body.mobile-ui-active .pixel-bar-row {
@@ -1095,12 +1096,12 @@
     }
 
     body.mobile-ui-active .pixel-bar-label {
-      font-size: 0.44rem !important;
-      width: 46px !important;
+      font-size: 0.42rem !important;
+      width: 36px !important;
     }
 
     body.mobile-ui-active .pixel-bar-outer {
-      height: 8px !important;
+      height: 10px !important;
       border: 1px solid #1e272e !important;
     }
 
@@ -1108,19 +1109,13 @@
       display: none !important;
     }
 
-    /* Thu nhỏ các nút hành động phụ trên đỉnh thành icon nhỏ không vướng tầm nhìn */
-    body.mobile-ui-active .top-actions {
-      gap: 6px !important;
-    }
-
-    body.mobile-ui-active .top-actions .action-btn {
-      padding: 4px 8px !important;
-      font-size: 0.85rem !important;
-      background: rgba(30, 39, 46, 0.8) !important;
-      color: #f1c40f !important;
-      border: 1px solid rgba(241, 196, 15, 0.4) !important;
-      box-shadow: none !important;
-      border-radius: 4px !important;
+    /* Nút Cài Đặt trên mobile */
+    body.mobile-ui-active .btn-settings-trigger {
+      top: 10px !important;
+      right: 10px !important;
+      padding: 6px 10px !important;
+      font-size: 0.48rem !important;
+      background: rgba(30, 39, 46, 0.85) !important;
     }
 
     /* ========================================================
@@ -1392,7 +1387,7 @@
       flex-direction: column;
       gap: 8px;
       margin-top: 6px;
-      max-height: 240px;
+      max-height: 290px;
       overflow-y: auto;
       padding-right: 4px;
     }
@@ -1404,7 +1399,7 @@
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
       transition: all 0.15s;
     }
 
@@ -1444,12 +1439,28 @@
 
     .outfit-skill-badge {
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.46rem;
+      font-size: 0.44rem;
       background: rgba(0, 0, 0, 0.45);
       color: #00d2d3;
       padding: 3px 6px;
       border: 1px solid #57606f;
       border-radius: 3px;
+    }
+
+    .outfit-traits {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.95rem;
+      font-family: 'VT323', monospace;
+    }
+
+    .outfit-trait.pro {
+      color: #2ed573;
+    }
+
+    .outfit-trait.con {
+      color: #ff6b81;
     }
 
     .modal-actions {
@@ -1683,7 +1694,7 @@
       </div>
 
       <div class="modal-field">
-        <label>Chọn Môn Phái & Tiên Bào (Mỗi phái có 3 chiêu độc nhất):</label>
+        <label>Chọn Môn Phái & Tiên Bào (Ưu - Nhược & Đòn Đánh Đặc Thù):</label>
         <div class="outfit-selector" id="modal-outfits">
           <div class="outfit-card active" data-index="0">
             <div class="outfit-card-header">
@@ -1694,6 +1705,10 @@
               <span class="outfit-skill-badge">🗡️ 1. Cự Kiếm</span>
               <span class="outfit-skill-badge">☯ 2. Bát Quái Đại Canh</span>
               <span class="outfit-skill-badge">👥 3. Phân Thân</span>
+            </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Khí huyết 2400 HP, giảm 12% ST, Bát Quái hồi máu + kích nổ Lôi Long</span>
+              <span class="outfit-trait con">🔴 Nhược: Chạy chậm nhất game (-18%), phụ thuộc địa bàn trận pháp</span>
             </div>
           </div>
           <div class="outfit-card" data-index="1">
@@ -1706,6 +1721,10 @@
               <span class="outfit-skill-badge">💨 2. Ngự Phong</span>
               <span class="outfit-skill-badge">🌧️ 3. Vạn Nhận</span>
             </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Đóng băng khống chế, lướt giải khống chế, mưa tuyết nổ Băng Toái</span>
+              <span class="outfit-trait con">🔴 Nhược: Máu mỏng (1700 HP), chiêu đóng băng có 0.35s báo hiệu có thể né</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="2">
             <div class="outfit-card-header">
@@ -1716,6 +1735,10 @@
               <span class="outfit-skill-badge">💨 1. Thuấn Bộ</span>
               <span class="outfit-skill-badge">🌀 2. Hộ Thể</span>
               <span class="outfit-skill-badge">⚔️ 3. Vạn Kiếm</span>
+            </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Sát thương +28%, Thuấn Bộ giảm 50% hồi chiêu khi trúng, thế PARRY đỡ 100% đòn</span>
+              <span class="outfit-trait con">🔴 Nhược: Thuần cận chiến, không có chiêu tự hồi máu diện rộng, đòi hỏi căn chuẩn nhịp</span>
             </div>
           </div>
           <div class="outfit-card" data-index="3">
@@ -1728,6 +1751,10 @@
               <span class="outfit-skill-badge">🕳️ 2. Ma Vực</span>
               <span class="outfit-skill-badge">🌋 3. Ma Bạo</span>
             </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Đánh thường hút máu, Hắc Động hút gom địch, Huyết Cuồng &lt;50% HP tăng vọt ST</span>
+              <span class="outfit-trait con">🔴 Nhược: Hồi chiêu lâu nhất (+22% CD), hụt chiêu dễ bị dồn sát thương</span>
+            </div>
           </div>
           <div class="outfit-card" data-index="4">
             <div class="outfit-card-header">
@@ -1738,6 +1765,10 @@
               <span class="outfit-skill-badge">⚡ 1. Huyền Lôi</span>
               <span class="outfit-skill-badge">🕊️ 2. Bạch Hạc</span>
               <span class="outfit-skill-badge">💥 3. Hám Địa</span>
+            </div>
+            <div class="outfit-traits">
+              <span class="outfit-trait pro">🟢 Ưu: Đánh thường tầm xa (Phi Vũ), tốc độ cao nhất (+22%), sấm sét giật lan & lướt miễn khống</span>
+              <span class="outfit-trait con">🔴 Nhược: Máu mỏng nhất (1600 HP), kính pháo nhận thêm +18% sát thương</span>
             </div>
           </div>
         </div>
@@ -1791,6 +1822,43 @@
     </div>
   </div>
 
+  <!-- MODAL CÀI ĐẶT TRÒ CHƠI -->
+  <div id="settings-modal">
+    <div class="settings-box">
+      <button class="settings-close" id="btn-close-settings">✕</button>
+      <h2>⚙️ CÀI ĐẶT TRÒ CHƠI</h2>
+      <div class="settings-items">
+        <button class="settings-btn active" id="btn-sound">
+          <span>🔊 Linh Âm (Âm Thanh)</span>
+          <span id="sound-status-tag">BẬT</span>
+        </button>
+        <button class="settings-btn" id="btn-mobile-toggle">
+          <span>📱 Phím Ảo Mobile</span>
+          <span>Bật/Tắt</span>
+        </button>
+        <button class="settings-btn" id="btn-outfit">
+          <span>🎨 Hoán Đổi Môn Phái (Phím C)</span>
+          <span>Đổi</span>
+        </button>
+        <button class="settings-btn" id="btn-leaderboard">
+          <span>🏆 Bảng Phong Thần (Phím Tab)</span>
+          <span>Xem</span>
+        </button>
+        <button class="settings-btn" id="btn-photo">
+          <span>📸 Chụp Ảnh Lưu Niệm</span>
+          <span>Chụp</span>
+        </button>
+        <button class="settings-btn" id="btn-fullscreen">
+          <span>⛶ Toàn Màn Hình</span>
+          <span>Bật/Tắt</span>
+        </button>
+      </div>
+      <p style="text-align: center; color: #718093; font-size: 1.05rem; margin-top: 16px;">
+        🎮 Phím tắt: WASD di chuyển • Chuột trái chém • 1, 2, 3 tung chiêu • Space nhảy
+      </p>
+    </div>
+  </div>
+
   <canvas id="webgl-canvas"></canvas>
   <div id="screen-flash"></div>
 
@@ -1800,60 +1868,35 @@
     </div>
   </div>
 
-  <div id="lock-hint">
-    <span>🏮</span>
-    <span>Nhấp chuột vào Cổ Đô để Ngự Kiếm & Tuần Tra Kinh Thành <em>[Bấm ESC để hiện chuột]</em></span>
-  </div>
-
   <div class="hud-layer">
-    <!-- Thanh trên cùng: Khung Tu Tiên Bồng Lai -->
-    <div class="top-bar">
-      <div class="title-card">
-        <h1>🐻 Cổ Đô Trường An <span>🏮 Hoàng Thành</span></h1>
-        <p>Chu Tước Đại Đạo • Tửu Lầu Phố Cổ • Phím [1, 2, 3/E] xuất Tuyệt Kỹ Tông Môn, bấm [C] hoán môn phái!</p>
-
-        <!-- Thanh Khí Huyết & Linh Lực -->
-        <div class="status-bars-container">
-          <div class="pixel-bar-row">
-            <span class="pixel-bar-label hp">KHÍ HUYẾT</span>
-            <div class="pixel-bar-outer">
-              <div class="pixel-bar-inner hp" id="bar-hp" style="width: 100%;"></div>
-              <span class="pixel-bar-num" id="text-hp">2000/2000</span>
-            </div>
-          </div>
-          <div class="pixel-bar-row">
-            <span class="pixel-bar-label mp">LINH LỰC</span>
-            <div class="pixel-bar-outer">
-              <div class="pixel-bar-inner mp" id="bar-mp" style="width: 100%;"></div>
-              <span class="pixel-bar-num" id="text-mp">100/100</span>
-            </div>
-          </div>        </div>
-
-        <div class="status-badges">
-          <span class="badge badge-realm" id="hud-realm">🌟 Luyện Khí Tầng 1</span>
-          <span class="badge" id="hud-state">Đang Tĩnh Tọa (Idle)</span>
-          <span class="badge" id="hud-speed">0.0 km/h</span>
-          <span class="badge badge-kills" id="hud-kills">🎯 Trảm Yêu: 0</span>
-          <span class="badge" id="hud-online" style="color: #00d2d3; border-color: rgba(0, 210, 211, 0.4);">🌐 Online: Đang kết nối...</span>
-          <span class="badge" id="hud-ping" style="color: #ffd32a; border-color: rgba(255, 211, 42, 0.4);">📶 0ms</span>
-          <span class="badge" id="hud-fps" style="color: #2ed573; font-weight: bold; border-color: rgba(46, 213, 115, 0.4);">⚡ 60 FPS</span>
+    <!-- KHUNG KHÍ HUYẾT (HP) & LINH LỰC (MANA) TINH GỌN (GÓC TRÊN TRÁI) -->
+    <div class="player-bars-compact">
+      <div class="pixel-bar-row">
+        <span class="pixel-bar-label hp">MÁU</span>
+        <div class="pixel-bar-outer">
+          <div class="pixel-bar-inner hp" id="bar-hp" style="width: 100%;"></div>
+          <span class="pixel-bar-num" id="text-hp">2000/2000</span>
         </div>
       </div>
-
-      <div class="top-actions">
-        <button class="action-btn" id="btn-leaderboard" title="Bảng xếp hạng (Tab)">🏆 BXH (Tab)</button>
-        <button class="action-btn" id="btn-mobile-toggle" title="Bật/Tắt Phím Ảo Mobile">📱 Phím Ảo</button>
-        <button class="action-btn" id="btn-outfit" title="Phím tắt: C">🎨 Hoán Y (C)</button>
-        <button class="action-btn active" id="btn-sound">🔊 Linh Âm: Bật</button>
-        <button class="action-btn" id="btn-photo">📸 Lưu Ảnh</button>
-        <button class="action-btn" id="btn-fullscreen">⛶ Toàn Cảnh</button>
+      <div class="pixel-bar-row">
+        <span class="pixel-bar-label mp">MANA</span>
+        <div class="pixel-bar-outer">
+          <div class="pixel-bar-inner mp" id="bar-mp" style="width: 100%;"></div>
+          <span class="pixel-bar-num" id="text-mp">100/100</span>
+        </div>
       </div>
     </div>
+
+    <!-- NÚT CÀI ĐẶT (GÓC TRÊN PHẢI) -->
+    <button class="btn-settings-trigger" id="btn-settings" title="Cài đặt trò chơi (Esc)">
+      <span>⚙️</span>
+      <span>CÀI ĐẶT</span>
+    </button>
 
     <!-- Thông báo Popup Tiên Hiệp -->
     <div id="toast">Chào mừng đạo hữu nhập thế Trường An Kinh Thành! Dùng phím [1, 2, 3/E] để thi triển thần thông tông môn!</div>
 
-    <!-- THANH KỸ NĂNG TÔNG MÔN PIXEL -->
+    <!-- THANH KỸ NĂNG TÔNG MÔN PIXEL (GÓC DƯỚI GIỮA) -->
     <div class="skill-bar-wrapper">
       <div class="sect-header-badge" id="hud-sect-name">🥋 Thái Thanh Đạo Gia</div>
       <div class="skill-bar-container">
@@ -1886,47 +1929,6 @@
           <div class="skill-cd-overlay" id="skill-cd-3"></div>
           <span class="skill-cd-text" id="skill-text-3">3</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Bảng Điều Khiển Cổ Phong Pixel -->
-    <div class="bottom-bar">
-      <div class="controls-help">
-        <div class="control-item">
-          <span class="key-badge">W</span><span class="key-badge">A</span><span class="key-badge">S</span><span class="key-badge">D</span>
-          <span>Ngự Phong Hành</span>
-        </div>
-        <div class="control-item">
-          <span class="key-badge highlight">Chuột Trái</span>
-          <span>Chém Kiếm · Giữ: Tụ Kiếm Khí</span>
-        </div>
-        <div class="control-item">
-          <span class="key-badge skill-badge">1-3 (E)</span>
-          <span><strong>Tuyệt Kỹ Tông Môn</strong></span>
-        </div>
-        <div class="control-item">
-          <span class="key-badge">Space</span>
-          <span>Đạp Vân Bộ (Nhảy)</span>
-        </div>
-        <div class="control-item">
-          <span class="key-badge">Shift</span>
-          <span>Súc Địa Thành Thốn</span>
-        </div>
-        <div class="control-item">
-          <span class="key-badge">C</span>
-          <span>Hoán Tiên Bào</span>
-        </div>
-      </div>
-
-      <div class="action-cluster">
-        <button class="circle-btn" id="btn-jump">
-          <span class="emoji">🦘</span>
-          <span>ĐẠP VÂN</span>
-        </button>
-        <button class="circle-btn" id="btn-shoot">
-          <span class="emoji">⚡</span>
-          <span>PHÁP KÍCH</span>
-        </button>
       </div>
     </div>
   </div>

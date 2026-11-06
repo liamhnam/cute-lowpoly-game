@@ -245,6 +245,32 @@ class SoundManager {
     osc.stop(now + 0.14);
   }
 
+  // Tiếng phóng phi vũ / phi tiêu lông vũ rít nhẹ trong gió (Bạch Hạc Chân Nhân)
+  playFeatherShoot() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2400 + Math.random() * 200, now);
+    osc.frequency.exponentialRampToValueAtTime(750, now + 0.09);
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(1100, now);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.11);
+  }
+
   // Tiếng Thiên Kiếm khổng lồ cắm phập xuống đất rền vang
   playGiantSwordImpact() {
     if (this.muted || !this.ctx) return;
@@ -283,6 +309,50 @@ class SoundManager {
     ringGain.connect(this.ctx.destination);
     ringOsc.start(now);
     ringOsc.stop(now + 1.22);
+  }
+
+  // Tiếng Sấm Sét Thiên Lôi giáng rền vang xé toạc bầu trời
+  playThunder() {
+    if (this.muted || !this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Tiếng nổ sét chát chúa
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(480, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.6);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.exponentialRampToValueAtTime(200, now + 0.6);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.68);
+
+    // Tiếng rền trầm kéo dài của sấm sét
+    const rumble = this.ctx.createOscillator();
+    const rumbleGain = this.ctx.createGain();
+    rumble.type = 'triangle';
+    rumble.frequency.setValueAtTime(90, now + 0.05);
+    rumble.frequency.exponentialRampToValueAtTime(30, now + 1.1);
+
+    rumbleGain.gain.setValueAtTime(0.3, now + 0.05);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + 1.15);
+
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(this.ctx.destination);
+
+    rumble.start(now + 0.05);
+    rumble.stop(now + 1.2);
   }
 
   startBGM() {

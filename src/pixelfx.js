@@ -333,7 +333,7 @@ export const SECTS = [
     colorHex: 0xf6c344,
     themeColor: '#f1c40f',
     icon: '🐉',
-    desc: 'Đạo gia chính thống: Cự Kiếm Phá Thiên 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân',
+    desc: 'Đạo gia trận pháp & phòng ngự: Cự Kiếm Phá Thiên 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân',
     skills: [
       {
         id: 1,
@@ -342,7 +342,7 @@ export const SECTS = [
         icon: '🗡️',
         cd: 6.0,
         mana: 25,
-        desc: 'Phóng to thanh kiếm đang cầm thành cự kiếm hơn cả bản thể rồi phóng thẳng 50m: tông trúng 120 ST, cuối đường nổ 80 ST'
+        desc: 'Phóng to thanh kiếm đang cầm thành cự kiếm hơn cả bản thể rồi phóng thẳng 50m: tông trúng 120 ST, cuối đường nổ 80 ST. Nổ trong Bát Quái Trận: Lôi Kiếm +40 ST!'
       },
       {
         id: 2,
@@ -351,7 +351,7 @@ export const SECTS = [
         icon: '☯️',
         cd: 14.0,
         mana: 35,
-        desc: 'Trải trận Bát Quái hồi 250 HP, làm chậm địch, kèm 36 lôi kiếm Đại Canh xoáy lốc 30m suốt 10s'
+        desc: 'Trải trận Bát Quái 12m (10s): hồi +25 HP/s, giảm 30% ST nhận, địch vào trận bị chậm 50%, kèm 36 lôi kiếm Đại Canh xoáy lốc 30m'
       },
       {
         id: 3,
@@ -371,7 +371,7 @@ export const SECTS = [
     colorHex: 0x54a0ff,
     themeColor: '#00d2d3',
     icon: '❄️',
-    desc: 'Tiên gia băng phong: Đóng băng khống chế cứng, ngự phong lướt gió tốc độ âm thanh và mưa kiếm hàn băng',
+    desc: 'Tiên gia băng phong: Đóng băng khống chế cứng, ngự phong lướt gió giải khống chế và combo Băng Toái',
     skills: [
       {
         id: 1,
@@ -380,7 +380,7 @@ export const SECTS = [
         icon: '❄️',
         cd: 6.5,
         mana: 25,
-        desc: 'Sóng băng 14m nhô cọc băng nhọn gây 95 ST và ĐÓNG BĂNG kẻ địch 2.5 giây'
+        desc: 'Báo hiệu 0.35s rồi cọc băng trồi lên gây 95 ST & ĐÓNG BĂNG 2.2s. Kẻ địch phản xạ tốt có thể né!'
       },
       {
         id: 2,
@@ -389,7 +389,7 @@ export const SECTS = [
         icon: '🌪️',
         cd: 5.0,
         mana: 20,
-        desc: 'Hóa cuồng phong lướt vút 16m tốc độ âm thanh, chém lạnh 85 ST và đẩy lùi mục tiêu'
+        desc: 'Lướt gió 16m chém 85 ST, hất dạt địch và GIẢI MỌI HIỆU ỨNG khống chế/làm chậm'
       },
       {
         id: 3,
@@ -398,7 +398,7 @@ export const SECTS = [
         icon: '🌧️',
         cd: 10.0,
         mana: 35,
-        desc: 'Mưa 28 kiếm băng cắm ngập đất liên tiếp (30 ST/thanh) rồi nổ bão tuyết 160 ST'
+        desc: 'Mưa 28 kiếm băng (20 ST/thanh) rồi nổ tuyết 120 ST. Nếu mục tiêu BỊ ĐÓNG BĂNG: Kích nổ Băng Toái (+55 ST)!'
       }
     ]
   },
@@ -409,7 +409,7 @@ export const SECTS = [
     colorHex: 0x8854d0,
     themeColor: '#a29bfe',
     icon: '⚔️',
-    desc: 'Thuần tu kiếm đạo: Thuấn bộ trảm choáng, kiếm trận hộ thân phản kích và Vạn Kiếm Quy Tông Cực Phẩm',
+    desc: 'Thuần tu kiếm đạo: Thuấn bộ giảm hồi chiêu khi trúng, thế PARRY đỡ đòn hoàn hảo và Vạn Kiếm Quy Tông',
     skills: [
       {
         id: 1,
@@ -418,7 +418,7 @@ export const SECTS = [
         icon: '💨',
         cd: 5.0,
         mana: 20,
-        desc: 'Tốc biến lướt 12m chém xuyên 85 ST và nổ kiếm ngân sau 0.4s (50 ST), làm choáng'
+        desc: 'Tốc biến 12m chém 85 ST, nổ kiếm ngân 50 ST gây choáng. Chém trúng địch GIẢM NGAY 50% HỒI CHIÊU!'
       },
       {
         id: 2,
@@ -427,7 +427,7 @@ export const SECTS = [
         icon: '🌀',
         cd: 7.5,
         mana: 25,
-        desc: '6 phi kiếm xoay quanh thân 6s chém 40 ST/hit, kích hoạt lại phóng kiếm tỏa 6 hướng'
+        desc: 'Trong 0.8s đầu vào thế PARRY: Đỡ 100% đòn đánh, hồi +80 HP & phản chấn! 6 kiếm xoay 6s chém 20 ST/hit'
       },
       {
         id: 3,
@@ -436,7 +436,7 @@ export const SECTS = [
         icon: '⚔️',
         cd: 12.0,
         mana: 40,
-        desc: '32 phi kiếm cắm kiếm trận rồi CỰ ĐẠI THIÊN KIẾM giáng trần nổ hố gây 260 ST'
+        desc: 'Cắm kiếm trận khoanh vùng mục tiêu rồi CỰ ĐẠI THIÊN KIẾM giáng trần nổ hố gây 260 ST cực đại'
       }
     ]
   },
@@ -447,7 +447,7 @@ export const SECTS = [
     colorHex: 0xeb3b5a,
     themeColor: '#ff4757',
     icon: '🩸',
-    desc: 'Huyết ma ma đạo: Huyết kiếm hút máu hồi phục, Hắc Động ma vực hút kẻ địch và Ma Bạo dung nham',
+    desc: 'Huyết ma ma đạo: Huyết kiếm hút máu, gom mục tiêu bằng Hắc Động và lật kèo khi máu thấp (Huyết Cuồng)',
     skills: [
       {
         id: 1,
@@ -456,7 +456,7 @@ export const SECTS = [
         icon: '🩸',
         cd: 5.0,
         mana: 20,
-        desc: 'Phóng đao huyết khí đỏ xé gió 22m gây 125 ST và HÚT 60 HP hồi phục cho bản thân'
+        desc: 'Đao huyết khí 24m gây 125 ST & hút 60 HP. Khi MÁU < 50% (Huyết Cuồng): Tăng thành 165 ST & hút 120 HP!'
       },
       {
         id: 2,
@@ -465,7 +465,7 @@ export const SECTS = [
         icon: '🕳️',
         cd: 7.0,
         mana: 25,
-        desc: 'Hắc Động ma lực xoáy cực mạnh hút toàn bộ kẻ địch vào tâm hố, thiêu đốt 35 ST/s'
+        desc: 'Hắc Động ma xoáy 3.5s hút toàn bộ kẻ địch về tâm hố, thiêu đốt 35 ST/s liên tục'
       },
       {
         id: 3,
@@ -474,7 +474,7 @@ export const SECTS = [
         icon: '🔥',
         cd: 11.0,
         mana: 35,
-        desc: 'Nổ tung huyết ma viêm 16m nung chảy đất đá thành hố than dung nham, gây 250 ST'
+        desc: 'Nổ dung nham 250 ST. Nếu nổ vào kẻ địch trong U Minh Ma Vực: Kích hoạt Ma Diễm Cộng Hưởng 325 ST!'
       }
     ]
   },
@@ -485,7 +485,7 @@ export const SECTS = [
     colorHex: 0xf5f6fa,
     themeColor: '#2ed573',
     icon: '🪶',
-    desc: 'Thần thú tiên nhân: Cửu Thiên lôi giật lan tỏa, Bạch Hạc hất tung tăng tốc chạy và Hám Địa thần thông',
+    desc: 'Thần thú tiên nhân: Thả diều tốc độ cao, sấm sét làm chậm, bay lượn miễn khống chế và đẩy lùi an toàn',
     skills: [
       {
         id: 1,
@@ -494,7 +494,7 @@ export const SECTS = [
         icon: '⚡',
         cd: 5.5,
         mana: 25,
-        desc: 'Sét đánh bổ xuống mục tiêu 140 ST, phóng 4 tia hồ quang giật lan 60 ST sang lân cận'
+        desc: 'Sét đánh bổ xuống mục tiêu 140 ST (làm chậm 45% trong 2.5s), giật lan 4 tia 60 ST sang kẻ xung quanh'
       },
       {
         id: 2,
@@ -503,7 +503,7 @@ export const SECTS = [
         icon: '🪶',
         cd: 6.0,
         mana: 20,
-        desc: 'Linh ảnh Bạch Hạc sải cánh lướt 24m hất tung kẻ địch lên trời, tăng 50% tốc độ chạy'
+        desc: 'Hóa Bạch Hạc sải cánh lướt 24m hất tung địch, MIỄN KHỐNG CHẾ trong khi lướt và nhận +45% tốc chạy suốt 4s'
       },
       {
         id: 3,
@@ -512,7 +512,7 @@ export const SECTS = [
         icon: '🌍',
         cd: 10.0,
         mana: 35,
-        desc: 'Bật nhảy giậm mạnh sụp đổ nứt toác mặt đất sâu 2.5m, gây 230 ST và thổi bay vật thể'
+        desc: 'Giậm sụt mặt đất 230 ST, THỔI BAY KẺ ĐỊCH RA XA 16m để lập tức tái lập cự ly thả diều an toàn'
       }
     ]
   }
@@ -536,6 +536,12 @@ export class PixelFXManager {
     this.onHitPlayer = null;
     this.localCharacter = null; // nhân vật của chính mình
     this.cloneManager = null;   // quản lý đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh)
+
+    // Quản lý vùng trận pháp & tương tác chiêu thức
+    this.lastBaguaPos = null;
+    this.baguaTimer = 0;
+    this.lastVortexPos = null;
+    this.vortexTimer = 0;
 
     this.setSect(0);
   }
@@ -626,11 +632,12 @@ export class PixelFXManager {
     // Xác định môn phái của nhân vật thi triển (bản thân hoặc người chơi khác)
     const sectIdx = ((character?.outfitIndex !== undefined ? character.outfitIndex : this.currentSectIndex) % SECTS.length + SECTS.length) % SECTS.length;
 
-    // Hồi chiêu chỉ áp cho chiêu của chính mình
+    // Hồi chiêu chỉ áp cho chiêu của chính mình (nhân hệ số hồi chiêu theo môn phái)
     if (character === this.localCharacter) {
       const skill = this.cooldowns[slotNum];
       if (!skill || skill.current > 0) return false;
-      skill.current = skill.max;
+      const cdMult = character?.sectStats?.cdMult || 1.0;
+      skill.current = skill.max * cdMult;
     }
 
     switch (sectIdx) {
@@ -811,12 +818,18 @@ export class PixelFXManager {
           sound.playGiantSwordImpact();
           if (this.onScreenFlash) this.onScreenFlash('sword');
           if (this.controller) this.controller.addTrauma(0.6);
+
+          // Combo Lôi Kiếm Trảm: nếu nổ gần hoặc trong Bát Quái Trận thì thêm +40 ST lôi đình!
+          const inBagua = this.lastBaguaPos && tip.distanceTo(this.lastBaguaPos) <= 9.0 && this.baguaTimer > 0;
+          const finalBlastDamage = inBagua ? BLAST_DAMAGE + 40 : BLAST_DAMAGE;
+          const text = inBagua ? `🗡️⚡ -${finalBlastDamage} LÔI KIẾM TRẢM!` : `🗡️ -${BLAST_DAMAGE} CỰ KIẾM`;
+
           if (this.particles) {
             this.particles.emitShockwave(tip, 0xf1c40f, BLAST_RADIUS * 2.2, 0.6);
             this.particles.emitShockwave(tip, 0xffd54a, BLAST_RADIUS * 1.4, 0.45);
             this.particles.emitElementalParticles(tip, 50, [0xffd54a, 0xf1c40f, 0xfff3b0, 0xffffff], [6, 14], 0.9, 4, 1.2);
           }
-          this.dealDamageAOE(tip, BLAST_RADIUS, BLAST_DAMAGE, `🗡️ -${BLAST_DAMAGE} CỰ KIẾM`, '#f1c40f', monsters, 'knockback', 'fire', null, character);
+          this.dealDamageAOE(tip, BLAST_RADIUS, finalBlastDamage, text, '#f1c40f', monsters, 'knockback', inBagua ? 'lightning' : 'fire', null, character);
           character.setSwordThrown(false);
           return false;
         }
@@ -891,6 +904,12 @@ export class PixelFXManager {
           if (hitMonsters.length > 0 || hitPlayers.length > 0) {
             sound.playSwordSlash();
             if (this.controller) this.controller.addTrauma(0.25);
+
+            // Thưởng kỹ năng: Chém trúng mục tiêu -> Giảm ngay 50% hồi chiêu Thuấn Bộ Trảm!
+            if (character === this.localCharacter && this.cooldowns[1]) {
+              this.cooldowns[1].current *= 0.5;
+              this.damageTexts.spawn('⚡ HỒI CHIÊU -50%!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#7efff5');
+            }
           }
           // hitPlayers chỉ có phần tử khi chiêu là của chính mình (damagePlayersNear đã kiểm tra)
           for (const rp of hitPlayers) {
@@ -950,6 +969,12 @@ export class PixelFXManager {
     this.scene.add(ring);
 
     sound.playSwordSummon();
+
+    // Cơ chế PARRY (Phản Kiếm Quyết): Vào thế đỡ đòn hoàn hảo trong 0.8s đầu!
+    if (character?.setParry) {
+      character.setParry(0.8);
+      this.damageTexts.spawn('⚔️ THẾ PARRY (0.8s)!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#ffd700');
+    }
 
     let elapsed = 0;
     let tickTimer = 0;
@@ -1105,13 +1130,38 @@ export class PixelFXManager {
           }
         }
 
-        // Kiếm khí trấn áp toàn vùng sau đợt kiếm cuối
+        // Kiếm khí trấn áp toàn vùng sau đợt kiếm cuối (Bão tuyết nổ)
         if (!sealed && elapsed >= 2.8) {
           sealed = true;
           if (this.onScreenFlash) this.onScreenFlash('sword');
           if (this.controller) this.controller.addTrauma(0.4);
           this.particles.emitShockwave(center, 0x48dbfb, areaRadius * 1.6, 0.6);
-          this.particles.emitElementalParticles(center, 30, [0x48dbfb, 0xffffff, 0x7efff5], [4, 10], 0.7, 4, 1.0);
+          this.particles.emitElementalParticles(center, 35, [0x48dbfb, 0xffffff, 0x7efff5], [4, 10], 0.7, 4, 1.0);
+
+          // Combo Băng Toái: Mục tiêu đang bị ĐÓNG BĂNG nhận thêm +55 ST bạo kích
+          if (monsters) {
+            for (const m of monsters) {
+              if (!m.isDead && m.position.distanceTo(center) <= areaRadius + m.hitRadius) {
+                if (m.freezeTimer > 0) {
+                  m.takeDamage(55, center);
+                  this.damageTexts.spawn('❄️💥 -55 BĂNG TOÁI!', m.position.clone().add(new THREE.Vector3(0, m.hitHeight, 0)), '#00d2d3');
+                  this.particles.emitHitSparkles(m.position, 16);
+                }
+              }
+            }
+          }
+          if (this.canHitPlayers(character) && this.remotePlayers) {
+            for (const rp of this.remotePlayers) {
+              if (!rp.isDead && rp.position.distanceTo(center) <= areaRadius + 1.0) {
+                if (rp.freezeTimer > 0) {
+                  this.onHitPlayer(rp.id, 55, rp.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 'ice');
+                  this.damageTexts.spawn('❄️💥 -55 BĂNG TOÁI!', rp.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#00d2d3');
+                  this.particles.emitHitSparkles(rp.position, 16);
+                }
+              }
+            }
+          }
+
           this.dealDamageAOE(center, areaRadius, 40, '❄️ -40 TRẤN ÁP', '#48dbfb', monsters, 'freeze', 'ice', null, character);
         }
 
@@ -1545,9 +1595,13 @@ export class PixelFXManager {
 
     this.scene.add(arrayGroup);
 
-    // 3. Hồi phục 250 HP cho caster
+    // Ghi nhận trận pháp Bát Quái đang hoạt động
+    this.lastBaguaPos = center.clone();
+    this.baguaTimer = BAGUA_DURATION;
+
+    // 3. Hồi phục 150 HP tức thì cho caster
     if (character && character.hp < character.maxHp) {
-      const heal = Math.min(250, character.maxHp - character.hp);
+      const heal = Math.min(150, character.maxHp - character.hp);
       character.hp += heal;
       if (character.updateBillboard) character.updateBillboard();
       this.damageTexts.spawn(`💚 +${Math.round(heal)} BÁT QUÁI!`, character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#2ed573');
@@ -1559,22 +1613,49 @@ export class PixelFXManager {
     }
 
     let elapsed = 0;
+    let tickTimer = 0;
+
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
+        tickTimer += delta;
         arrayGroup.rotation.y += delta * 1.5;
         pillarMesh.material.opacity = (Math.sin(elapsed * 6) * 0.15 + 0.28) * (1.0 - elapsed / BAGUA_DURATION);
 
-        // Làm chậm quái vật trong trận
-        if (monsters) {
-          for (const m of monsters) {
-            if (!m.isDead && m.position.distanceTo(center) < 6.0) {
-              if (m.freeze && Math.random() < 0.2) m.freeze(0.4);
+        // Hiệu ứng trận địa liên tục mỗi 0.8s
+        if (tickTimer >= 0.8) {
+          tickTimer = 0;
+          // Caster đứng trong trận: Hồi phục liên tục +25 HP và giải làm chậm
+          if (character && !character.isDead && character.position.distanceTo(center) <= 6.0) {
+            if (character.hp < character.maxHp) {
+              character.heal(25);
+              this.damageTexts.spawn('💚 +25 TRẬN ĐỒ', character.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#2ed573');
+            }
+            if (character.slowTimer > 0) character.slowTimer = 0;
+          }
+
+          // Địch đứng trong trận: Chịu 15 ST thánh quang và bị làm chậm 50%
+          if (monsters) {
+            for (const m of monsters) {
+              if (!m.isDead && m.position.distanceTo(center) <= 6.0) {
+                m.takeDamage(15, center);
+                if (m.freeze) m.freeze(0.6);
+                this.damageTexts.spawn('☯️ -15', m.position.clone().add(new THREE.Vector3(0, m.hitHeight, 0)), '#f1c40f');
+              }
+            }
+          }
+          if (this.canHitPlayers(character) && this.remotePlayers) {
+            for (const rp of this.remotePlayers) {
+              if (!rp.isDead && rp.position.distanceTo(center) <= 6.0) {
+                this.onHitPlayer(rp.id, 15, rp.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 'lightning');
+                this.damageTexts.spawn('☯️ -15 TRẬN ĐỒ', rp.position.clone().add(new THREE.Vector3(0, 1.8, 0)), '#f1c40f');
+              }
             }
           }
         }
 
         if (elapsed >= BAGUA_DURATION) {
+          if (this.lastBaguaPos === center) this.lastBaguaPos = null;
           this.scene.remove(arrayGroup);
           pillarMat.dispose();
           ringMat.dispose();
@@ -1604,7 +1685,7 @@ export class PixelFXManager {
   // KỸ NĂNG MÔN PHÁI: THANH VÂN TIÊN TÔNG
   // =========================================================================
 
-  // [Thanh Vân 1] HUYỀN BĂNG TUYỆT VỰC (Đóng băng cứng ngắc 2.8s + cọc băng nhọn 95 ST)
+  // [Thanh Vân 1] HUYỀN BĂNG TUYỆT VỰC (Cảnh báo 0.35s né tránh -> cọc băng trồi lên gây 95 ST & ĐÓNG BĂNG 2.2s)
   castFrostNova(targetPos, character, monsters) {
     const impactX = targetPos.x;
     const impactZ = targetPos.z;
@@ -1614,8 +1695,8 @@ export class PixelFXManager {
     sound.playHit();
     if (this.onScreenFlash) this.onScreenFlash('frost');
 
-    // 1. Chỉ điểm hoa tuyết băng phong
-    this.spawnTelegraph(hitPos, 0x00d2d3, 1.2, 14.0);
+    // 1. Chỉ điểm hoa tuyết băng phong (Cảnh báo telegraph 0.35s để người chơi kịp né)
+    this.spawnTelegraph(hitPos, 0x00d2d3, 0.45, 14.0);
     this.spawnGroundDecalEffect('ice', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 16, 2.5);
 
     // 2. Biến đổi địa hình thành tuyết trắng
@@ -1643,43 +1724,51 @@ export class PixelFXManager {
       const sz = impactZ + Math.sin(angle) * dist;
       const sy = getTerrainHeight(sx, sz);
 
-      spike.position.set(sx, sy - 1.2, sz);
+      spike.position.set(sx, sy - 2.5, sz); // Ẩn sâu dưới đất chờ 0.35s
       spike.rotation.x = (Math.random() - 0.5) * 0.4;
       spike.rotation.z = (Math.random() - 0.5) * 0.4;
       spike.scale.set(1, 0.1, 1);
       iceGroup.add(spike);
-      iceSpikes.push({ mesh: spike, targetY: sy + 1.1, baseScale: 0.8 + Math.random() * 0.5 });
+      iceSpikes.push({ mesh: spike, startY: sy - 2.5, targetY: sy + 1.1, baseScale: 0.8 + Math.random() * 0.5 });
     }
     this.scene.add(iceGroup);
 
-    // 4. Sóng chấn động băng tuyết & ĐÓNG BĂNG MỤC TIÊU
-    if (this.particles) {
-      this.particles.emitShockwave(hitPos, 0x00d2d3, 14.0, 0.5);
-      this.particles.emitElementalParticles(hitPos, 35, [0x00d2d3, 0x7ed6df, 0xffffff], [3, 8], 0.7, 5.0, 1.2);
-    }
-
-    // Gây sát thương & ĐÓNG BĂNG CỨNG
-    this.dealDamageAOE(hitPos, 14.0, 95, '❄️ -95 ĐÓNG BĂNG!', '#00d2d3', monsters, 'freeze', 'ice', null, character);
-
     let elapsed = 0;
+    let erupted = false;
+
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
-        // Trụ băng trồi lên nhanh trong 0.25s
-        if (elapsed < 0.25) {
-          const p = elapsed / 0.25;
-          for (const s of iceSpikes) {
-            s.mesh.position.y = THREE.MathUtils.lerp(s.mesh.position.y, s.targetY, p);
-            s.mesh.scale.y = THREE.MathUtils.lerp(0.1, s.baseScale, p);
+
+        // Đợi 0.35s cảnh báo trước khi cọc băng trồi lên gây ĐÓNG BĂNG
+        if (!erupted && elapsed >= 0.35) {
+          erupted = true;
+          sound.playGiantSwordImpact();
+          if (this.particles) {
+            this.particles.emitShockwave(hitPos, 0x00d2d3, 14.0, 0.5);
+            this.particles.emitElementalParticles(hitPos, 35, [0x00d2d3, 0x7ed6df, 0xffffff], [3, 8], 0.7, 5.0, 1.2);
           }
-        } else if (elapsed > 2.0) {
-          // Trụ băng tan chảy co lại
-          const melt = 1.0 - (elapsed - 2.0) / 0.8;
-          iceGroup.scale.multiplyScalar(0.96);
-          if (elapsed >= 2.8) {
-            this.scene.remove(iceGroup);
-            spikeMat.dispose();
-            return false;
+          // Gây sát thương & ĐÓNG BĂNG CỨNG (cho mục tiêu không né kịp)
+          this.dealDamageAOE(hitPos, 14.0, 95, '❄️ -95 ĐÓNG BĂNG!', '#00d2d3', monsters, 'freeze', 'ice', null, character);
+        }
+
+        if (erupted) {
+          const eruptTime = elapsed - 0.35;
+          // Trụ băng trồi lên nhanh trong 0.22s sau khi nổ
+          if (eruptTime < 0.22) {
+            const p = eruptTime / 0.22;
+            for (const s of iceSpikes) {
+              s.mesh.position.y = THREE.MathUtils.lerp(s.startY, s.targetY, p);
+              s.mesh.scale.y = THREE.MathUtils.lerp(0.1, s.baseScale, p);
+            }
+          } else if (elapsed > 2.2) {
+            // Trụ băng tan chảy co lại
+            iceGroup.scale.multiplyScalar(0.96);
+            if (elapsed >= 2.8) {
+              this.scene.remove(iceGroup);
+              spikeMat.dispose();
+              return false;
+            }
           }
         }
         return true;
@@ -1687,9 +1776,15 @@ export class PixelFXManager {
     });
   }
 
-  // [Thanh Vân 2] NGỰ PHONG THUẤN TRẢM (Lướt gió tốc độ âm thanh 16m chém 85 ST)
+  // [Thanh Vân 2] NGỰ PHONG THUẤN TRẢM (Lướt gió tốc độ âm thanh 16m chém 85 ST, giải khống chế)
   castWindDash(targetPos, character, monsters) {
     if (!character) return;
+
+    // Hóa giải mọi trạng thái khống chế & làm chậm
+    if (character.freezeTimer > 0) character.freezeTimer = 0;
+    if (character.slowTimer > 0) character.slowTimer = 0;
+    this.damageTexts.spawn('🌪️ GIẢI KHỐNG CHẾ!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#00d2d3');
+
     const startPos = character.position.clone();
     const dir = PixelFXManager.flatDirection(startPos, targetPos);
 
@@ -1714,8 +1809,13 @@ export class PixelFXManager {
       this.particles.emitShockwave(endPos, 0x00d2d3, 8.0, 0.35);
     }
 
-    character.position.copy(endPos);
-    character.group.position.copy(endPos);
+    // Lướt gió mượt mà tốc độ cao
+    if (character.startDash) {
+      character.startDash(dir, dashDistance, 0.22);
+    } else {
+      character.position.copy(endPos);
+      if (character.group) character.group.position.copy(endPos);
+    }
 
     // Chém sát thương diện rộng dọc đường và tại điểm đến
     const midPos = startPos.clone().add(endPos).multiplyScalar(0.5);
@@ -1727,7 +1827,7 @@ export class PixelFXManager {
   // KỸ NĂNG MÔN PHÁI: HỒNG TRẦN MA TU
   // =========================================================================
 
-  // [Ma Tu 1] HUYẾT MA TRẢM (Phóng lưỡi đao huyết khí 22m, gây 125 ST & HÚT 60 HP)
+  // [Ma Tu 1] HUYẾT MA TRẢM (Phóng lưỡi đao huyết khí 24m, gây 125 ST & HÚT 60 HP; dưới 50% HP gây 165 ST & hút 120 HP)
   castBloodSlash(targetPos, character, monsters) {
     const startPos = character.position.clone();
     startPos.y += 1.1;
@@ -1736,9 +1836,20 @@ export class PixelFXManager {
 
     if (this.controller) this.controller.addTrauma(0.18);
 
+    // Kiểm tra trạng thái Huyết Cuồng (máu dưới 50%)
+    const isBerserk = Boolean(character && character.hp < character.maxHp * 0.5);
+    const slashDmg = isBerserk ? 165 : 125;
+    const healAmount = isBerserk ? 120 : 60;
+    const slashText = isBerserk ? '🔥🩸 -165 HUYẾT CUỒNG!' : '🩸 -125 HUYẾT MA!';
+    const healText = isBerserk ? '🩸 +120 HUYẾT CUỒNG!' : '🩸 +60 HÚT HUYẾT!';
+
+    if (isBerserk && character) {
+      this.damageTexts.spawn('🔥 HUYẾT CUỒNG (<50% HP)!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#ff3838');
+    }
+
     // Lưỡi đao huyết khí đỏ rực
     const bladeGeo = new THREE.TorusGeometry(1.6, 0.16, 6, 16, Math.PI * 0.9);
-    const bladeMat = new THREE.MeshBasicMaterial({ color: 0xff4757, side: THREE.DoubleSide });
+    const bladeMat = new THREE.MeshBasicMaterial({ color: isBerserk ? 0xff3838 : 0xff4757, side: THREE.DoubleSide });
     const bladeMesh = new THREE.Mesh(bladeGeo, bladeMat);
 
     bladeMesh.position.copy(startPos);
@@ -1769,16 +1880,16 @@ export class PixelFXManager {
           for (const m of monsters) {
             if (!m.isDead && !hitSet.has(m) && m.checkCollision(bladeMesh.position, 1.6)) {
               hitSet.add(m);
-              m.takeDamage(125, bladeMesh.position);
-              this.damageTexts.spawn('🩸 -125 HUYẾT MA!', m.position.clone().add(new THREE.Vector3(0, m.hitHeight, 0)), '#ff4757');
+              m.takeDamage(slashDmg, bladeMesh.position);
+              this.damageTexts.spawn(slashText, m.position.clone().add(new THREE.Vector3(0, m.hitHeight, 0)), '#ff4757');
 
               // Hút máu hồi phục cho bản thân!
               if (!hasHealed && character && character.hp < character.maxHp) {
                 hasHealed = true;
-                const heal = Math.min(60, character.maxHp - character.hp);
+                const heal = Math.min(healAmount, character.maxHp - character.hp);
                 character.hp += heal;
                 if (character.updateBillboard) character.updateBillboard();
-                this.damageTexts.spawn(`🩸 +${Math.round(heal)} HÚT HUYẾT!`, character.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#ff4757');
+                this.damageTexts.spawn(healText, character.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#ff4757');
               }
             }
           }
@@ -1786,13 +1897,13 @@ export class PixelFXManager {
 
         // Quét trúng người chơi khác (PvP)
         if (this.canHitPlayers(character)) {
-          const hitRps = this.damagePlayersNear(bladeMesh.position, 1.8, 125, '🩸 -125 HUYẾT MA!', '#ff4757', character, hitSet);
+          const hitRps = this.damagePlayersNear(bladeMesh.position, 1.8, slashDmg, slashText, '#ff4757', character, hitSet);
           if (hitRps.length > 0 && !hasHealed && character && character.hp < character.maxHp) {
             hasHealed = true;
-            const heal = Math.min(60, character.maxHp - character.hp);
+            const heal = Math.min(healAmount, character.maxHp - character.hp);
             character.hp += heal;
             if (character.updateBillboard) character.updateBillboard();
-            this.damageTexts.spawn(`🩸 +${Math.round(heal)} HÚT HUYẾT!`, character.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#ff4757');
+            this.damageTexts.spawn(healText, character.position.clone().add(new THREE.Vector3(0, 2.0, 0)), '#ff4757');
           }
         }
 
@@ -1816,6 +1927,10 @@ export class PixelFXManager {
 
     sound.playSwordSummon();
     if (this.controller) this.controller.addTrauma(0.25);
+
+    // Ghi nhận toạ độ Hắc Động ma vực đang hoạt động
+    this.lastVortexPos = center.clone();
+    this.vortexTimer = 3.5;
 
     this.spawnGroundDecalEffect('blood', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 12, 3.5);
 
@@ -1892,6 +2007,7 @@ export class PixelFXManager {
         }
 
         if (elapsed >= 3.5) {
+          if (this.lastVortexPos === center) this.lastVortexPos = null;
           // Nổ bung kết thúc đẩy văng kẻ địch
           this.dealDamageAOE(center, 10.0, 60, '💥 -60 NỔ MA KHÍ!', '#ff4757', monsters, 'knockback', 'fire', 40.0, character);
           this.scene.remove(vortexGroup);
@@ -1904,7 +2020,7 @@ export class PixelFXManager {
     });
   }
 
-  // [Ma Tu 3] HỒNG TRẦN MA BẠO (Vụ nổ Huyết Diễm cực đại 16m nung chảy đất đá, gây 250 ST)
+  // [Ma Tu 3] HỒNG TRẦN MA BẠO (Vụ nổ Huyết Diễm cực đại 16m; kết hợp U Minh Ma Vực gây 325 ST)
   castHellfireCataclysm(targetPos, character, monsters) {
     const center = character ? character.position.clone() : targetPos.clone();
     center.y = getTerrainHeight(center.x, center.z);
@@ -1924,8 +2040,13 @@ export class PixelFXManager {
       this.particles.emitElementalParticles(center, 60, [0xff3838, 0xeb3b5a, 0xffd32a, 0x2d3436], [6, 16], 0.9, 6.5, 1.8);
     }
 
+    // Combo Ma Diễm Cộng Hưởng: Nếu mục tiêu trúng đòn gần/trong U Minh Ma Vực -> +75 ST (Tổng 325 ST)
+    const inVortex = this.lastVortexPos && center.distanceTo(this.lastVortexPos) <= 12.0 && this.vortexTimer > 0;
+    const actualDamage = inVortex ? 325 : 250;
+    const blastText = inVortex ? '🔥🩸 -325 MA DIỄM CỘNG HƯỞNG!' : '🔥 -250 MA BẠO!';
+
     // Sát thương bộc phá cực đại
-    this.dealDamageAOE(center, 16.0, 250, '🔥 -250 MA BẠO!', '#eb3b5a', monsters, 'knockback', 'fire', 55.0, character);
+    this.dealDamageAOE(center, 16.0, actualDamage, blastText, '#eb3b5a', monsters, 'knockback', 'fire', 55.0, character);
   }
 
   // =========================================================================
@@ -1939,29 +2060,67 @@ export class PixelFXManager {
     const impactY = getTerrainHeight(impactX, impactZ);
     const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
 
-    sound.playThunder();
+    if (sound.playThunder) {
+      sound.playThunder();
+    } else if (sound.playGiantSwordImpact) {
+      sound.playGiantSwordImpact();
+    }
+
     if (this.controller) this.controller.addTrauma(0.35);
     if (this.onScreenFlash) this.onScreenFlash('lightning');
 
     this.spawnTelegraph(hitPos, 0xffd32a, 0.8, 8.0);
-    this.spawnGroundDecalEffect('lightning', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 10, 2.0);
+    this.spawnGroundDecalEffect('lightning', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 12, 2.0);
 
-    // Cột sét giáng từ trời xuống
-    const boltGeo = new THREE.CylinderGeometry(0.2, 0.45, 45, 6);
-    const boltMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const bolt = new THREE.Mesh(boltGeo, boltMat);
-    bolt.position.set(impactX, impactY + 22.5, impactZ);
-    this.scene.add(bolt);
+    // Cột sét giáng từ trời xuống (2 lớp: Lõi trắng + Vỏ vàng kim quang)
+    const boltGroup = new THREE.Group();
+    boltGroup.position.set(impactX, impactY, impactZ);
+
+    const innerGeo = new THREE.CylinderGeometry(0.35, 0.65, 50, 8);
+    innerGeo.translate(0, 25, 0);
+    const innerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const innerBolt = new THREE.Mesh(innerGeo, innerMat);
+    boltGroup.add(innerBolt);
+
+    const outerGeo = new THREE.CylinderGeometry(1.1, 1.6, 50, 8);
+    outerGeo.translate(0, 25, 0);
+    const outerMat = new THREE.MeshBasicMaterial({
+      color: 0xffd32a,
+      transparent: true,
+      opacity: 0.65,
+      side: THREE.DoubleSide,
+    });
+    const outerBolt = new THREE.Mesh(outerGeo, outerMat);
+    boltGroup.add(outerBolt);
+
+    this.scene.add(boltGroup);
 
     if (this.particles) {
-      this.particles.emitShockwave(hitPos, 0xffd32a, 12.0, 0.4);
-      this.particles.emitElementalParticles(hitPos, 35, [0xffd32a, 0xffffff, 0x74b9ff], [3, 8], 0.7, 5.0, 1.0);
+      this.particles.emitShockwave(hitPos, 0xffd32a, 14.0, 0.45);
+      this.particles.emitShockwave(hitPos, 0xffffff, 8.0, 0.3);
+      this.particles.emitElementalParticles(hitPos, 45, [0xffd32a, 0xffffff, 0x74b9ff], [3, 9], 0.75, 6.0, 1.2);
     }
 
-    // Sát thương tâm sét
-    this.dealDamageAOE(hitPos, 8.0, 140, '⚡ -140 THIÊN LÔI!', '#ffd32a', monsters, null, 'lightning', null, character);
+    // Sát thương tâm sét & gây TÊ LIỆT (Làm chậm tốc chạy 45% trong 2.5s)
+    this.dealDamageAOE(hitPos, 8.5, 140, '⚡ -140 TÊ LIỆT!', '#ffd32a', monsters, null, 'lightning', null, character);
 
-    // Sét giật lan (Chain Lightning) sang 4 mục tiêu lân cận trong 12m
+    // Áp dụng hiệu ứng Tê Liệt cho kẻ địch trúng tâm sét
+    if (monsters) {
+      for (const m of monsters) {
+        if (!m.isDead && m.position.distanceTo(hitPos) <= 8.5) {
+          if (m.freeze) m.freeze(1.2);
+        }
+      }
+    }
+    if (this.canHitPlayers(character) && this.remotePlayers) {
+      for (const rp of this.remotePlayers) {
+        if (!rp.isDead && rp.position.distanceTo(hitPos) <= 8.5) {
+          if (rp.slow) rp.slow(2.5, 0.45);
+        }
+      }
+    }
+
+    // Sét giật lan (Chain Lightning) sang 4 mục tiêu lân cận trong 14m
     if (monsters) {
       let chained = 0;
       for (const m of monsters) {
@@ -1981,12 +2140,17 @@ export class PixelFXManager {
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
-        bolt.scale.x = Math.max(0, 1.0 - elapsed * 4);
-        bolt.scale.z = bolt.scale.x;
-        if (elapsed >= 0.25) {
-          this.scene.remove(bolt);
-          boltGeo.dispose();
-          boltMat.dispose();
+        const progress = elapsed / 0.38;
+        boltGroup.scale.x = Math.max(0, 1.0 - progress);
+        boltGroup.scale.z = boltGroup.scale.x;
+        outerMat.opacity = Math.max(0, 0.65 * (1.0 - progress));
+
+        if (elapsed >= 0.38) {
+          this.scene.remove(boltGroup);
+          innerGeo.dispose();
+          innerMat.dispose();
+          outerGeo.dispose();
+          outerMat.dispose();
           return false;
         }
         return true;
@@ -2003,10 +2167,12 @@ export class PixelFXManager {
 
     if (this.controller) this.controller.addTrauma(0.2);
 
-    // Tăng tốc độ chạy cho caster trong 4 giây!
+    // Tăng tốc độ chạy cho caster trong 4 giây & MIỄN KHỐNG CHẾ!
     if (character) {
+      if (character.freezeTimer > 0) character.freezeTimer = 0;
+      if (character.slowTimer > 0) character.slowTimer = 0;
       character.speedBoostTimer = 4.0;
-      this.damageTexts.spawn('🪶 +50% TỐC ĐỘ!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#2ed573');
+      this.damageTexts.spawn('🪶 +45% TỐC ĐỘ / MIỄN KHỐNG!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#2ed573');
     }
 
     // Mô hình Linh Ảnh Bạch Hạc sải cánh
@@ -2163,6 +2329,9 @@ export class PixelFXManager {
             if (this.onHitPlayer) {
               this.onHitPlayer(rp.id, amount, rp.position.clone().add(new THREE.Vector3(0, 1.2, 0)), elementType);
             }
+            if (statusEffect === 'freeze' && rp.freeze) {
+              rp.freeze(2.2);
+            }
             if (this.damageTexts) {
               const hitPos = rp.position.clone().add(new THREE.Vector3(0, 1.8, 0));
               this.damageTexts.spawn(text, hitPos, textColor);
@@ -2200,6 +2369,9 @@ export class PixelFXManager {
   }
 
   update(delta) {
+    if (this.baguaTimer > 0) this.baguaTimer -= delta;
+    if (this.vortexTimer > 0) this.vortexTimer -= delta;
+
     // 1. Cập nhật thời gian hồi chiêu
     for (const key in this.cooldowns) {
       const cd = this.cooldowns[key];

@@ -240,18 +240,20 @@ export class ThirdPersonController {
     return origin;
   }
 
-  // Đòn đánh thường: combo 3 nhát chém kiếm theo hướng camera
+  // Đòn đánh thường: combo 3 nhát chém kiếm theo hướng camera (tốc độ vung & lướt đâm theo môn phái)
   triggerShoot() {
     if (this.character.isDead || this.attackCooldown > 0) return;
 
     const step = this.comboTimer > 0 ? (this.comboStep + 1) % 3 : 0;
     this.comboStep = step;
     this.comboTimer = COMBO_WINDOW;
-    this.attackCooldown = step === 2 ? 0.5 : 0.26;
+    const speedMult = this.character.sectStats?.slashSpeedMult || 1.0;
+    this.attackCooldown = (step === 2 ? 0.46 : 0.24) / speedMult;
 
     const forward = this.getAttackForward();
     this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z), step);
-    if (step === 2) this.character.startDash(forward, 1.6, 0.15); // Nhát đâm lướt tới
+    const dashDist = (this.character.sectStats?.dashDist !== undefined) ? this.character.sectStats.dashDist : 1.6;
+    if (step === 2 && !this.character.sectStats?.isRangedBasic) this.character.startDash(forward, dashDist, 0.15); // Nhát đâm lướt tới (chỉ cận chiến)
     this.addTrauma(step === 2 ? 0.16 : 0.08); // Rung nhẹ tạo cảm giác đầm tay
 
     if (this.onShoot) {
@@ -354,7 +356,10 @@ export class ThirdPersonController {
         }
         break;
       case 'Escape':
-        if (isDown) this.exitLock();
+        if (isDown) {
+          this.exitLock();
+          if (this.onEscape) this.onEscape();
+        }
         break;
 
       // CÁC PHÍM KỸ NĂNG: [1], [2], [3] (hỗ trợ thêm [Q] cho 1, [E] cho 3)

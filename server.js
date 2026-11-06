@@ -161,9 +161,9 @@ wss.on('connection', (ws) => {
             id: playerId,
             origin: msg.origin,
             direction: msg.direction,
-            // Loại đòn kiếm: chém combo (step 0-2), kiếm khí tụ lực (power 0-1),
+            // Loại đòn kiếm: chém combo (step 0-2), phi vũ lông vũ, kiếm khí tụ lực (power 0-1),
             // chém hoàng kim của Bạch Ảnh (gslash) hoặc tia sét vàng của Tử Ảnh (bolt, kèm target)
-            kind: ['qi', 'gslash', 'bolt'].includes(msg.kind) ? msg.kind : 'slash',
+            kind: ['qi', 'feather', 'gslash', 'bolt'].includes(msg.kind) ? msg.kind : 'slash',
             target: sanitizePoint(msg.target),
             step: Math.min(2, Math.max(0, Math.floor(Number(msg.step) || 0))),
             power: Math.min(1, Math.max(0, Number(msg.power) || 0)),

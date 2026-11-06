@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { World } from './world.js';
-import { Character } from './character.js';
+import { Character, SECT_STATS } from './character.js';
 import { ParticleSystem } from './particles.js';
 import { ThirdPersonController } from './controller.js';
 import { ProjectileSystem } from './projectiles.js';
@@ -161,6 +161,7 @@ class Game {
     this.pixelFX.remotePlayers = [];
     this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source) => this.handleHitPlayer(targetId, dmg, hitPos, source);
     this.pixelFX.localCharacter = this.character;
+    this.character.pixelFX = this.pixelFX;
 
     // Đạo ảnh phân thân (Nhất Khí Hóa Tam Thanh): đòn kiếm khí của đạo ảnh cũng gửi qua mạng để máy khác thấy
     this.clones = new CloneManager(this.scene, this.particles, this.projectiles);
@@ -178,12 +179,23 @@ class Game {
       this.character,
       this.canvas,
       (origin, attackDir, comboStep) => {
-        this.projectiles.slash(
-          origin, attackDir, this.monsters, comboStep === 2 ? 'thrust' : 'sweep',
-          this.pixelFX.remotePlayers, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source)
-        );
-        if (this.network.isConnected) {
-          this.network.sendShoot(origin, attackDir, { kind: 'slash', step: comboStep });
+        const sectStats = this.character.sectStats;
+        if (sectStats?.isRangedBasic) {
+          this.projectiles.spawnFeatherDart(
+            origin, attackDir, comboStep, true, sectStats, this.character
+          );
+          if (this.network.isConnected) {
+            this.network.sendShoot(origin, attackDir, { kind: 'feather', step: comboStep });
+          }
+        } else {
+          this.projectiles.slash(
+            origin, attackDir, this.monsters, comboStep === 2 ? 'thrust' : 'sweep',
+            this.pixelFX.remotePlayers, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source),
+            sectStats, this.character
+          );
+          if (this.network.isConnected) {
+            this.network.sendShoot(origin, attackDir, { kind: 'slash', step: comboStep });
+          }
         }
       },
       (skillNum, targetPos) => {
@@ -225,10 +237,11 @@ class Game {
 
     this.pixelFX.controller = this.controller;
 
-    // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí
+    // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí (màu sắc & lực sát thương theo môn phái)
     this.controller.onChargedRelease = (origin, attackDir, power) => {
       const qiOrigin = origin.clone().addScaledVector(attackDir, 0.6);
-      this.projectiles.spawnSwordQi(qiOrigin, attackDir, power, true);
+      const sectStats = this.character.sectStats;
+      this.projectiles.spawnSwordQi(qiOrigin, attackDir, power, true, sectStats, this.character);
       if (this.network.isConnected) {
         this.network.sendShoot(qiOrigin, attackDir, { kind: 'qi', power });
       }
@@ -250,6 +263,17 @@ class Game {
           lockHint.classList.add('hidden');
         } else {
           lockHint.classList.remove('hidden');
+        }
+      }
+    };
+
+    this.controller.onEscape = () => {
+      const settingsModal = document.getElementById('settings-modal');
+      if (settingsModal) {
+        if (settingsModal.style.display === 'flex') {
+          settingsModal.style.display = 'none';
+        } else {
+          settingsModal.style.display = 'flex';
         }
       }
     };
@@ -365,14 +389,25 @@ class Game {
         if (msg.target) this.clones.spawnBolt(origin, new THREE.Vector3(msg.target.x, msg.target.y, msg.target.z));
         return;
       }
+      const rpSectStats = rp ? (SECT_STATS[rp.outfitIndex] || null) : null;
       if (msg.kind === 'qi') {
-        this.projectiles.spawnSwordQi(origin, dir, msg.power || 0, false);
+        this.projectiles.spawnSwordQi(origin, dir, msg.power || 0, false, rpSectStats, rp);
+        sound.playSwordSlash();
       } else if (msg.kind === 'gslash') {
-        this.projectiles.slash(origin, dir, this.monsters, 'goldSlash');
+        // Nhát chém hoàng kim của Bạch Ảnh (đạo ảnh dùng sectStats của chủ nhân)
+        this.projectiles.slash(origin, dir, this.monsters, 'goldSlash', [], null, rpSectStats, rp);
+        sound.playSwordSlash();
+      } else if (msg.kind === 'feather') {
+        this.projectiles.spawnFeatherDart(origin, dir, msg.step || 0, false, rpSectStats, rp);
+        if (sound.playFeatherShoot) {
+          sound.playFeatherShoot();
+        } else {
+          sound.playSwordSlash();
+        }
       } else {
-        this.projectiles.slash(origin, dir, this.monsters, msg.step === 2 ? 'thrust' : 'sweep');
+        this.projectiles.slash(origin, dir, this.monsters, msg.step === 2 ? 'thrust' : 'sweep', [], null, rpSectStats, rp);
+        sound.playSwordSlash();
       }
-      sound.playSwordSlash();
     });
 
     this.network.on('player_skill', (msg) => {
@@ -603,22 +638,41 @@ class Game {
     }
 
     // Nút Bắn ảo
-    const shootBtn = document.getElementById('btn-shoot');
-    if (shootBtn) {
-      shootBtn.addEventListener('click', (e) => {
+    // Nút mở/đóng Modal Cài Đặt (Settings)
+    const settingsBtn = document.getElementById('btn-settings');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeSettingsBtn = document.getElementById('btn-close-settings');
+
+    if (settingsBtn && settingsModal) {
+      settingsBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this.controller.triggerShoot();
+        this.controller.exitLock();
+        settingsModal.style.display = 'flex';
+      });
+
+      if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          settingsModal.style.display = 'none';
+        });
+      }
+
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) {
+          settingsModal.style.display = 'none';
+        }
       });
     }
 
     // Nút Âm thanh
     const soundBtn = document.getElementById('btn-sound');
+    const soundTag = document.getElementById('sound-status-tag');
     if (soundBtn) {
       soundBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         sound.init();
         const isMuted = sound.toggleMute();
-        soundBtn.innerHTML = isMuted ? '🔇 Linh Âm: Tắt' : '🔊 Linh Âm: Bật';
+        if (soundTag) soundTag.textContent = isMuted ? 'TẮT' : 'BẬT';
         soundBtn.classList.toggle('active', !isMuted);
       });
     }
@@ -629,7 +683,8 @@ class Game {
       outfitBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const name = this.character.cycleOutfit();
-        this.showNotification(`Đã hoán đổi tiên bào: ${name}`);
+        this.pixelFX.setSect(this.character.outfitIndex);
+        this.showNotification(`Đã hoán đổi môn phái: ${name}`);
       });
     }
 
@@ -778,6 +833,16 @@ class Game {
     const savedName = localStorage.getItem('playerName') || 'Hiệp Sĩ Bé Gấu';
     if (nameInput) nameInput.value = savedName;
 
+    const savedOutfit = parseInt(localStorage.getItem('playerOutfit'), 10);
+    if (!isNaN(savedOutfit) && savedOutfit >= 0 && savedOutfit < 5) {
+      this.selectedOutfitIndex = savedOutfit;
+      outfitCards.forEach((c) => {
+        c.classList.toggle('active', parseInt(c.dataset.index, 10) === savedOutfit);
+      });
+      this.character.setOutfit(this.selectedOutfitIndex);
+      this.pixelFX.setSect(this.selectedOutfitIndex);
+    }
+
     const defaultServerUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname || 'localhost'}:3000`;
     if (serverInput) serverInput.value = defaultServerUrl;
 
@@ -787,6 +852,7 @@ class Game {
         outfitCards.forEach((c) => c.classList.remove('active'));
         card.classList.add('active');
         this.selectedOutfitIndex = parseInt(card.dataset.index, 10) || 0;
+        localStorage.setItem('playerOutfit', this.selectedOutfitIndex);
         this.character.setOutfit(this.selectedOutfitIndex);
         this.pixelFX.setSect(this.selectedOutfitIndex);
       });
@@ -795,6 +861,7 @@ class Game {
     const enterGame = async (isOnlineMode) => {
       const name = (nameInput.value || 'Gấu Hiệp Sĩ').trim().substring(0, 18);
       localStorage.setItem('playerName', name);
+      localStorage.setItem('playerOutfit', this.selectedOutfitIndex);
       this.character.setName(name);
       this.character.setOutfit(this.selectedOutfitIndex);
       this.pixelFX.setSect(this.selectedOutfitIndex);
@@ -952,6 +1019,7 @@ class Game {
           isCasting: this.character.isCasting,
           castSkill: this.character.castSkill,
           clones: this.clones.getNetworkState(),
+          outfit: this.character.outfitIndex,
         });
       }
     }
