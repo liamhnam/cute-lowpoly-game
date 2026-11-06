@@ -337,7 +337,7 @@ export const SECTS = [
     colorHex: 0xf6c344,
     themeColor: '#f1c40f',
     icon: '🐉',
-    desc: 'Đạo gia trận pháp & phòng ngự: Cự Kiếm Phá Thiên 50m, Bát Quái Đại Canh trận hồi máu kèm lốc lôi kiếm, Nhất Khí Hóa Tam Thanh phân thân, Thiên Lôi Phạt Thế giáng sấm khắp 60m',
+    desc: 'Đạo gia trận pháp & phòng ngự: Cự Kiếm Phá Thiên 50m, Bát Quái Đại Canh trận hồi máu kèm 1000 phi kiếm xoáy 100m, Nhất Khí Hóa Tam Thanh phân thân, Thiên Lôi Phạt Thế giáng sấm khắp 60m',
     skills: [
       {
         id: 1,
@@ -355,7 +355,7 @@ export const SECTS = [
         icon: '☯️',
         cd: 14.0,
         mana: 35,
-        desc: 'Trải trận Bát Quái 12m (10s): hồi +25 HP/s, giảm 30% ST nhận, địch vào trận bị chậm 50%, kèm 36 lôi kiếm Đại Canh xoáy lốc 30m. Trong trận: KHÁNG hiệu ứng (miễn đóng băng/làm chậm) và chiêu 1, 3 hồi nhanh hơn 60%'
+        desc: 'Trải trận Bát Quái 12m (10s): hồi +25 HP/s, giảm 30% ST nhận, địch vào trận bị chậm 50%, kèm 1000 phi kiếm Đại Canh xoáy cuồng phong khắp 100m, mỗi thanh quét trúng gây 12 ST. Trong trận: KHÁNG hiệu ứng (miễn đóng băng/làm chậm) và chiêu 1, 3 hồi nhanh hơn 60%'
       },
       {
         id: 3,
@@ -1353,20 +1353,25 @@ export class PixelFXManager {
     });
   }
 
-  // --- KIẾM CHIÊU 6: ĐẠI CANH KIẾM TRẬN ---
-  // 36 lôi kiếm xoáy vòng liên tục quanh người suốt 10 giây như cơn lốc kiếm.
-  // Bán kính quỹ đạo mỗi thanh co giãn từ 3m tới 30m để quét kín cả vùng, kiếm quét trúng quái là gây sát thương.
+  // --- ĐẠI CANH KIẾM TRẬN (kèm Bát Quái, chiêu 2 của Đạo Gia) ---
+  // 1000 phi kiếm xoáy cuồng phong trong phạm vi 100m quanh người suốt 10 giây.
+  // Vẽ bằng InstancedMesh (một lần draw cho cả 1000 thanh). Mỗi nhịp HIT_TICK, mục tiêu nào có kiếm quét qua
+  // thì chịu DAMAGE cho mỗi thanh kiếm đang chạm (tối đa MAX_BLADES thanh mỗi nhịp).
   castDaiCanhSwordArray(character, monsters) {
-    const SWORD_COUNT = 36;
-    const RANGE = 30;
+    const SWORD_COUNT = 1000;
+    const RANGE = 100;
     const MIN_RADIUS = 3;
     const DURATION = 10;
-    const ORBIT_SPEED = 22; // tốc độ dài trên quỹ đạo (m/s)
-    const MAX_SPIN = 4;     // giới hạn tốc độ góc khi kiếm ở gần tâm (rad/s)
-    const INTRO = 0.6;      // thời gian kiếm bung từ người ra quỹ đạo
-    const DAMAGE = 18;
-    const HIT_INTERVAL = 0.5; // một thanh kiếm chém lại cùng một con sau ít nhất 0.5s
-    const TRAIL_POINTS = 14;
+    const ORBIT_SPEED = 70;  // tốc độ dài trên quỹ đạo (m/s)
+    const MAX_SPIN = 7;      // giới hạn tốc độ góc khi kiếm ở gần tâm (rad/s)
+    const INTRO = 0.8;       // thời gian kiếm bung từ người ra quỹ đạo
+    const OUTRO = 0.6;       // thời gian kiếm vút lên trời khi hết giờ
+    const DAMAGE = 12;       // sát thương mỗi thanh kiếm chạm mục tiêu trong một nhịp
+    const MAX_BLADES = 10;   // trần số thanh kiếm được tính cho một mục tiêu trong một nhịp
+    const HIT_TICK = 0.2;
+    const HIT_REACH = 1.6;   // kiếm cách rìa mục tiêu trong khoảng này là trúng
+    const BLADE_LENGTH = 3.4;
+    const TAIL_LENGTH = 7;
     const up = new THREE.Vector3(0, 1, 0);
 
     sound.playSwordSummon();
@@ -1374,7 +1379,7 @@ export class PixelFXManager {
     if (this.controller) this.controller.addTrauma(0.5);
     this.spawnTelegraph(character.position.clone(), 0xa29bfe, 1.2, RANGE);
 
-    // Vòng ranh giới kiếm trận 30m đi theo người
+    // Vòng ranh giới kiếm trận 100m đi theo người
     const borderMat = new THREE.MeshBasicMaterial({
       color: 0xa29bfe,
       transparent: true,
@@ -1382,147 +1387,169 @@ export class PixelFXManager {
       side: THREE.DoubleSide,
       depthWrite: false,
     });
-    const borderGeo = new THREE.RingGeometry(RANGE - 0.5, RANGE, 96);
+    const borderGeo = new THREE.RingGeometry(RANGE - 0.8, RANGE, 128);
     borderGeo.rotateX(-Math.PI / 2);
     const border = new THREE.Mesh(borderGeo, borderMat);
     this.scene.add(border);
 
-    // Vệt sét: hai sợi lập loè (lõi trắng + viền tím) bám theo lịch sử vị trí kiếm
-    const coreMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
-    const glowMat = new THREE.LineBasicMaterial({ color: 0x8c7ae6, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
-    const makeStrand = (mat) => {
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(TRAIL_POINTS * 3), 3));
-      geo.setDrawRange(0, 0);
-      const line = new THREE.Line(geo, mat);
-      line.frustumCulled = false;
-      this.scene.add(line);
-      return line;
-    };
+    // Thân kiếm dẹt + đuôi sáng mờ kéo dài phía sau (chung ma trận và màu với thân kiếm)
+    const bladeGeo = new THREE.ConeGeometry(0.24, BLADE_LENGTH, 4);
+    bladeGeo.scale(1, 1, 0.3);
+    const tailGeo = new THREE.ConeGeometry(0.2, TAIL_LENGTH, 4);
+    tailGeo.rotateX(Math.PI);
+    tailGeo.translate(0, -BLADE_LENGTH / 2 - TAIL_LENGTH / 2, 0);
+    tailGeo.scale(1, 1, 0.3);
+    const bladeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const tailMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false });
+    const blades = new THREE.InstancedMesh(bladeGeo, bladeMat, SWORD_COUNT);
+    const tails = new THREE.InstancedMesh(tailGeo, tailMat, SWORD_COUNT);
+    blades.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    blades.frustumCulled = false;
+    tails.frustumCulled = false;
+    const palette = [0xffffff, 0xa29bfe, 0x74b9ff, 0xf6e58d].map((c) => new THREE.Color(c));
+    for (let i = 0; i < SWORD_COUNT; i++) blades.setColorAt(i, palette[i % palette.length]);
+    tails.instanceMatrix = blades.instanceMatrix;
+    tails.instanceColor = blades.instanceColor;
+    this.scene.add(blades);
+    this.scene.add(tails);
 
-    const swords = [];
+    // Trạng thái từng thanh kiếm
+    const baseR = new Float32Array(SWORD_COUNT);
+    const breathe = new Float32Array(SWORD_COUNT);
+    const phase = new Float32Array(SWORD_COUNT);
+    const angle = new Float32Array(SWORD_COUNT);
+    const px = new Float32Array(SWORD_COUNT);
+    const py = new Float32Array(SWORD_COUNT);
+    const pz = new Float32Array(SWORD_COUNT);
+    const groundY = new Float32Array(SWORD_COUNT);
     for (let i = 0; i < SWORD_COUNT; i++) {
-      const angle = (i / SWORD_COUNT) * Math.PI * 2;
-      const mesh = createSword(1.3);
-      mesh.position.copy(character.position);
-      mesh.position.y += 1.5;
-      this.scene.add(mesh);
-      swords.push({
-        mesh,
-        vel: new THREE.Vector3(),
-        angle,
-        // Mỗi thanh co giãn bán kính với nhịp và pha riêng để luôn có kiếm ở mọi khoảng cách
-        breathe: 0.45 + Math.random() * 0.35,
-        radiusPhase: (i * 2.399) % (Math.PI * 2), // góc vàng: rải đều pha giữa các thanh
-        hitTimers: new Map(),
-        history: [],
-        strands: [makeStrand(coreMat), makeStrand(glowMat)],
-      });
+      // Rải đều theo diện tích đĩa tròn: không dồn hết vào tâm
+      baseR[i] = MIN_RADIUS + (RANGE - MIN_RADIUS - 8) * Math.sqrt((i + 0.5) / SWORD_COUNT);
+      breathe[i] = 0.4 + Math.random() * 0.5;
+      phase[i] = (i * 2.399) % (Math.PI * 2); // góc vàng
+      angle[i] = (i * 2.399) % (Math.PI * 2);
+      groundY[i] = character.position.y;
     }
 
-    const updateTrail = (s) => {
-      s.history.unshift(s.mesh.position.clone());
-      if (s.history.length > TRAIL_POINTS) s.history.pop();
-      for (let k = 0; k < s.strands.length; k++) {
-        const attr = s.strands[k].geometry.attributes.position;
-        for (let j = 0; j < s.history.length; j++) {
-          // Đuôi càng xa càng giật mạnh tạo hình tia sét zigzag
-          const amp = j === 0 ? 0 : (0.12 + (j / TRAIL_POINTS) * 0.45) * (k === 0 ? 0.6 : 1.0);
-          const p = s.history[j];
-          attr.setXYZ(j, p.x + (Math.random() - 0.5) * amp, p.y + (Math.random() - 0.5) * amp, p.z + (Math.random() - 0.5) * amp);
+    const dummy = new THREE.Object3D();
+    const tangent = new THREE.Vector3();
+    let elapsed = 0;
+    let frame = 0;
+    let hitClock = 0;
+    let lastHitSound = -1;
+
+    const countNear = (pos, reach, yMin, yMax) => {
+      let n = 0;
+      const r2 = reach * reach;
+      for (let i = 0; i < SWORD_COUNT; i++) {
+        const dx = px[i] - pos.x;
+        const dz = pz[i] - pos.z;
+        if (dx * dx + dz * dz <= r2 && py[i] >= yMin && py[i] <= yMax) {
+          if (++n >= MAX_BLADES) break;
         }
-        attr.needsUpdate = true;
-        s.strands[k].geometry.setDrawRange(0, s.history.length);
+      }
+      return n;
+    };
+
+    const strikeTargets = () => {
+      const c = character.position;
+      let struck = false;
+      for (const monster of monsters) {
+        if (monster.isDead) continue;
+        const near = Math.hypot(monster.position.x - c.x, monster.position.z - c.z);
+        if (near > RANGE + monster.hitRadius) continue;
+        const n = countNear(monster.position, monster.hitRadius + HIT_REACH, monster.position.y - 1.0, monster.position.y + monster.hitHeight + 1.0);
+        if (!n) continue;
+        const dmg = n * DAMAGE;
+        this.damageMonster(monster, dmg, `⚡ -${dmg}`, '#a29bfe', monster.position);
+        struck = true;
+      }
+      if (this.canHitPlayers(character)) {
+        for (const rp of this.remotePlayers) {
+          if (rp.isDead) continue;
+          const n = countNear(rp.position, 0.9 + HIT_REACH, rp.position.y - 1.0, rp.position.y + 3.0);
+          if (!n) continue;
+          const dmg = n * DAMAGE;
+          const hitPos = rp.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+          this.onHitPlayer(rp.id, dmg, hitPos, 'sword');
+          this.damageTexts.spawn(`⚡ -${dmg}`, hitPos.clone().add(new THREE.Vector3(0, 0.6, 0)), '#a29bfe');
+          if (this.particles) this.particles.emitHitSparkles(hitPos, 14);
+          struck = true;
+        }
+      }
+      if (struck && elapsed - lastHitSound > 0.15) {
+        lastHitSound = elapsed;
+        sound.playSwordSlash();
+        if (this.controller) this.controller.addTrauma(0.05);
       }
     };
 
-    let elapsed = 0;
-    let lastHitSound = -1;
-    const prevPos = new THREE.Vector3();
+    const cleanup = () => {
+      this.scene.remove(blades);
+      this.scene.remove(tails);
+      bladeGeo.dispose();
+      tailGeo.dispose();
+      bladeMat.dispose();
+      tailMat.dispose();
+      blades.dispose();
+      this.scene.remove(border);
+      borderGeo.dispose();
+      borderMat.dispose();
+    };
 
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
+        frame++;
         const center = character.position;
         border.position.set(center.x, center.y + 0.1, center.z);
         borderMat.opacity = 0.2 + Math.sin(elapsed * 8) * 0.08;
 
-        // Hết giờ: lôi kiếm vút lên trời tan biến
-        if (elapsed >= DURATION) {
-          const t = elapsed - DURATION;
-          for (const s of swords) {
-            s.vel.lerp(new THREE.Vector3(0, 40, 0), Math.min(1, delta * 6));
-            s.mesh.position.addScaledVector(s.vel, delta);
-            s.mesh.quaternion.setFromUnitVectors(up, s.vel.clone().normalize());
-            s.mesh.scale.multiplyScalar(0.94);
-            updateTrail(s);
-          }
-          coreMat.opacity = glowMat.opacity = Math.max(0, 0.9 - t * 1.5);
-          if (t >= 0.6) {
-            for (const s of swords) {
-              this.scene.remove(s.mesh);
-              for (const line of s.strands) {
-                this.scene.remove(line);
-                line.geometry.dispose();
-              }
-            }
-            coreMat.dispose();
-            glowMat.dispose();
-            this.scene.remove(border);
-            borderGeo.dispose();
-            borderMat.dispose();
-            return false;
-          }
-          return true;
+        const outro = Math.max(0, elapsed - DURATION);
+        if (outro >= OUTRO) {
+          cleanup();
+          return false;
         }
+        const shrink = 1 - outro / OUTRO;
 
-        for (let i = 0; i < swords.length; i++) {
-          const s = swords[i];
-          for (const [m, timer] of s.hitTimers) s.hitTimers.set(m, timer - delta);
-
-          // Bán kính quỹ đạo co giãn giữa MIN_RADIUS và RANGE; lúc mở chiêu thì bung dần từ người ra
-          let radius = MIN_RADIUS + (RANGE - MIN_RADIUS) * (0.5 - 0.5 * Math.cos(s.breathe * elapsed + s.radiusPhase));
+        for (let i = 0; i < SWORD_COUNT; i++) {
+          // Bán kính quỹ đạo co giãn quanh baseR; lúc mở chiêu thì bung dần từ người ra
+          let radius = THREE.MathUtils.clamp(baseR[i] + Math.sin(breathe[i] * elapsed + phase[i]) * 7, MIN_RADIUS, RANGE);
           if (elapsed < INTRO) radius = THREE.MathUtils.lerp(1.0, radius, elapsed / INTRO);
 
-          // Xoáy cùng chiều, tốc độ dài gần như đều nên kiếm ở xa không bị chậm
-          s.angle += Math.min(MAX_SPIN, ORBIT_SPEED / Math.max(radius, 1)) * delta;
+          // Xoáy cùng chiều, tốc độ dài gần như đều nên kiếm ở xa vẫn quét rất nhanh
+          angle[i] += Math.min(MAX_SPIN, ORBIT_SPEED / Math.max(radius, 1)) * delta;
+          const a = angle[i];
+          const x = center.x + Math.cos(a) * radius;
+          const z = center.z + Math.sin(a) * radius;
 
-          prevPos.copy(s.mesh.position);
-          const x = center.x + Math.cos(s.angle) * radius;
-          const z = center.z + Math.sin(s.angle) * radius;
-          // Bay nhấp nhô ngang tầm thân quái, không cắm xuống đất
-          const y = Math.max(getTerrainHeight(x, z) + 0.6, center.y + 1.8 + Math.sin(elapsed * 2.2 + i * 0.7) * 1.2);
-          s.mesh.position.set(x, y, z);
+          // Độ cao mặt đất chỉ làm tươi dần (mỗi thanh 1 lần / 4 khung hình) cho nhẹ
+          if ((i + frame) % 4 === 0) groundY[i] = getTerrainHeight(x, z);
+          let y = Math.max(groundY[i] + 0.8, center.y + 1.8 + Math.sin(elapsed * 2.2 + i * 0.7) * 1.4);
+          if (outro > 0) y += outro * 60;
+
+          px[i] = x;
+          py[i] = y;
+          pz[i] = z;
 
           // Mũi kiếm hướng theo chiều bay
-          s.vel.subVectors(s.mesh.position, prevPos).divideScalar(Math.max(delta, 0.001));
-          if (s.vel.lengthSq() > 0.0001) s.mesh.quaternion.setFromUnitVectors(up, s.vel.clone().normalize());
-          updateTrail(s);
+          tangent.set(-Math.sin(a), outro > 0 ? 1.5 : 0, Math.cos(a)).normalize();
+          dummy.position.set(x, y, z);
+          dummy.quaternion.setFromUnitVectors(up, tangent);
+          dummy.scale.setScalar(shrink);
+          dummy.updateMatrix();
+          blades.setMatrixAt(i, dummy.matrix);
+        }
+        blades.instanceMatrix.needsUpdate = true;
 
-          if (this.particles && Math.random() < 0.15) {
-            this.particles.emitElementalParticles(s.mesh.position, 1, [0xa29bfe, 0xffffff, 0x74b9ff], [0.3, 1.2], 0.2, 0, 0.3);
+        if (outro === 0) {
+          hitClock += delta;
+          if (hitClock >= HIT_TICK) {
+            hitClock -= HIT_TICK;
+            strikeTargets();
           }
-
-          for (const monster of monsters) {
-            if (monster.isDead || (s.hitTimers.get(monster) || 0) > 0) continue;
-            if (monster.checkCollision(s.mesh.position, 0.9)) {
-              s.hitTimers.set(monster, HIT_INTERVAL);
-              this.damageMonster(monster, DAMAGE, `⚡ -${DAMAGE}`, '#a29bfe', s.mesh.position);
-              if (this.particles) this.particles.emitShockwave(s.mesh.position, 0xa29bfe, 2.2, 0.2);
-              if (elapsed - lastHitSound > 0.07) {
-                lastHitSound = elapsed;
-                sound.playSwordSlash();
-                if (this.controller) this.controller.addTrauma(0.03);
-              }
-            }
-          }
-
-          // PvP: người chơi đang trong thời gian chờ của thanh kiếm này thì bỏ qua (hitTimers khoá theo id)
-          const cooling = new Set();
-          for (const [key, timer] of s.hitTimers) if (timer > 0) cooling.add(key);
-          for (const rp of this.damagePlayersNear(s.mesh.position, 0.9, DAMAGE, `⚡ -${DAMAGE}`, '#a29bfe', character, cooling)) {
-            s.hitTimers.set(rp.id, HIT_INTERVAL);
-          }
+        } else {
+          tailMat.opacity = 0.35 * shrink;
         }
         return true;
       }
@@ -1731,16 +1758,16 @@ export class PixelFXManager {
   // =========================================================================
 
   // [Đạo Gia 2] BÁT QUÁI ĐẠI CANH TRẬN: trận Bát Quái (hồi 250 HP, làm chậm địch)
-  // kèm 36 lôi kiếm Đại Canh xoáy quanh người, trận giữ đến khi kiếm trận tan
+  // kèm 1000 phi kiếm Đại Canh xoáy quanh người, trận giữ đến khi kiếm trận tan
   castTaiChiBagua(character, monsters) {
-    const BAGUA_DURATION = 10.0; // khớp thời gian 36 lôi kiếm của Đại Canh Kiếm Trận
+    const BAGUA_DURATION = 10.0; // khớp thời gian 1000 phi kiếm của Đại Canh Kiếm Trận
     const center = character.position.clone();
     center.y = getTerrainHeight(center.x, center.z);
     sound.playSwordSummon();
 
     if (this.onScreenFlash) this.onScreenFlash('sword');
 
-    // 0. Triệu hồi 36 lôi kiếm Đại Canh xoáy quanh trận
+    // 0. Triệu hồi 1000 phi kiếm Đại Canh xoáy quanh trận
     this.castDaiCanhSwordArray(character, monsters);
 
     // 1. Chỉ điểm Bát Quái trận dưới chân
