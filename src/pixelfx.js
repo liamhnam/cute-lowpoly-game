@@ -2053,27 +2053,49 @@ export class PixelFXManager {
     const impactY = getTerrainHeight(impactX, impactZ);
     const hitPos = new THREE.Vector3(impactX, impactY, impactZ);
 
-    sound.playThunder();
+    if (sound.playThunder) {
+      sound.playThunder();
+    } else if (sound.playGiantSwordImpact) {
+      sound.playGiantSwordImpact();
+    }
+
     if (this.controller) this.controller.addTrauma(0.35);
     if (this.onScreenFlash) this.onScreenFlash('lightning');
 
     this.spawnTelegraph(hitPos, 0xffd32a, 0.8, 8.0);
-    this.spawnGroundDecalEffect('lightning', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 10, 2.0);
+    this.spawnGroundDecalEffect('lightning', new THREE.Vector3(impactX, impactY + 0.1, impactZ), 12, 2.0);
 
-    // Cột sét giáng từ trời xuống
-    const boltGeo = new THREE.CylinderGeometry(0.2, 0.45, 45, 6);
-    const boltMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const bolt = new THREE.Mesh(boltGeo, boltMat);
-    bolt.position.set(impactX, impactY + 22.5, impactZ);
-    this.scene.add(bolt);
+    // Cột sét giáng từ trời xuống (2 lớp: Lõi trắng + Vỏ vàng kim quang)
+    const boltGroup = new THREE.Group();
+    boltGroup.position.set(impactX, impactY, impactZ);
+
+    const innerGeo = new THREE.CylinderGeometry(0.35, 0.65, 50, 8);
+    innerGeo.translate(0, 25, 0);
+    const innerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const innerBolt = new THREE.Mesh(innerGeo, innerMat);
+    boltGroup.add(innerBolt);
+
+    const outerGeo = new THREE.CylinderGeometry(1.1, 1.6, 50, 8);
+    outerGeo.translate(0, 25, 0);
+    const outerMat = new THREE.MeshBasicMaterial({
+      color: 0xffd32a,
+      transparent: true,
+      opacity: 0.65,
+      side: THREE.DoubleSide,
+    });
+    const outerBolt = new THREE.Mesh(outerGeo, outerMat);
+    boltGroup.add(outerBolt);
+
+    this.scene.add(boltGroup);
 
     if (this.particles) {
-      this.particles.emitShockwave(hitPos, 0xffd32a, 12.0, 0.4);
-      this.particles.emitElementalParticles(hitPos, 35, [0xffd32a, 0xffffff, 0x74b9ff], [3, 8], 0.7, 5.0, 1.0);
+      this.particles.emitShockwave(hitPos, 0xffd32a, 14.0, 0.45);
+      this.particles.emitShockwave(hitPos, 0xffffff, 8.0, 0.3);
+      this.particles.emitElementalParticles(hitPos, 45, [0xffd32a, 0xffffff, 0x74b9ff], [3, 9], 0.75, 6.0, 1.2);
     }
 
     // Sát thương tâm sét & gây TÊ LIỆT (Làm chậm tốc chạy 45% trong 2.5s)
-    this.dealDamageAOE(hitPos, 8.0, 140, '⚡ -140 TÊ LIỆT!', '#ffd32a', monsters, null, 'lightning', null, character);
+    this.dealDamageAOE(hitPos, 8.5, 140, '⚡ -140 TÊ LIỆT!', '#ffd32a', monsters, null, 'lightning', null, character);
 
     // Áp dụng hiệu ứng Tê Liệt cho kẻ địch trúng tâm sét
     if (monsters) {
@@ -2111,12 +2133,17 @@ export class PixelFXManager {
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
-        bolt.scale.x = Math.max(0, 1.0 - elapsed * 4);
-        bolt.scale.z = bolt.scale.x;
-        if (elapsed >= 0.25) {
-          this.scene.remove(bolt);
-          boltGeo.dispose();
-          boltMat.dispose();
+        const progress = elapsed / 0.38;
+        boltGroup.scale.x = Math.max(0, 1.0 - progress);
+        boltGroup.scale.z = boltGroup.scale.x;
+        outerMat.opacity = Math.max(0, 0.65 * (1.0 - progress));
+
+        if (elapsed >= 0.38) {
+          this.scene.remove(boltGroup);
+          innerGeo.dispose();
+          innerMat.dispose();
+          outerGeo.dispose();
+          outerMat.dispose();
           return false;
         }
         return true;

@@ -638,7 +638,8 @@ class Game {
       outfitBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const name = this.character.cycleOutfit();
-        this.showNotification(`Đã hoán đổi tiên bào: ${name}`);
+        this.pixelFX.setSect(this.character.outfitIndex);
+        this.showNotification(`Đã hoán đổi môn phái: ${name}`);
       });
     }
 
