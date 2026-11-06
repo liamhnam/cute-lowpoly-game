@@ -50,6 +50,7 @@ export class RemotePlayer {
       { name: 'Tử Tiêu Kiếm Tông (Tử Kim)', clothes: 0x8854d0, hat: 0xf1c40f },
       { name: 'Hồng Trần Ma Tu (Chu Sa Hắc Bào)', clothes: 0xeb3b5a, hat: 0x2d3436 },
       { name: 'Bạch Hạc Chân Nhân (Bạch Ngọc)', clothes: 0xf5f6fa, hat: 0x00d2d3 },
+      { name: 'Chiến Sĩ NAMCAM (Bộ Đội VN)', clothes: 0x2e4a2b, hat: 0x2e4a2b },
     ];
 
     this.buildMesh();
@@ -214,10 +215,12 @@ export class RemotePlayer {
     snout.scale.set(1.1, 0.85, 1.0);
     snout.position.set(0, -0.08, 0.48);
     this.head.add(snout);
+    this.snout = snout;
 
     const nose = new THREE.Mesh(new THREE.DodecahedronGeometry(0.08, 0), noseMat);
     nose.position.set(0, -0.02, 0.7);
     this.head.add(nose);
+    this.nose = nose;
 
     // Mắt
     for (const side of [1, -1]) {
@@ -243,7 +246,14 @@ export class RemotePlayer {
     hatGroup.rotation.z = -0.2;
     const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 0.16, 8), this.hatMat);
     hatGroup.add(hatBase);
-    this.head.add(hatGroup);
+    this.hatGroup = hatGroup;
+    this.head.add(this.hatGroup);
+
+    // Mũ Cối & Mặt NAMCAM
+    this.boDoiHatGroup = this.buildBoDoiHat();
+    this.head.add(this.boDoiHatGroup);
+    this.namCamFace = this.buildNamCamFace();
+    this.head.add(this.namCamFace);
 
     this.body.add(this.head);
 
@@ -276,6 +286,10 @@ export class RemotePlayer {
     this.swordModel = createSword();
     this.sword.add(this.swordModel);
 
+    // Súng trường quân đội (NAMCAM)
+    this.gunGroup = this.buildGunModel();
+    this.rightArm.add(this.gunGroup);
+
     this.rightArm.add(this.sword);
     this.body.add(this.rightArm);
 
@@ -299,6 +313,108 @@ export class RemotePlayer {
     this.group.add(this.model);
   }
 
+  // Mũ cối Bộ Đội
+  buildBoDoiHat() {
+    const group = new THREE.Group();
+    group.position.set(0, 0.42, 0.02);
+    group.rotation.x = -0.08;
+
+    const helmetMat = new THREE.MeshStandardMaterial({
+      color: 0x2e4a2b,
+      roughness: 0.65,
+      flatShading: true,
+    });
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 10, 0, Math.PI * 2, 0, Math.PI / 2), helmetMat);
+    dome.position.y = 0.05;
+    dome.scale.set(1.0, 0.85, 1.15);
+    group.add(dome);
+
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.1, 0.65), helmetMat);
+    ridge.position.set(0, 0.28, 0);
+    group.add(ridge);
+
+    const brimGeo = new THREE.CylinderGeometry(0.56, 0.46, 0.08, 16, 1, true);
+    const brim = new THREE.Mesh(brimGeo, helmetMat);
+    brim.position.y = 0.02;
+    brim.scale.set(1.0, 1.0, 1.18);
+    group.add(brim);
+
+    // Huy hiệu sao vàng
+    const badgeGroup = new THREE.Group();
+    badgeGroup.position.set(0, 0.16, 0.44);
+    badgeGroup.rotation.x = 0.22;
+    const redBacking = new THREE.Mesh(new THREE.CircleGeometry(0.065, 16), new THREE.MeshBasicMaterial({ color: 0xd63031 }));
+    badgeGroup.add(redBacking);
+    const goldBorder = new THREE.Mesh(new THREE.RingGeometry(0.062, 0.072, 16), new THREE.MeshBasicMaterial({ color: 0xf1c40f }));
+    badgeGroup.add(goldBorder);
+
+    const starShape = new THREE.Shape();
+    const outerR = 0.045;
+    const innerR = 0.018;
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const a = (i * Math.PI) / 5 - Math.PI / 2;
+      const x = Math.cos(a) * r;
+      const y = -Math.sin(a) * r;
+      if (i === 0) starShape.moveTo(x, y);
+      else starShape.lineTo(x, y);
+    }
+    starShape.closePath();
+    const starMesh = new THREE.Mesh(new THREE.ShapeGeometry(starShape), new THREE.MeshBasicMaterial({ color: 0xffd700 }));
+    starMesh.position.z = 0.002;
+    badgeGroup.add(starMesh);
+    group.add(badgeGroup);
+
+    group.visible = false;
+    return group;
+  }
+
+  // Mặt NAMCAM
+  buildNamCamFace() {
+    const group = new THREE.Group();
+    group.position.set(0, -0.02, 0.49);
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load('./images/namcam_face.png');
+    texture.minFilter = THREE.LinearFilter;
+    const faceMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.64, 0.75),
+      new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false })
+    );
+    group.add(faceMesh);
+    group.visible = false;
+    return group;
+  }
+
+  // Súng trường
+  buildGunModel() {
+    const gun = new THREE.Group();
+    gun.position.set(0.05, -0.15, 0.25);
+    gun.rotation.x = -Math.PI / 2;
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, roughness: 0.4, metalness: 0.8 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6e2c00, roughness: 0.7 });
+
+    gun.add(new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.12, 0.42), metalMat));
+    const stock = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.14, 0.28), woodMat);
+    stock.position.set(0, -0.04, -0.32);
+    gun.add(stock);
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.48, 6), metalMat);
+    barrel.position.set(0, 0.03, 0.42);
+    barrel.rotation.x = Math.PI / 2;
+    gun.add(barrel);
+    const mag = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.24, 0.1), metalMat);
+    mag.position.set(0, -0.16, 0.06);
+    mag.rotation.x = 0.25;
+    gun.add(mag);
+
+    gun.visible = false;
+    return gun;
+  }
+
+  triggerFartAnimation() {
+    this.isFarting = true;
+    this.fartTimer = 0.55;
+  }
+
   updateState(state) {
     if (state.x !== undefined && state.z !== undefined) {
       this.targetPosition.set(state.x, state.y || 0, state.z);
@@ -313,6 +429,15 @@ export class RemotePlayer {
     this.castSkill = Number(state.castSkill) || 0;
     if (state.outfit !== undefined && state.outfit !== this.outfitIndex) {
       this.outfitIndex = Number(state.outfit);
+      const isNamCam = this.outfitIndex === 5;
+      if (this.boDoiHatGroup) this.boDoiHatGroup.visible = isNamCam;
+      if (this.hatGroup) this.hatGroup.visible = !isNamCam;
+      if (this.namCamFace) this.namCamFace.visible = isNamCam;
+      if (this.snout) this.snout.visible = !isNamCam;
+      if (this.nose) this.nose.visible = !isNamCam;
+      if (this.gunGroup) this.gunGroup.visible = isNamCam;
+      if (this.swordModel) this.swordModel.visible = !isNamCam;
+
       const outfit = this.outfits[this.outfitIndex % this.outfits.length];
       if (outfit) {
         if (this.clothesMat) this.clothesMat.color.setHex(outfit.clothes);
@@ -433,6 +558,25 @@ export class RemotePlayer {
     while (diff > Math.PI) diff -= Math.PI * 2;
     this.rotationY += diff * Math.min(1.0, delta * 14);
     this.model.rotation.y = this.rotationY;
+
+    // Animation thả rắm
+    if (this.isFarting) {
+      this.fartTimer -= delta;
+      if (this.fartTimer <= 0) {
+        this.isFarting = false;
+        this.body.rotation.x = 0;
+        this.body.rotation.y = 0;
+        this.rightLeg.rotation.x = 0;
+        this.leftLeg.rotation.x = 0;
+      } else {
+        const progress = Math.sin((1 - this.fartTimer / 0.55) * Math.PI);
+        this.body.rotation.x = progress * 0.65;
+        this.body.rotation.y = Math.PI;
+        this.rightLeg.rotation.x = progress * -0.6;
+        this.leftLeg.rotation.x = progress * 0.2;
+        return;
+      }
+    }
 
     // Animation chạy / bước đi
     this.animTime += delta * (this.isSprinting ? 12 : (this.isMoving ? 8 : 2.5));

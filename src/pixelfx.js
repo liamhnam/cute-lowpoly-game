@@ -519,6 +519,44 @@ export const SECTS = [
         desc: 'Giậm sụt mặt đất 230 ST, THỔI BAY KẺ ĐỊCH RA XA 16m để lập tức tái lập cự ly thả diều an toàn'
       }
     ]
+  },
+  {
+    id: 'namcam',
+    name: 'Chiến Sĩ NAMCAM',
+    outfitName: 'Bộ Đội Cụ Hồ (Nam Cam)',
+    colorHex: 0x2e4a2b,
+    themeColor: '#2ed573',
+    icon: '🇻🇳',
+    desc: 'Phái Ẩn Huyền Thoại: Quân nhân Việt Nam, súng trường tác chiến, mưa giông xối xả, Kiosk Dịch Vụ Công tê liệt 5s và Thả Rắm Diệt Thế',
+    skills: [
+      {
+        id: 1,
+        name: 'Hồi Chiều Trời Mưa',
+        tag: 'MƯA GIÔNG',
+        icon: '🌧️',
+        cd: 6.0,
+        mana: 25,
+        desc: 'Hiện bong bóng thoại "Hồi chiều trời mưa" trên đầu, tạo mưa bão ngập lụt gây 28 ST/nhịp (liên tục 4.8s) & làm chậm 50%'
+      },
+      {
+        id: 2,
+        name: 'Kiosk Dịch Vụ Công',
+        tag: 'THỦ TỤC HÀNH CHÍNH',
+        icon: '🖥️',
+        cd: 12.0,
+        mana: 35,
+        desc: 'Triệu hồi máy Kiosk Dịch Vụ Công từ trên trời giáng xuống 160 ST, phát luồng điện từ làm BẤT ĐỘNG TOÀN BỘ ĐỊCH TRONG 5S'
+      },
+      {
+        id: 3,
+        name: 'Thả Rắm Diệt Thế',
+        tag: 'KHÍ ĐỘC BẤT ĐỘNG',
+        icon: '💨',
+        cd: 9.0,
+        mana: 30,
+        desc: 'Chổng mông thả rắm siêu thanh! Nổ khói vàng bao phủ siêu rộng 31.5m (gấp 3 lần) gây 260 ST, BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái, Phân thân) suốt thời gian hiệu lực & trúng độc rút máu'
+      }
+    ]
   }
 ];
 
@@ -673,6 +711,12 @@ export class PixelFXManager {
         if (slotNum === 1) this.castChainLightning(targetPos, character, monsters);
         else if (slotNum === 2) this.castCraneGlide(targetPos, character, monsters);
         else if (slotNum === 3) this.castEarthquakeStomp(targetPos, character, monsters);
+        break;
+
+      case 5: // Chiến Sĩ NAMCAM (Phái Ẩn)
+        if (slotNum === 1) this.castRainSpeech(targetPos, character, monsters);
+        else if (slotNum === 2) this.castKioskStrike(targetPos, character, monsters);
+        else if (slotNum === 3) this.castToxicFart(targetPos, character, monsters);
         break;
     }
 
@@ -2378,6 +2422,761 @@ export class PixelFXManager {
           hitPos.y += monster.hitHeight * 0.7;
           this.damageTexts.spawn(text, hitPos, textColor);
           this.particles.emitHitSparkles(hitPos, 16);
+        }
+      }
+    }
+  }
+
+  // [NAMCAM 1] HỒI CHIỀU TRỜI MƯA (Bong bóng thoại trên đầu + Mưa bão ngập lụt 28 ST/nhịp & chậm 50%)
+  spawnSpeechBubble(character, text = 'Hồi chiều trời mưa 🌧️', duration = 3.8) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 360;
+    canvas.height = 140;
+    const ctx = canvas.getContext('2d');
+
+    // Nền bong bóng thoại hoạt hình bo tròn
+    ctx.fillStyle = '#ffffff';
+    ctx.strokeStyle = '#2d3436';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(12, 12, 336, 90, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    // Mũi nhọn bong bóng chỉ xuống đầu nhân vật
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(160, 102);
+    ctx.lineTo(180, 134);
+    ctx.lineTo(200, 102);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(162, 100, 36, 6);
+
+    // Chữ trong bong bóng
+    ctx.fillStyle = '#1e272e';
+    ctx.font = 'bold 26px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 180, 56);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, depthTest: false });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(3.4, 1.3, 1.0);
+    this.scene.add(sprite);
+
+    let elapsed = 0;
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        if (!character || character.isDead || elapsed >= duration) {
+          this.scene.remove(sprite);
+          spriteMat.dispose();
+          texture.dispose();
+          return false;
+        }
+        const headY = character.position.y + 2.65 + Math.sin(elapsed * 4) * 0.08;
+        sprite.position.set(character.position.x, headY, character.position.z);
+        if (elapsed > duration - 0.5) {
+          spriteMat.opacity = Math.max(0, (duration - elapsed) / 0.5);
+        }
+        return true;
+      }
+    });
+  }
+
+  castRainSpeech(targetPos, character, monsters) {
+    if (character.triggerSkillCast) character.triggerSkillCast(1);
+    this.spawnSpeechBubble(character, 'Hồi chiều trời mưa 🌧️', 4.0);
+
+    const center = targetPos ? targetPos.clone() : character.position.clone().add(new THREE.Vector3(0, 0, 7));
+    center.y = getTerrainHeight(center.x, center.z);
+
+    if (sound.playThunder) sound.playThunder();
+    if (sound.playWaterSplash) sound.playWaterSplash();
+
+    // Mây đen tích điện trên cao
+    const cloudGroup = new THREE.Group();
+    cloudGroup.position.set(center.x, center.y + 7.5, center.z);
+    const cloudMat = new THREE.MeshStandardMaterial({
+      color: 0x34495e,
+      roughness: 0.9,
+      flatShading: true,
+      transparent: true,
+      opacity: 0.9,
+    });
+    for (let i = 0; i < 7; i++) {
+      const cMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4 + Math.random() * 0.8, 1), cloudMat);
+      cMesh.position.set((Math.random() - 0.5) * 5.0, (Math.random() - 0.5) * 0.8, (Math.random() - 0.5) * 5.0);
+      cloudGroup.add(cMesh);
+    }
+    this.scene.add(cloudGroup);
+
+    // Vệt mưa rơi xối xả
+    const rainCount = 42;
+    const rainGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.2, 4);
+    const rainMat = new THREE.MeshBasicMaterial({
+      color: 0x74b9ff,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const rainMeshes = [];
+    for (let i = 0; i < rainCount; i++) {
+      const rMesh = new THREE.Mesh(rainGeo, rainMat);
+      rMesh.position.set(
+        center.x + (Math.random() - 0.5) * 9.0,
+        center.y + 0.5 + Math.random() * 7.0,
+        center.z + (Math.random() - 0.5) * 9.0
+      );
+      this.scene.add(rMesh);
+      rainMeshes.push(rMesh);
+    }
+
+    const duration = 4.8;
+    let elapsed = 0;
+    let tickTimer = 0;
+
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        tickTimer += delta;
+
+        for (const rm of rainMeshes) {
+          rm.position.y -= delta * 18;
+          if (rm.position.y < center.y + 0.2) {
+            rm.position.y = center.y + 7.0 + Math.random() * 1.5;
+            rm.position.x = center.x + (Math.random() - 0.5) * 9.0;
+            rm.position.z = center.z + (Math.random() - 0.5) * 9.0;
+          }
+        }
+        cloudGroup.rotation.y += delta * 0.2;
+
+        if (tickTimer >= 0.35) {
+          tickTimer = 0;
+          if (this.canHitPlayers(character)) {
+            this.dealDamageAOE(center, 7.5, 28, '🌧️ -28 MƯA NGẬP', '#0984e3', monsters, 'slow', 'water', null, character);
+          }
+          if (this.particles) {
+            this.particles.emitElementalParticles(center, 4, [0x74b9ff, 0x0984e3, 0xffffff], [1, 3], 0.2, 0, 0.3);
+          }
+        }
+
+        if (elapsed >= duration) {
+          this.scene.remove(cloudGroup);
+          for (const rm of rainMeshes) {
+            this.scene.remove(rm);
+            rm.geometry.dispose();
+          }
+          cloudMat.dispose();
+          rainMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // [NAMCAM] Dựng mô hình 3D Kiosk Dịch Vụ Công chân thực theo ảnh mẫu (Tỉ lệ chuẩn x3 khổng lồ)
+  createKiosk3DModel() {
+    const root = new THREE.Group();
+
+    const whiteMat = new THREE.MeshStandardMaterial({
+      color: 0xfafafa,
+      roughness: 0.25,
+      metalness: 0.08,
+    });
+    const blackTrimMat = new THREE.MeshStandardMaterial({
+      color: 0x1b1c1e,
+      roughness: 0.35,
+      metalness: 0.2,
+    });
+    const darkMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x2d3436,
+      roughness: 0.45,
+      metalness: 0.4,
+    });
+    const chromeMat = new THREE.MeshStandardMaterial({
+      color: 0xdfe6e9,
+      roughness: 0.15,
+      metalness: 0.85,
+    });
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0a192f,
+      roughness: 0.1,
+      metalness: 0.5,
+      emissive: 0x00cec9,
+      emissiveIntensity: 0.25,
+    });
+
+    // 1. CHÂN ĐẾ NẶNG (BASE PEDESTAL x3)
+    const baseBottom = new THREE.Mesh(
+      new THREE.BoxGeometry(3.8, 0.26, 3.0),
+      blackTrimMat
+    );
+    baseBottom.position.y = 0.13;
+    root.add(baseBottom);
+
+    const baseStep = new THREE.Mesh(
+      new THREE.BoxGeometry(3.5, 0.16, 2.7),
+      darkMetalMat
+    );
+    baseStep.position.y = 0.32;
+    root.add(baseStep);
+
+    // 4 chân cao su dưới đế
+    const footGeo = new THREE.CylinderGeometry(0.14, 0.16, 0.08, 12);
+    [
+      [-1.7, 0.04, -1.3],
+      [1.7, 0.04, -1.3],
+      [-1.7, 0.04, 1.3],
+      [1.7, 0.04, 1.3]
+    ].forEach(([fx, fy, fz]) => {
+      const foot = new THREE.Mesh(footGeo, blackTrimMat);
+      foot.position.set(fx, fy, fz);
+      root.add(foot);
+    });
+
+    // 2. THÂN DƯỚI DẠNG KHỐI TRỤ (LOWER CABINET TOWER)
+    // Cao 4.2m, rộng 3.1m, sâu 1.8m
+    const lowerHeight = 4.2;
+    const lowerY = 0.4 + lowerHeight / 2; // 2.5
+    const bodyMain = new THREE.Mesh(
+      new THREE.BoxGeometry(3.1, lowerHeight, 1.8),
+      whiteMat
+    );
+    bodyMain.position.set(0, lowerY, 0);
+    root.add(bodyMain);
+
+    // Ốp viền đen 2 bên sườn máy (đặc trưng từ ảnh mẫu)
+    const trimLeft = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, lowerHeight, 1.84),
+      blackTrimMat
+    );
+    trimLeft.position.set(-1.55, lowerY, 0);
+    root.add(trimLeft);
+
+    const trimRight = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, lowerHeight, 1.84),
+      blackTrimMat
+    );
+    trimRight.position.set(1.55, lowerY, 0);
+    root.add(trimRight);
+
+    // Cánh cửa kỹ thuật bảo trì phía dưới (Front maintenance door)
+    const frontDoor = new THREE.Mesh(
+      new THREE.BoxGeometry(2.6, 2.0, 0.04),
+      new THREE.MeshStandardMaterial({ color: 0xe6e8ea, roughness: 0.35 })
+    );
+    frontDoor.position.set(0, 1.5, 0.92);
+    root.add(frontDoor);
+
+    // Ổ khoá và chìa khóa cắm ở cửa dưới
+    const lockCylinder = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 0.06, 16),
+      chromeMat
+    );
+    lockCylinder.rotation.x = Math.PI / 2;
+    lockCylinder.position.set(-1.0, 1.7, 0.95);
+    root.add(lockCylinder);
+
+    const keyRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.07, 0.02, 8, 16),
+      chromeMat
+    );
+    keyRing.position.set(-1.0, 1.62, 0.98);
+    root.add(keyRing);
+
+    // Khay xuất giấy tờ A4 (A4 Document dispenser tray bên trái)
+    const docBayOuter = new THREE.Mesh(
+      new THREE.BoxGeometry(1.4, 0.95, 0.12),
+      new THREE.MeshStandardMaterial({ color: 0xdfdfdf, roughness: 0.4 })
+    );
+    docBayOuter.position.set(-0.55, 3.25, 0.94);
+    root.add(docBayOuter);
+
+    const docSlotInner = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.7, 0.14),
+      darkMetalMat
+    );
+    docSlotInner.position.set(-0.55, 3.25, 0.97);
+    root.add(docSlotInner);
+
+    const docTrayLip = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.08, 0.22),
+      whiteMat
+    );
+    docTrayLip.position.set(-0.55, 2.85, 1.02);
+    root.add(docTrayLip);
+
+    // Hốc máy in phiếu số thứ tự (Receipt printer bên phải)
+    const printerSlot = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 0.45, 0.08),
+      new THREE.MeshStandardMaterial({ color: 0xe6e8ea, roughness: 0.3 })
+    );
+    printerSlot.position.set(0.8, 3.45, 0.94);
+    root.add(printerSlot);
+
+    // Mẩu giấy in số thứ tự thò ra ngoài
+    const receiptPaper = new THREE.Mesh(
+      new THREE.BoxGeometry(0.45, 0.2, 0.03),
+      new THREE.MeshBasicMaterial({ color: 0xffffff })
+    );
+    receiptPaper.position.set(0.8, 3.37, 0.99);
+    receiptPaper.rotation.x = 0.22;
+    root.add(receiptPaper);
+
+    // Cửa kính quét mã QR / Barcode / CCCD
+    const scannerWindow = new THREE.Mesh(
+      new THREE.BoxGeometry(0.65, 0.42, 0.06),
+      glassMat
+    );
+    scannerWindow.position.set(0.8, 2.85, 0.94);
+    root.add(scannerWindow);
+
+    // Khe cắm căn cước công dân gắn chip (CCCD slot)
+    const cardSlot = new THREE.Mesh(
+      new THREE.BoxGeometry(0.55, 0.06, 0.08),
+      darkMetalMat
+    );
+    cardSlot.position.set(0.8, 3.85, 0.94);
+    root.add(cardSlot);
+
+    // Bảng tên thương hiệu "KIOSK DỊCH VỤ CÔNG"
+    let badgeTex = null;
+    if (typeof document !== 'undefined') {
+      const badgeCanvas = document.createElement('canvas');
+      badgeCanvas.width = 512;
+      badgeCanvas.height = 100;
+      const bctx = badgeCanvas.getContext('2d');
+      bctx.fillStyle = '#dfe4ea';
+      bctx.beginPath();
+      bctx.roundRect(10, 10, 492, 80, 24);
+      bctx.fill();
+      bctx.strokeStyle = '#b2bec3';
+      bctx.lineWidth = 4;
+      bctx.stroke();
+
+      bctx.fillStyle = '#0984e3';
+      bctx.font = 'bold 36px "Segoe UI", Arial, sans-serif';
+      bctx.textAlign = 'center';
+      bctx.textBaseline = 'middle';
+      bctx.fillText('KIOSK DỊCH VỤ CÔNG', 256, 50);
+
+      badgeTex = new THREE.CanvasTexture(badgeCanvas);
+      const badgeMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(2.6, 0.48),
+        new THREE.MeshBasicMaterial({ map: badgeTex, transparent: true })
+      );
+      badgeMesh.position.set(0, 4.18, 0.92);
+      root.add(badgeMesh);
+    }
+
+    // 3. ĐẦU MÁY VÁT NGHIÊNG & MÀN HÌNH CẢM ỨNG (UPPER TILTED HEAD & SCREEN)
+    // Nghiêng về sau ~18 độ (-0.32 rad) như thiết kế công thái học trong ảnh
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 4.5, 0.15);
+    headGroup.rotation.x = -0.32;
+    root.add(headGroup);
+
+    const headHeight = 3.6;
+    const headDepth = 1.4;
+    const headBox = new THREE.Mesh(
+      new THREE.BoxGeometry(3.1, headHeight, headDepth),
+      whiteMat
+    );
+    headBox.position.set(0, headHeight / 2, 0);
+    headGroup.add(headBox);
+
+    // Viền đen 2 bên đầu máy
+    const headTrimLeft = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, headHeight, headDepth + 0.04),
+      blackTrimMat
+    );
+    headTrimLeft.position.set(-1.55, headHeight / 2, 0);
+    headGroup.add(headTrimLeft);
+
+    const headTrimRight = new THREE.Mesh(
+      new THREE.BoxGeometry(0.22, headHeight, headDepth + 0.04),
+      blackTrimMat
+    );
+    headTrimRight.position.set(1.55, headHeight / 2, 0);
+    headGroup.add(headTrimRight);
+
+    // Mái che đỉnh đầu máy vát đen
+    const topCap = new THREE.Mesh(
+      new THREE.BoxGeometry(3.35, 0.18, headDepth + 0.1),
+      blackTrimMat
+    );
+    topCap.position.set(0, headHeight + 0.08, 0);
+    headGroup.add(topCap);
+
+    // Màn hình cảm ứng lớn phát sáng (Windows 10/11 Desktop + Cổng DVC)
+    let screenTex = null;
+    if (typeof document !== 'undefined') {
+      const screenCanvas = document.createElement('canvas');
+      screenCanvas.width = 640;
+      screenCanvas.height = 420;
+      const sctx = screenCanvas.getContext('2d');
+
+      // Gradient nền xanh Windows huyền thoại
+      const grad = sctx.createLinearGradient(0, 0, 640, 420);
+      grad.addColorStop(0, '#0052d4');
+      grad.addColorStop(0.5, '#4364f7');
+      grad.addColorStop(1, '#6fb1fc');
+      sctx.fillStyle = grad;
+      sctx.fillRect(0, 0, 640, 420);
+
+      // Chùm sáng vệt kính Windows bloom
+      sctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      sctx.beginPath();
+      sctx.moveTo(320, 0);
+      sctx.lineTo(640, 420);
+      sctx.lineTo(160, 420);
+      sctx.closePath();
+      sctx.fill();
+
+      // Logo Windows 4 ô vuông
+      sctx.fillStyle = '#ffffff';
+      const logoX = 320, logoY = 165, size = 44, gap = 8;
+      sctx.fillRect(logoX - size - gap / 2, logoY - size - gap / 2, size, size);
+      sctx.fillRect(logoX + gap / 2, logoY - size - gap / 2, size, size);
+      sctx.fillRect(logoX - size - gap / 2, logoY + gap / 2, size, size);
+      sctx.fillRect(logoX + gap / 2, logoY + gap / 2, size, size);
+
+      // Tiêu đề Cổng Dịch Vụ Công
+      sctx.fillStyle = '#ffffff';
+      sctx.font = 'bold 28px "Segoe UI", Arial, sans-serif';
+      sctx.textAlign = 'center';
+      sctx.fillText('CỔNG DỊCH VỤ CÔNG QUỐC GIA', 320, 270);
+
+      sctx.fillStyle = '#ffd32a';
+      sctx.font = 'bold 22px "Segoe UI", Arial, sans-serif';
+      sctx.fillText('--- CHẠM MÀN HÌNH ĐỂ BỐC SỐ ---', 320, 310);
+
+      // Thanh Taskbar dưới cùng
+      sctx.fillStyle = 'rgba(15, 20, 35, 0.9)';
+      sctx.fillRect(0, 375, 640, 45);
+      sctx.fillStyle = '#00a8ff';
+      sctx.fillRect(16, 386, 22, 22); // Nút Start
+      sctx.fillStyle = '#ffffff';
+      sctx.font = '16px monospace';
+      sctx.textAlign = 'right';
+      sctx.fillText('12:00 PM | 🇻🇳', 620, 403);
+
+      screenTex = new THREE.CanvasTexture(screenCanvas);
+    }
+
+    const screenMat = new THREE.MeshStandardMaterial({
+      map: screenTex,
+      color: 0xffffff,
+      roughness: 0.12,
+      metalness: 0.1,
+      emissive: 0x0078d7,
+      emissiveIntensity: 0.5,
+    });
+
+    const screenMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.7, 1.9),
+      screenMat
+    );
+    screenMesh.position.set(0, 1.9, headDepth / 2 + 0.02);
+    headGroup.add(screenMesh);
+
+    // Cụm Camera nhận diện khuôn mặt / eKYC phía trên màn hình
+    const cameraBar = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 0.16, 0.04),
+      blackTrimMat
+    );
+    cameraBar.position.set(0, 3.15, headDepth / 2 + 0.02);
+    headGroup.add(cameraBar);
+
+    const lensDot = new THREE.Mesh(
+      new THREE.CircleGeometry(0.04, 16),
+      new THREE.MeshBasicMaterial({ color: 0x00d2d3 })
+    );
+    lensDot.position.set(-0.15, 3.15, headDepth / 2 + 0.05);
+    headGroup.add(lensDot);
+
+    const irDot = new THREE.Mesh(
+      new THREE.CircleGeometry(0.03, 16),
+      new THREE.MeshBasicMaterial({ color: 0xff3838 })
+    );
+    irDot.position.set(0.15, 3.15, headDepth / 2 + 0.05);
+    headGroup.add(irDot);
+
+    return { root, screenMat, badgeTex, screenTex };
+  }
+
+  // [NAMCAM 2] KIOSK DỊCH VỤ CÔNG (Dựng mô hình 3D Kiosk thực tế gấp 3 lần, rớt từ trời cao 42m, giáng 180 ST, khống chế điện từ 5s toàn vùng 12m)
+  castKioskStrike(targetPos, character, monsters) {
+    if (character.triggerSkillCast) character.triggerSkillCast(2);
+    const center = targetPos ? targetPos.clone() : character.position.clone().add(new THREE.Vector3(0, 0, 8));
+    center.y = getTerrainHeight(center.x, center.z);
+
+    // Bán kính cảnh báo mở rộng theo kích thước x3 (12.0m)
+    this.spawnTelegraph(center, 0x00d2d3, 0.9, 12.0);
+
+    const { root: kioskGroup, screenMat, badgeTex, screenTex } = this.createKiosk3DModel();
+
+    // Hướng mặt trước màn hình Kiosk về phía người chơi
+    if (character && character.position) {
+      kioskGroup.lookAt(character.position.x, kioskGroup.position.y, character.position.z);
+    }
+
+    // Khởi đầu rơi từ trời cao 42m
+    kioskGroup.position.set(center.x, center.y + 42.0, center.z);
+    this.scene.add(kioskGroup);
+
+    let state = 'falling';
+    const fallSpeed = 58;
+    let groundedTime = 0;
+    const stunDuration = 5.0;
+
+    // Vành đai điện từ xung quanh Kiosk (bán kính 12m)
+    const lightningGeo = new THREE.RingGeometry(11.2, 12.0, 36);
+    lightningGeo.rotateX(-Math.PI / 2);
+    const lightningMat = new THREE.MeshBasicMaterial({
+      color: 0x00d2d3,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+    });
+    const lightningRing = new THREE.Mesh(lightningGeo, lightningMat);
+    lightningRing.position.set(center.x, center.y + 0.12, center.z);
+    lightningRing.visible = false;
+    this.scene.add(lightningRing);
+
+    this.activeEffects.push({
+      update: (delta) => {
+        if (state === 'falling') {
+          kioskGroup.position.y -= fallSpeed * delta;
+          if (this.particles) {
+            this.particles.emitElementalParticles(kioskGroup.position, 3, [0x00d2d3, 0xffffff, 0x74b9ff], [0.4, 1.2], 0.3, 0, 0.4);
+          }
+
+          if (kioskGroup.position.y <= center.y) {
+            kioskGroup.position.y = center.y;
+            state = 'grounded';
+            lightningRing.visible = true;
+
+            if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
+            if (sound.playThunder) sound.playThunder();
+            if (this.controller) this.controller.addTrauma(0.45);
+
+            if (this.particles) {
+              this.particles.emitShockwave(center, 0x00d2d3, 13.5, 0.45);
+              this.particles.emitHitSparkles(center, 36);
+            }
+
+            if (this.canHitPlayers(character)) {
+              this.dealDamageAOE(center, 12.0, 180, '🏛️ -180 KIOSK THIÊN PHẠT!', '#00d2d3', monsters, 'freeze', 'electric', null, character);
+            }
+
+            // Bất động toàn bộ địch trong 5 giây trong bán kính 12.5m!
+            this.freezeArea(center, 12.5, 5.0, monsters, character);
+            this.damageTexts.spawn('🏛️ BỐC SỐ LÀM DỊCH VỤ CÔNG! BẤT ĐỘNG 5S!', center.clone().add(new THREE.Vector3(0, 8.5, 0)), '#ffd700');
+          }
+          return true;
+        }
+
+        if (state === 'grounded') {
+          groundedTime += delta;
+          lightningRing.rotation.y += delta * 6;
+          lightningMat.opacity = Math.sin(groundedTime * 18) * 0.3 + 0.65;
+
+          if (this.particles && Math.random() < 0.6) {
+            const zapPos = center.clone().add(new THREE.Vector3(
+              (Math.random() - 0.5) * 12.0,
+              0.5 + Math.random() * 4.0,
+              (Math.random() - 0.5) * 12.0
+            ));
+            this.particles.emitElementalParticles(zapPos, 5, [0x00d2d3, 0xf1c40f, 0xffffff], [0.6, 1.8], 0.4, 0, 0.4);
+          }
+
+          // Giữ trạng thái bất động trong suốt 5s
+          if (groundedTime < stunDuration) {
+            this.freezeArea(center, 12.5, 1.0, monsters, character);
+          }
+
+          if (groundedTime >= stunDuration) {
+            this.scene.remove(kioskGroup);
+            this.scene.remove(lightningRing);
+            kioskGroup.traverse((child) => {
+              if (child.isMesh) {
+                child.geometry?.dispose();
+                if (Array.isArray(child.material)) child.material.forEach((m) => m?.dispose());
+                else child.material?.dispose();
+              }
+            });
+            lightningGeo.dispose();
+            lightningMat.dispose();
+            badgeTex?.dispose();
+            screenTex?.dispose();
+            return false;
+          }
+          return true;
+        }
+        return true;
+      }
+    });
+  }
+
+  // [NAMCAM 3] THẢ RẮM DIỆT THẾ (Chổng mông nổ khói vàng mù mịt phạm vi siêu rộng 31.5m gấp 3 lần, 260 ST + BẤT ĐỘNG TOÀN DIỆN quái, người chơi, phân thân)
+  castToxicFart(targetPos, character, monsters) {
+    if (character.triggerFartAnimation) {
+      character.triggerFartAnimation();
+    }
+    if (sound.playFartSound) sound.playFartSound();
+
+    const origin = character.position.clone();
+    origin.y = getTerrainHeight(origin.x, origin.z);
+
+    const backDir = new THREE.Vector3(
+      Math.sin(character.rotationY || 0),
+      0,
+      Math.cos(character.rotationY || 0)
+    ).normalize();
+    const fartPos = origin.clone().addScaledVector(backDir, 0.8);
+    // Tăng phạm vi gấp 3 lần: 10.5m -> 31.5m
+    const fartRadius = 31.5;
+
+    const cloudPuffs = [];
+    const puffCount = 56;
+    const puffGeo = new THREE.DodecahedronGeometry(2.2, 1);
+    const puffMat = new THREE.MeshStandardMaterial({
+      color: 0xf1c40f,
+      roughness: 0.95,
+      transparent: true,
+      opacity: 0.85,
+      flatShading: true,
+    });
+
+    for (let i = 0; i < puffCount; i++) {
+      const puff = new THREE.Mesh(puffGeo, puffMat);
+      const angle = (i / puffCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.45;
+      const dist = 1.0 + Math.random() * 6.5;
+      puff.position.set(
+        fartPos.x + Math.cos(angle) * dist,
+        fartPos.y + 0.5 + Math.random() * 1.6,
+        fartPos.z + Math.sin(angle) * dist
+      );
+      puff.scale.setScalar(0.4);
+      puff.userData = {
+        maxScale: 5.5 + Math.random() * 4.2,
+        vx: Math.cos(angle) * (6.5 + Math.random() * 9.5),
+        vz: Math.sin(angle) * (6.5 + Math.random() * 9.5),
+        vy: 0.6 + Math.random() * 1.8,
+      };
+      this.scene.add(puff);
+      cloudPuffs.push(puff);
+    }
+
+    if (this.canHitPlayers(character)) {
+      this.dealDamageAOE(fartPos, fartRadius, 260, '💨 -260 THẢ RẮM DIỆT THẾ!', '#f1c40f', monsters, 'freeze', 'poison', null, character);
+    }
+    if (this.particles) {
+      this.particles.emitShockwave(fartPos, 0xf1c40f, fartRadius, 0.55);
+    }
+
+    // Lập tức khống chế bất động toàn bộ mục tiêu (quái vật, người chơi, phân thân) trong vùng 31.5m!
+    this.freezeArea(fartPos, fartRadius, 1.5, monsters, character);
+    this.damageTexts.spawn('💨 THÚI QUÁ KHÔNG THỞ ĐƯỢC! BẤT ĐỘNG 31.5M!', fartPos.clone().add(new THREE.Vector3(0, 3.5, 0)), '#ffd32a');
+
+    const duration = 4.0;
+    let elapsed = 0;
+    let tickTimer = 0;
+
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+        tickTimer += delta;
+
+        for (const p of cloudPuffs) {
+          p.position.x += p.userData.vx * delta;
+          p.position.z += p.userData.vz * delta;
+          p.position.y += p.userData.vy * delta;
+          p.userData.vx *= 0.95;
+          p.userData.vz *= 0.95;
+
+          const progress = elapsed / duration;
+          p.scale.setScalar(THREE.MathUtils.lerp(0.4, p.userData.maxScale, Math.min(1.0, elapsed * 2.2)));
+          puffMat.opacity = Math.max(0, 0.85 * (1.0 - progress));
+        }
+
+        // DUY TRÌ BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái vật, Phân thân) TRONG SUỐT VÙNG 31.5M KHI KHÓI VÀNG CÒN TỒN TẠI!
+        this.freezeArea(fartPos, fartRadius, 1.2, monsters, character);
+
+        // Độc rút máu định kỳ
+        if (tickTimer >= 0.4) {
+          tickTimer = 0;
+          if (this.canHitPlayers(character)) {
+            this.dealDamageAOE(fartPos, fartRadius, 25, '☣️ -25 ĐỘC RẮM', '#badc58', monsters, 'freeze', 'poison', null, character);
+          }
+        }
+
+        if (elapsed >= duration) {
+          for (const p of cloudPuffs) {
+            this.scene.remove(p);
+          }
+          puffGeo.dispose();
+          puffMat.dispose();
+          return false;
+        }
+        return true;
+      }
+    });
+  }
+
+  // Khống chế đóng băng / bất động vùng chỉ định (áp dụng lên quái vật, người chơi, phân thân)
+  freezeArea(center, radius, duration, monsters, caster = null) {
+    // 1. Quái vật
+    for (const m of monsters || []) {
+      if (m.isDead) continue;
+      if (m.position.distanceTo(center) <= radius + (m.hitRadius || 1.0)) {
+        if (m.freeze) m.freeze(duration);
+      }
+    }
+
+    // 2. Người chơi khác (Remote Players)
+    for (const rp of this.remotePlayers || []) {
+      if (rp.isDead) continue;
+      if (caster && rp.id === caster.id) continue;
+      if (rp.position.distanceTo(center) <= radius + 0.85) {
+        if (rp.freeze) rp.freeze(duration);
+      }
+    }
+
+    // 3. Người chơi chính (nếu bị dính chiêu của kẻ khác)
+    if (this.localCharacter && !this.localCharacter.isDead && caster !== this.localCharacter) {
+      if (this.localCharacter.position.distanceTo(center) <= radius + 0.85) {
+        if (this.localCharacter.freeze) this.localCharacter.freeze(duration);
+      }
+    }
+
+    // 4. Phân thân (Đạo ảnh Nhất Khí Hóa Tam Thanh: cả local lẫn remote)
+    if (this.cloneManager) {
+      for (const c of this.cloneManager.local || []) {
+        if (c.body && !c.body.isDead) {
+          if (caster && c.body === caster) continue;
+          if (c.body.position.distanceTo(center) <= radius + 0.85) {
+            if (c.body.freeze) c.body.freeze(duration);
+          }
+        }
+      }
+      for (const clones of (this.cloneManager.remote ? this.cloneManager.remote.values() : [])) {
+        for (const r of clones.values()) {
+          if (r.body && !r.body.isDead) {
+            if (caster && r.body === caster) continue;
+            if (r.body.position.distanceTo(center) <= radius + 0.85) {
+              if (r.body.freeze) r.body.freeze(duration);
+            }
+          }
         }
       }
     }

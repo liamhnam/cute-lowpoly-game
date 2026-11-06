@@ -180,7 +180,14 @@ class Game {
       this.canvas,
       (origin, attackDir, comboStep) => {
         const sectStats = this.character.sectStats;
-        if (sectStats?.isRangedBasic) {
+        if (sectStats?.isGun) {
+          this.projectiles.spawnBullet(
+            origin, attackDir, comboStep, true, sectStats, this.character
+          );
+          if (this.network.isConnected) {
+            this.network.sendShoot(origin, attackDir, { kind: 'bullet', step: comboStep });
+          }
+        } else if (sectStats?.isRangedBasic) {
           this.projectiles.spawnFeatherDart(
             origin, attackDir, comboStep, true, sectStats, this.character
           );
@@ -397,6 +404,9 @@ class Game {
         // Nhát chém hoàng kim của Bạch Ảnh (đạo ảnh dùng sectStats của chủ nhân)
         this.projectiles.slash(origin, dir, this.monsters, 'goldSlash', [], null, rpSectStats, rp);
         sound.playSwordSlash();
+      } else if (msg.kind === 'bullet') {
+        this.projectiles.spawnBullet(origin, dir, msg.step || 0, false, rpSectStats, rp);
+        if (sound.playGunshot) sound.playGunshot();
       } else if (msg.kind === 'feather') {
         this.projectiles.spawnFeatherDart(origin, dir, msg.step || 0, false, rpSectStats, rp);
         if (sound.playFeatherShoot) {
@@ -833,14 +843,45 @@ class Game {
     const savedName = localStorage.getItem('playerName') || 'Hiệp Sĩ Bé Gấu';
     if (nameInput) nameInput.value = savedName;
 
+    const secretCard = document.getElementById('secret-outfit-namcam');
+    const checkSecretName = (rawName, isInitial = false) => {
+      const isSecret = (rawName || '').trim() === 'NAMCAM';
+      if (secretCard) {
+        secretCard.style.display = isSecret ? 'flex' : 'none';
+        if (isSecret) {
+          outfitCards.forEach((c) => c.classList.remove('active'));
+          secretCard.classList.add('active');
+          this.selectedOutfitIndex = 5;
+          localStorage.setItem('playerOutfit', 5);
+          this.character.setOutfit(5);
+          this.pixelFX.setSect(5);
+          if (!isInitial && sound.playSwordSummon) sound.playSwordSummon();
+          if (!isInitial) this.showNotification('🎖️ DANH PHẬN NAMCAM XUẤT THẾ! PHÁI ẨN BỘ ĐỘI VIỆT NAM ĐÃ MỞ!');
+        } else if (this.selectedOutfitIndex === 5) {
+          secretCard.classList.remove('active');
+          this.selectedOutfitIndex = 0;
+          const firstCard = document.querySelector('.outfit-card[data-index="0"]');
+          if (firstCard) firstCard.classList.add('active');
+          localStorage.setItem('playerOutfit', 0);
+          this.character.setOutfit(0);
+          this.pixelFX.setSect(0);
+        }
+      }
+    };
+
     const savedOutfit = parseInt(localStorage.getItem('playerOutfit'), 10);
-    if (!isNaN(savedOutfit) && savedOutfit >= 0 && savedOutfit < 5) {
+    if (!isNaN(savedOutfit) && savedOutfit >= 0 && savedOutfit < 6) {
       this.selectedOutfitIndex = savedOutfit;
       outfitCards.forEach((c) => {
         c.classList.toggle('active', parseInt(c.dataset.index, 10) === savedOutfit);
       });
       this.character.setOutfit(this.selectedOutfitIndex);
       this.pixelFX.setSect(this.selectedOutfitIndex);
+    }
+
+    if (nameInput) {
+      nameInput.addEventListener('input', (e) => checkSecretName(e.target.value));
+      checkSecretName(nameInput.value, true);
     }
 
     const defaultServerUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname || 'localhost'}:3000`;

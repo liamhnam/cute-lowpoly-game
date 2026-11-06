@@ -166,6 +166,10 @@ export class CloneManager {
 
   updateRunner(c, delta, owner, monsters, enemyTargets) {
     const body = c.body;
+    if (body.freezeTimer > 0) {
+      this.stepBody(body, delta, body.position, { input: null, sprint: false });
+      return;
+    }
     const look = CLONE_LOOKS[c.index];
     const targets = this.collectTargets(owner, monsters, enemyTargets);
 
@@ -242,6 +246,10 @@ export class CloneManager {
 
   updateSkyCaster(c, delta, owner, monsters, enemyTargets, viewYaw) {
     const body = c.body;
+    if (body.freezeTimer > 0) {
+      this.stepBody(body, delta, body.position, { keepY: true, sky: true });
+      return;
+    }
     c.height = Math.min(SKY_HEIGHT, c.height + RISE_SPEED * delta);
     c.orbit += delta * 0.8;
     c.bob += delta * 2.2;
@@ -405,6 +413,10 @@ export class CloneManager {
       for (const r of clones.values()) {
         const body = r.body;
         const sky = CLONE_LOOKS[r.index].role === 'sky';
+        if (body.freezeTimer > 0) {
+          this.stepBody(body, delta, body.position, { input: null, sprint: false, keepY: sky, sky });
+          continue;
+        }
         const dx = r.targetPos.x - body.position.x;
         const dz = r.targetPos.z - body.position.z;
         const dy = r.targetPos.y - body.position.y;
