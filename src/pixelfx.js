@@ -536,16 +536,16 @@ export const SECTS = [
     colorHex: 0x2e4a2b,
     themeColor: '#2ed573',
     icon: '🇻🇳',
-    desc: 'Phái Ẩn Huyền Thoại: Quân nhân Việt Nam, súng trường tác chiến, mưa giông xối xả, Kiosk Dịch Vụ Công tê liệt 5s và Thả Rắm Diệt Thế',
+    desc: 'Phái Ẩn Huyền Thoại: Quân nhân Việt Nam, súng trường tác chiến, Thả Rắm 31.5m bất động toàn diện, Kiosk DVC tê liệt 5s và Thiên Phạt Diệt Thế kết liễu tất cả người chơi sau 10s',
     skills: [
       {
         id: 1,
-        name: 'Hồi Chiều Trời Mưa',
-        tag: 'MƯA GIÔNG',
-        icon: '🌧️',
-        cd: 6.0,
-        mana: 25,
-        desc: 'Hiện bong bóng thoại "Hồi chiều trời mưa" trên đầu, tạo mưa bão ngập lụt gây 28 ST/nhịp (liên tục 4.8s) & làm chậm 50%'
+        name: 'Thả Rắm Diệt Thế',
+        tag: 'KHÍ ĐỘC BẤT ĐỘNG',
+        icon: '💨',
+        cd: 9.0,
+        mana: 30,
+        desc: 'Chổng mông thả rắm siêu thanh! Nổ khói vàng bao phủ siêu rộng 31.5m (gấp 3 lần) gây 260 ST, BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái, Phân thân) suốt thời gian hiệu lực & trúng độc rút máu'
       },
       {
         id: 2,
@@ -554,16 +554,16 @@ export const SECTS = [
         icon: '🖥️',
         cd: 12.0,
         mana: 35,
-        desc: 'Triệu hồi máy Kiosk Dịch Vụ Công từ trên trời giáng xuống 160 ST, phát luồng điện từ làm BẤT ĐỘNG TOÀN BỘ ĐỊCH TRONG 5S'
+        desc: 'Triệu hồi máy Kiosk Dịch Vụ Công từ trên trời giáng xuống 180 ST, phát luồng điện từ làm BẤT ĐỘNG TOÀN BỘ ĐỊCH TRONG 5S'
       },
       {
         id: 3,
-        name: 'Thả Rắm Diệt Thế',
-        tag: 'KHÍ ĐỘC BẤT ĐỘNG',
-        icon: '💨',
-        cd: 9.0,
-        mana: 30,
-        desc: 'Chổng mông thả rắm siêu thanh! Nổ khói vàng bao phủ siêu rộng 31.5m (gấp 3 lần) gây 260 ST, BẤT ĐỘNG TOÀN DIỆN (Người chơi, Quái, Phân thân) suốt thời gian hiệu lực & trúng độc rút máu'
+        name: 'Thiên Phạt Diệt Thế',
+        tag: 'KẾT LIỄU TOÀN DIỆN',
+        icon: '☀️',
+        cd: 30.0,
+        mana: 50,
+        desc: 'Bay lên giữa map vận sức, BẤT TỬ & KHÁNG HIỆU ỨNG! Chiếu cột năng lượng từ trên trời xuống tất cả người chơi. Sau 10 giây KẾT LIỄU TẤT CẢ NGƯỜI CHƠI (INSTANT KILL)!'
       }
     ]
   }
@@ -726,9 +726,9 @@ export class PixelFXManager {
         break;
 
       case 5: // Chiến Sĩ NAMCAM (Phái Ẩn)
-        if (slotNum === 1) this.castRainSpeech(targetPos, character, monsters);
+        if (slotNum === 1) this.castToxicFart(targetPos, character, monsters);
         else if (slotNum === 2) this.castKioskStrike(targetPos, character, monsters);
-        else if (slotNum === 3) this.castToxicFart(targetPos, character, monsters);
+        else if (slotNum === 3) this.castDivineJudgment(targetPos, character, monsters);
         break;
     }
 
@@ -3263,6 +3263,301 @@ export class PixelFXManager {
           puffMat.dispose();
           return false;
         }
+        return true;
+      }
+    });
+  }
+
+  // [NAMCAM 3] THIÊN PHẠT DIỆT THẾ
+  // Bay lên giữa map (0, terrainY + 22, 0), vận sức 10s, BẤT TỬ & KHÁNG HIỆU ỨNG!
+  // Chiếu cột năng lượng từ trên trời xuống tất cả người chơi (theo dõi vị trí thời gian thực).
+  // Sau 10 giây KẾT LIỄU TOÀN BỘ NGƯỜI CHƠI (INSTANT KILL 99999 ST)!
+  castDivineJudgment(targetPos, character, monsters) {
+    if (character.triggerSkillCast) character.triggerSkillCast(3);
+
+    // Kích hoạt trạng thái bay vận sức, bất tử và kháng mọi hiệu ứng
+    character.isFloatingUlt = true;
+    character.isInvulnerable = true;
+    character.statusResistTimer = 12.0;
+    character.freezeTimer = 0;
+    character.slowTimer = 0;
+    character.isFarting = false;
+
+    const startPos = character.position.clone();
+    const terrainCenterY = getTerrainHeight(0, 0);
+    const targetHoverPos = new THREE.Vector3(0, terrainCenterY + 22.0, 0);
+
+    // Nhóm hiệu ứng quanh nhân vật ở giữa map
+    const ultCenterGroup = new THREE.Group();
+    ultCenterGroup.position.copy(targetHoverPos);
+    this.scene.add(ultCenterGroup);
+
+    // 1. Quả cầu năng lượng thần thánh chói lọi (Divine Orb đa lớp)
+    const orbOuterMat = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      transparent: true,
+      opacity: 0.5,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const orbOuter = new THREE.Mesh(new THREE.SphereGeometry(5.2, 24, 24), orbOuterMat);
+    ultCenterGroup.add(orbOuter);
+
+    const orbInnerMat = new THREE.MeshBasicMaterial({
+      color: 0xff3838,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+    });
+    const orbInner = new THREE.Mesh(new THREE.SphereGeometry(3.0, 20, 20), orbInnerMat);
+    ultCenterGroup.add(orbInner);
+
+    // 2. Vành đai nhật hoa xoay quanh nhân vật (Orbiting Solar Rings)
+    const ringMat1 = new THREE.MeshBasicMaterial({
+      color: 0x00d2d3,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+    });
+    const ring1 = new THREE.Mesh(new THREE.TorusGeometry(6.6, 0.22, 12, 36), ringMat1);
+    ultCenterGroup.add(ring1);
+
+    const ringMat2 = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+    });
+    const ring2 = new THREE.Mesh(new THREE.TorusGeometry(6.6, 0.22, 12, 36), ringMat2);
+    ring2.rotation.x = Math.PI / 2;
+    ultCenterGroup.add(ring2);
+
+    // 3. Cột hào quang thông thiên từ trời xuống đất qua người nhân vật
+    const skyPillarGeo = new THREE.CylinderGeometry(4.0, 6.0, 140, 24, 1, true);
+    const skyPillarMat = new THREE.MeshBasicMaterial({
+      color: 0xffd700,
+      transparent: true,
+      opacity: 0.4,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const skyPillar = new THREE.Mesh(skyPillarGeo, skyPillarMat);
+    ultCenterGroup.add(skyPillar);
+
+    // Thông báo toàn map
+    this.damageTexts.spawn('☀️ THIÊN PHẠT DIỆT THẾ! KHỞI ĐỘNG 10S!', targetHoverPos.clone().add(new THREE.Vector3(0, 5.0, 0)), '#ffd700');
+    if (sound.playThunder) sound.playThunder();
+    if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
+
+    // 4. Cột năng lượng từ trời chiếu xuống TẤT CẢ NGƯỜI CHƠI (Target Beams)
+    const targetEntities = [];
+    for (const rp of this.remotePlayers || []) {
+      if (!rp.isDead && rp !== character) targetEntities.push({ entity: rp, isPlayer: true, id: rp.id });
+    }
+    if (this.localCharacter && this.localCharacter !== character && !this.localCharacter.isDead) {
+      targetEntities.push({ entity: this.localCharacter, isLocal: true });
+    }
+    for (const m of monsters || []) {
+      if (!m.isDead) targetEntities.push({ entity: m, isMonster: true });
+    }
+    if (this.cloneManager) {
+      for (const c of this.cloneManager.local || []) {
+        if (c.body && !c.body.isDead && c.body !== character) targetEntities.push({ entity: c.body, isClone: true, localClone: c });
+      }
+      for (const clones of (this.cloneManager.remote ? this.cloneManager.remote.values() : [])) {
+        for (const r of clones.values()) {
+          if (r.body && !r.body.isDead && r.body !== character) targetEntities.push({ entity: r.body, isClone: true, target: r.target });
+        }
+      }
+    }
+
+    // Tạo cột năng lượng chiếu xuống từng mục tiêu
+    const beamGeo = new THREE.CylinderGeometry(0.9, 1.6, 100, 16, 1, true);
+    const beamMat = new THREE.MeshBasicMaterial({
+      color: 0x00d2d3,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+    const lockRingGeo = new THREE.RingGeometry(1.6, 2.4, 24);
+    lockRingGeo.rotateX(-Math.PI / 2);
+    const lockRingMat = new THREE.MeshBasicMaterial({
+      color: 0xff3838,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    });
+
+    const targetBeams = targetEntities.map((t) => {
+      const bGroup = new THREE.Group();
+      const beam = new THREE.Mesh(beamGeo, beamMat);
+      beam.position.y = 50;
+      bGroup.add(beam);
+
+      const ring = new THREE.Mesh(lockRingGeo, lockRingMat);
+      ring.position.y = 0.12;
+      bGroup.add(ring);
+
+      this.scene.add(bGroup);
+      return { t, bGroup, ring, beam };
+    });
+
+    let elapsed = 0;
+    const totalDuration = 10.0;
+    let lastSecond = 10;
+    let ascendProgress = 0;
+
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+
+        // Vừa bay lên vừa kéo nhân vật về tâm map trong 1.5s đầu
+        if (ascendProgress < 1.0) {
+          ascendProgress = Math.min(1.0, ascendProgress + delta / 1.5);
+          character.position.lerpVectors(startPos, targetHoverPos, ascendProgress);
+        } else {
+          // Giữ nhân vật lơ lửng bồng bềnh ở giữa map
+          character.position.set(
+            targetHoverPos.x,
+            targetHoverPos.y + Math.sin(elapsed * 3.5) * 0.45,
+            targetHoverPos.z
+          );
+        }
+        ultCenterGroup.position.copy(character.position);
+
+        // Hiệu ứng quả cầu & vành đai xoay tít
+        ring1.rotation.y += delta * 2.5;
+        ring1.rotation.z += delta * 1.5;
+        ring2.rotation.x += delta * 2.8;
+        ring2.rotation.y += delta * 1.8;
+
+        const pulse = 1.0 + Math.sin(elapsed * 7) * 0.15;
+        orbOuter.scale.setScalar(pulse);
+        orbInner.scale.setScalar(1.0 + Math.cos(elapsed * 9) * 0.12);
+
+        // Tia lửa điện xung quanh nhân vật
+        if (this.particles && Math.random() < 0.8) {
+          this.particles.emitElementalParticles(
+            character.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6)),
+            3,
+            [0xffd700, 0x00d2d3, 0xff3838, 0xffffff],
+            [0.5, 2.0],
+            0.4,
+            0,
+            0.5
+          );
+        }
+
+        // Cột năng lượng theo dõi bám sát vị trí của từng người chơi
+        for (const tb of targetBeams) {
+          if (!tb.t.entity || tb.t.entity.isDead) {
+            tb.bGroup.visible = false;
+            continue;
+          }
+          const tPos = tb.t.entity.position;
+          const ty = getTerrainHeight(tPos.x, tPos.z);
+          tb.bGroup.position.set(tPos.x, ty, tPos.z);
+          tb.ring.rotation.y += delta * 4;
+
+          if (this.particles && Math.random() < 0.35) {
+            this.particles.emitElementalParticles(
+              tPos.clone().add(new THREE.Vector3(0, 1.0 + Math.random() * 3.0, 0)),
+              2,
+              [0x00d2d3, 0xffffff],
+              [0.4, 1.2],
+              0.2,
+              0,
+              0.3
+            );
+          }
+        }
+
+        // Đếm ngược từng giây (10, 9, 8, ... 1s)
+        const currentSec = Math.max(1, Math.ceil(totalDuration - elapsed));
+        if (currentSec !== lastSecond && currentSec >= 1) {
+          lastSecond = currentSec;
+          this.damageTexts.spawn(`⚡ THIÊN PHẠT KẾT LIỄU: ${currentSec}s`, character.position.clone().add(new THREE.Vector3(0, 5.0, 0)), currentSec <= 3 ? '#ff3838' : '#ffd700');
+          if (this.controller) this.controller.addTrauma(0.18);
+          if (this.particles) this.particles.emitShockwave(character.position, 0xffd700, 18.0, 0.4);
+          if (sound.playHit) sound.playHit();
+        }
+
+        // --- ĐẾM HẾT 10 GIÂY: KẾT LIỄU TẤT CẢ NGƯỜI CHƠI (INSTANT KILL) ---
+        if (elapsed >= totalDuration) {
+          if (this.onScreenFlash) this.onScreenFlash('cataclysm');
+          if (this.controller) this.controller.addTrauma(1.0);
+          if (sound.playThunder) sound.playThunder();
+          if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
+
+          // Sóng xung kích khổng lồ quét sạch toàn map
+          if (this.particles) {
+            this.particles.emitShockwave(character.position, 0xff0055, 35.0, 0.8);
+            this.particles.emitShockwave(new THREE.Vector3(0, terrainCenterY, 0), 0xffd700, 45.0, 0.9);
+          }
+
+          // Kết liễu tất cả mục tiêu đã bị cột năng lượng chiếu xuống
+          for (const tb of targetBeams) {
+            const ent = tb.t.entity;
+            if (!ent || ent.isDead) continue;
+            const p = ent.position;
+
+            if (this.particles) {
+              this.particles.emitShockwave(p, 0xff0055, 14.0, 0.6);
+              this.particles.emitHitSparkles(p, 40);
+              this.particles.emitElementalParticles(p, 25, [0xff0055, 0xffd700, 0xffffff], [2, 6], 0.6, 6, 0.8);
+            }
+
+            // Gây 99999 sát thương tuyệt đối
+            if (tb.t.isPlayer && this.canHitPlayers(character)) {
+              this.onHitPlayer(tb.t.id, 99999, p, 'divine_judgment');
+              this.damageTexts.spawn('💀 -99999 KẾT LIỄU DIỆT THẾ!', p.clone().add(new THREE.Vector3(0, 2.5, 0)), '#ff4757');
+            } else if (tb.t.isLocal) {
+              // Bị trúng chiêu của đối thủ
+              this.localCharacter.takeDamage(99999, character?.name || 'NAMCAM', p);
+              this.damageTexts.spawn('💀 -99999 KẾT LIỄU DIỆT THẾ!', p.clone().add(new THREE.Vector3(0, 2.5, 0)), '#ff4757');
+            } else if (tb.t.isMonster) {
+              this.damageMonster(ent, 99999, '💀 -99999 DIỆT THẾ!', '#ff4757', p);
+            } else if (tb.t.isClone) {
+              if (tb.t.localClone) {
+                this.cloneManager.damageLocal(tb.t.localClone.index, 99999, p);
+              } else if (tb.t.target && this.canHitPlayers(character)) {
+                this.onHitPlayer(tb.t.target.id, 99999, p, 'divine_judgment');
+              }
+              this.damageTexts.spawn('💀 -99999 PHÂN THÂN DIỆT!', p.clone().add(new THREE.Vector3(0, 2.0, 0)), '#ff4757');
+            }
+          }
+
+          // Dọn dẹp hiệu ứng
+          for (const tb of targetBeams) {
+            this.scene.remove(tb.bGroup);
+          }
+          this.scene.remove(ultCenterGroup);
+
+          beamGeo.dispose();
+          beamMat.dispose();
+          lockRingGeo.dispose();
+          lockRingMat.dispose();
+          orbOuter.geometry.dispose();
+          orbOuterMat.dispose();
+          orbInner.geometry.dispose();
+          orbInnerMat.dispose();
+          ring1.geometry.dispose();
+          ringMat1.dispose();
+          ring2.geometry.dispose();
+          ringMat2.dispose();
+          skyPillarGeo.dispose();
+          skyPillarMat.dispose();
+
+          // Kết thúc trạng thái bay và bất tử, hạ cánh an toàn
+          character.isFloatingUlt = false;
+          character.isInvulnerable = false;
+          character.isGrounded = false;
+          character.jumpVelocity = 0;
+          return false;
+        }
+
         return true;
       }
     });

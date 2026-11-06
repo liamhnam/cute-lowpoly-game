@@ -37,6 +37,7 @@ export class RemotePlayer {
     this.freezeTimer = 0;
     this.slowTimer = 0;
     this.slowAmount = 0;
+    this.isFloatingUlt = false;
 
     // Chém kiếm (đồng bộ từ đòn của người chơi này)
     this.slashTimer = 0;
@@ -534,6 +535,19 @@ export class RemotePlayer {
 
   update(delta) {
     if (this.isDead) return;
+
+    if (this.isFloatingUlt) {
+      this.freezeTimer = 0;
+      this.slowTimer = 0;
+      this.position.lerp(this.targetPosition, Math.min(1.0, delta * 15));
+      this.group.position.copy(this.position);
+      this.rightArm.rotation.set(-2.8, 0, 0.4);
+      this.leftArm.rotation.set(-2.8, 0, -0.4);
+      this.head.rotation.x = -0.25;
+      this.rightLeg.rotation.set(0.18, 0, 0.1);
+      this.leftLeg.rotation.set(0.18, 0, -0.1);
+      return;
+    }
 
     if (this.freezeTimer > 0) this.freezeTimer -= delta;
     if (this.slowTimer > 0) this.slowTimer -= delta;

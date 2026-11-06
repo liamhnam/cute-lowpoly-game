@@ -196,7 +196,7 @@ wss.on('connection', (ws) => {
               type: 'clone_damaged',
               clone: Number(cloneMatch[2]),
               attackerId: player.id,
-              damage: Math.min(600, Math.max(5, Math.round(Number(msg.damage) || 30))),
+              damage: Math.min(99999, Math.max(5, Math.round(Number(msg.damage) || 30))),
               hitPos: msg.hitPos,
             }));
             break;
@@ -205,7 +205,7 @@ wss.on('connection', (ws) => {
           const target = players.get(msg.targetId);
           if (!target || target.isDead) return;
 
-          const dmg = Math.min(600, Math.max(5, Math.round(Number(msg.damage) || 30)));
+          const dmg = Math.min(99999, Math.max(5, Math.round(Number(msg.damage) || 30)));
           target.hp = Math.max(0, target.hp - dmg);
 
           // Broadcast cho toàn phòng biết mục tiêu bị dính sát thương

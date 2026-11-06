@@ -242,7 +242,7 @@ export class ThirdPersonController {
 
   // Đòn đánh thường: combo 3 nhát chém kiếm theo hướng camera (tốc độ vung & lướt đâm theo môn phái)
   triggerShoot() {
-    if (this.character.isDead || this.attackCooldown > 0) return;
+    if (this.character.isDead || this.character.isFloatingUlt || this.attackCooldown > 0) return;
 
     const step = this.comboTimer > 0 ? (this.comboStep + 1) % 3 : 0;
     this.comboStep = step;
@@ -399,7 +399,7 @@ export class ThirdPersonController {
     }
 
     const moveInput = new THREE.Vector2(0, 0);
-    if (!this.character.isDead) {
+    if (!this.character.isDead && !this.character.isFloatingUlt) {
       if (this.keys.forward) moveInput.y += 1;
       if (this.keys.backward) moveInput.y -= 1;
       if (this.keys.left) moveInput.x -= 1;
