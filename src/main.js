@@ -210,6 +210,11 @@ class Game {
         // Mỗi môn phái có 3 kỹ năng (1, 2, 3); Đạo Gia có thêm chiêu 4
         if (skillNum < 1 || skillNum > 4 || !this.pixelFX.cooldowns[skillNum]) return false;
 
+        if (this.character.isFloatingUlt) {
+          this.showNotification(`⚡ Đang vận sức Thiên Phạt Diệt Thế...`);
+          return false;
+        }
+
         // Kiểm tra hồi chiêu
         if (this.pixelFX.isSkillOnCooldown(skillNum)) {
           const cd = this.pixelFX.cooldowns[skillNum]?.current?.toFixed(1) || '0';

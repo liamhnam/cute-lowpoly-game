@@ -174,6 +174,9 @@ export class Character {
     // Kháng hiệu ứng: còn > 0 thì miễn nhiễm đóng băng & làm chậm (Bát Quái Đại Canh Trận của Hoàng Bào Đạo Sĩ)
     this.statusResistTimer = 0;
     this.lastResistTextTime = 0;
+    this.isFloatingUlt = false;
+    this.isInvulnerable = false;
+    this._lastInvulText = 0;
     this.pixelFX = null;
 
     // Bảng màu trang phục Tiên Hiệp cổ phong - 5 Môn Phái
@@ -360,6 +363,7 @@ export class Character {
 
   // Đang kháng hiệu ứng thì chặn đóng băng/làm chậm và hiện chữ báo (không quá 1 lần mỗi 0.8s)
   resistsStatus() {
+    if (this.isInvulnerable) return true;
     if (this.statusResistTimer <= 0) return false;
     const now = performance.now();
     if (now - this.lastResistTextTime > 800) {
@@ -398,6 +402,18 @@ export class Character {
 
   takeDamage(amount, attackerName = null, hitPos = null) {
     if (this.isDead) return;
+
+    // Bất tử trong thời gian vận sức Thiên Phạt Diệt Thế
+    if (this.isInvulnerable) {
+      const now = performance.now();
+      if (now - this._lastInvulText > 600) {
+        this._lastInvulText = now;
+        if (this.pixelFX?.damageTexts) {
+          this.pixelFX.damageTexts.spawn('🛡️ BẤT TỬ!', (hitPos || this.position).clone().add(new THREE.Vector3(0, 2.0, 0)), '#ffd700');
+        }
+      }
+      return;
+    }
 
     // Hóa giải đòn đánh (PARRY / Đỡ Đòn Hoàn Hảo của Tử Tiêu Kiếm Tông)
     if (this.isParrying) {
@@ -1300,6 +1316,24 @@ export class Character {
     this.position.z = THREE.MathUtils.clamp(this.position.z, -121, 121);
 
     const groundY = getTerrainHeight(this.position.x, this.position.z);
+
+    if (this.isFloatingUlt) {
+      this.isGrounded = false;
+      this.freezeTimer = 0;
+      this.slowTimer = 0;
+      this.group.position.copy(this.position);
+      if (this.contactShadow) {
+        this.contactShadow.position.set(this.position.x, groundY + 0.025, this.position.z);
+        this.shadowMat.opacity = 0.08;
+        this.contactShadow.scale.set(0.4, 0.4, 0.4);
+      }
+      this.rightArm.rotation.set(-2.8, 0, 0.4);
+      this.leftArm.rotation.set(-2.8, 0, -0.4);
+      this.head.rotation.x = -0.25;
+      this.rightLeg.rotation.set(0.18, 0, 0.1);
+      this.leftLeg.rotation.set(0.18, 0, -0.1);
+      return;
+    }
 
     if (!this.isGrounded) {
       this.jumpVelocity += this.gravity * delta;
