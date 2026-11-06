@@ -162,6 +162,7 @@ class Game {
     this.pixelFX.remotePlayers = [];
     this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source) => this.handleHitPlayer(targetId, dmg, hitPos, source);
     this.pixelFX.localCharacter = this.character;
+    this.character.pixelFX = this.pixelFX;
 
     // 7. Bộ điều khiển góc nhìn thứ 3 tích hợp Rung lắc Camera (Trauma Shake)
     this.controller = new ThirdPersonController(

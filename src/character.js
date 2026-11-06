@@ -146,6 +146,14 @@ export class Character {
     this.castDuration = 0.6;
     this.speedBoostTimer = 0;
 
+    // Trạng thái kỹ năng đặc biệt & khống chế
+    this.isParrying = false;
+    this.parryTimer = 0;
+    this.freezeTimer = 0;
+    this.slowTimer = 0;
+    this.slowAmount = 0;
+    this.pixelFX = null;
+
     // Bảng màu trang phục Tiên Hiệp cổ phong - 5 Môn Phái
     this.outfitIndex = 0;
     this.outfits = [
@@ -310,8 +318,53 @@ export class Character {
     }
   }
 
+  setParry(duration = 0.8) {
+    this.isParrying = true;
+    this.parryTimer = duration;
+  }
+
+  freeze(duration = 2.2) {
+    if (this.isDead) return;
+    this.freezeTimer = Math.max(this.freezeTimer, duration);
+    if (this.particles) {
+      this.particles.emitElementalParticles(
+        this.position.clone().add(new THREE.Vector3(0, 0.8, 0)),
+        12,
+        [0x00d2d3, 0x7ed6df, 0xffffff],
+        [1, 4],
+        0.4,
+        2.5,
+        0.6
+      );
+    }
+  }
+
+  slow(duration = 2.5, amount = 0.45) {
+    if (this.isDead) return;
+    this.slowTimer = Math.max(this.slowTimer, duration);
+    this.slowAmount = amount;
+  }
+
   takeDamage(amount, attackerName = null, hitPos = null) {
     if (this.isDead) return;
+
+    // Hóa giải đòn đánh (PARRY / Đỡ Đòn Hoàn Hảo của Tử Tiêu Kiếm Tông)
+    if (this.isParrying) {
+      this.isParrying = false;
+      this.parryTimer = 0;
+      this.heal(80);
+      sound.playHit();
+      const pos = hitPos || this.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+      if (this.particles) {
+        this.particles.emitShockwave(pos, 0xffd700, 6.0, 0.4);
+        this.particles.emitElementalParticles(pos, 25, [0xffd700, 0xffffff, 0x8854d0], [2, 6], 0.5, 6, 0.8);
+      }
+      if (this.pixelFX?.damageTexts) {
+        this.pixelFX.damageTexts.spawn('⚔️ HOÁ GIẢI / PARRY! +80 HP', this.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#ffd700');
+      }
+      return;
+    }
+
     const defMult = this.sectStats?.defenseMult || 1.0;
     const actualDmg = Math.max(1, Math.round(amount * defMult));
     this.hp = Math.max(0, this.hp - actualDmg);
@@ -897,8 +950,23 @@ export class Character {
     }
 
     this.isSprinting = isSprinting;
+
+    // Cập nhật các trạng thái đặc biệt
+    if (this.parryTimer > 0) {
+      this.parryTimer -= delta;
+      if (this.parryTimer <= 0) this.isParrying = false;
+    }
+    if (this.freezeTimer > 0) {
+      this.freezeTimer -= delta;
+      inputVector.set(0, 0, 0);
+      this.isSprinting = false;
+    }
+    if (this.slowTimer > 0) {
+      this.slowTimer -= delta;
+    }
+
     const moveLen = inputVector.length();
-    this.isMoving = moveLen > 0.05;
+    this.isMoving = moveLen > 0.05 && this.freezeTimer <= 0;
 
     // Tốc độ di chuyển theo Môn Phái
     const baseWalk = this.sectStats?.speed || 5.4;
@@ -906,7 +974,13 @@ export class Character {
     let targetSpeed = this.isMoving ? (this.isSprinting ? baseSprint : baseWalk) : 0;
     if (this.speedBoostTimer > 0) {
       this.speedBoostTimer -= delta;
-      targetSpeed *= 1.5;
+      targetSpeed *= 1.45;
+    }
+    if (this.slowTimer > 0) {
+      targetSpeed *= Math.max(0.2, 1.0 - this.slowAmount);
+    }
+    if (this.freezeTimer > 0) {
+      targetSpeed = 0;
     }
     this.speed = THREE.MathUtils.lerp(this.speed, targetSpeed, delta * 11);
 
