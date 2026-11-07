@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
+import os from 'os';
 
 const PORT = process.env.PORT || 3000;
 const server = createServer((req, res) => {
@@ -134,6 +135,7 @@ wss.on('connection', (ws) => {
           player.isGrounded = msg.isGrounded;
           player.isCasting = msg.isCasting;
           player.castSkill = msg.castSkill;
+          if (msg.outfit !== undefined) player.outfit = Number(msg.outfit) || 0;
           player.lastUpdate = Date.now();
 
           // Broadcast trạng thái cho các người chơi khác
@@ -149,6 +151,7 @@ wss.on('connection', (ws) => {
             isGrounded: player.isGrounded,
             isCasting: player.isCasting,
             castSkill: player.castSkill,
+            outfit: player.outfit,
             clones: sanitizeClones(msg.clones),
           });
           break;
@@ -328,6 +331,24 @@ function broadcastExcept(excludeId, msg) {
   }
 }
 
+function getLanIPs() {
+  const nets = os.networkInterfaces();
+  const ips = [];
+  for (const name of Object.keys(nets)) {
+    if (/wsl|warp|virtual|vmware|vbox|loopback/i.test(name)) continue;
+    for (const net of nets[name] || []) {
+      if (net.family === 'IPv4' && !net.internal && !net.address.startsWith('169.254.')) {
+        ips.push({ name, address: net.address });
+      }
+    }
+  }
+  return ips;
+}
+
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🎮 Cute Low-Poly Online Server is listening on ws://0.0.0.0:${PORT}`);
+  console.log(`🎮 Cute Low-Poly Online Server is listening on:`);
+  console.log(`   ➜ Local:   ws://localhost:${PORT}`);
+  for (const { name, address } of getLanIPs()) {
+    console.log(`   ➜ Network: ws://${address}:${PORT} (${name})`);
+  }
 });

@@ -125,36 +125,9 @@ class Game {
     // 4. Hệ thống chém kiếm & kiếm khí có vệt sáng & tương tác vật thể
     this.projectiles = new ProjectileSystem(this.scene, this.particles, this.world);
 
-    // 5. Yêu Ma quấy nhiễu các phường thị Kinh Thành Cổ
-    this.monsters = [
-      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(0, 0, 18), this.world),       // Trước Đại Điện Cung Đình
-      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-65, 0, 45), this.world),     // Sân Thiên Kiếm Võ Quán (Tây Bắc)
-      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(70, 0, 45), this.world),      // Khuôn viên Thanh Vân Thư Viện (Đông Bắc)
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-10, 0, -22), this.world),   // Phố Chợ Cổ Trung Tâm
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(12, 0, -4), this.world),     // Bờ Kênh Trà Quán
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-24, 0, 10), this.world),    // Trước Tửu Lầu Nguyệt Lai
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-55, 0, -65), this.world),   // Phố Rèn & Binh Khí (Tây Nam)
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(60, 0, -65), this.world),    // Khu Tơ Lụa & Dược Điếm (Đông Nam)
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, -95), this.world),     // Nam Thành Chu Tước Môn
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, 95), this.world),      // Bắc Thành Huyền Vũ Môn
-    ];
-
-    for (const monster of this.monsters) {
-      monster.onDefeated = (m) => {
-        this.monstersDefeated++;
-        if (this.killBadge) {
-          this.killBadge.textContent = `🎯 Trảm Yêu: ${this.monstersDefeated}`;
-        }
-
-        // Hồi phục 25 Linh lực khi hấp thụ Linh Phách yêu ma
-        this.playerMp = Math.min(this.playerMaxMp, this.playerMp + 25);
-
-        const name = m.type === 'golem' ? 'Thái Cổ Thạch Yêu' : 'Hắc Diễm Linh Thú';
-        this.showNotification(`⚔️ Đã trảm sát ${name}! Hấp thụ Linh Phách (+25 Linh Lực)`);
-
-        this.checkRealmBreakthrough();
-      };
-    }
+    // 5. Chế độ chơi: 'pvp' (không có quái) hoặc 'pve' (có quái)
+    this.gameMode = 'pvp';
+    this.monsters = [];
 
     // 6. Hệ thống Kỹ Năng Đạo Pháp PixelFX
     this.pixelFX = new PixelFXManager(this.scene, this.world, this.particles);
@@ -290,6 +263,104 @@ class Game {
         }
       }
     };
+  }
+
+  spawnMonsters() {
+    if (this.monsters.length > 0) return;
+
+    this.monsters = [
+      // 🐉 ĐẠI BOSS TRẤN THÀNH: Hắc Long Ma Đế (Quảng Trường Trước Đại Điện Cung Đình)
+      new Monster(this.scene, this.particles, 'boss_dragon_emperor', new THREE.Vector3(0, 0, 28), this.world),
+
+      // 🦁 Thanh Ngọc Thần Sư (Hộ Điện Tinh Anh 2 bên Quảng Trường)
+      new Monster(this.scene, this.particles, 'jade_guardian', new THREE.Vector3(-18, 0, 22), this.world),
+      new Monster(this.scene, this.particles, 'jade_guardian', new THREE.Vector3(18, 0, 22), this.world),
+
+      // 🗿 Thái Cổ Thạch Yêu (Cận chiến Địa Chấn)
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-65, 0, 45), this.world),
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(70, 0, 45), this.world),
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-42, 0, -35), this.world),
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(42, 0, -35), this.world),
+
+      // 🦖 Hắc Diễm Linh Thú (Xung Phong Húc Đầu)
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-12, 0, -22), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(14, 0, -6), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-26, 0, 8), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, -92), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, 92), this.world),
+
+      // 🦊 Cửu Vĩ Hồ Yêu (Pháp Sư Tầm Xa - Kiting & Bắn 3 Cầu Hồ Hỏa)
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(28, 0, 10), this.world),
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(-34, 0, -14), this.world),
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(52, 0, -58), this.world),
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(-52, 0, 72), this.world),
+
+      // 👻 U Minh Kiếm Linh (Sát Thủ Bóng Đêm - Ám Ảnh Thuấn Bộ Sau Lưng)
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(-18, 0, -48), this.world),
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(22, 0, -48), this.world),
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(-75, 0, 10), this.world),
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(75, 0, 10), this.world),
+
+      // 🦂 Xích Diễm Hạt Vương (Pháo Kích Đầm Lầy Độc Dịch)
+      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(-58, 0, -65), this.world),
+      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(60, 0, -22), this.world),
+      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(48, 0, 72), this.world),
+    ];
+
+    for (const monster of this.monsters) {
+      monster.onBossEnrage = (boss) => {
+        this.triggerScreenFlash('fire');
+        this.controller.addTrauma(0.45);
+        this.showNotification(`🔥 ĐẠI BOSS [${boss.name}] BƯỚC VÀO GIAI ĐOẠN 2: CUỒNG NỘ HUYẾT LONG!`);
+      };
+
+      monster.onDefeated = (m) => {
+        this.monstersDefeated += m.isBoss ? 5 : 1;
+        if (this.killBadge) {
+          this.killBadge.textContent = `🎯 Trảm Yêu: ${this.monstersDefeated}`;
+        }
+
+        const mpGain = m.config?.xpMpReward || 25;
+        this.playerMp = Math.min(this.playerMaxMp, this.playerMp + mpGain);
+        this.character.heal(m.isBoss ? 600 : 120);
+
+        if (m.isBoss) {
+          this.triggerScreenFlash('sword');
+          this.showNotification(`👑 ĐẠI THẮNG! Đã tru diệt Đại Boss [${m.name}]! (+600 HP, Đầy Linh Lực)`);
+        } else {
+          this.showNotification(`⚔️ Đã trảm sát ${m.config?.icon || ''} ${m.name}! (+120 HP, +${mpGain} Linh Lực)`);
+        }
+
+        this.checkRealmBreakthrough();
+      };
+    }
+  }
+
+  clearMonsters() {
+    for (const monster of this.monsters) {
+      monster.destroy();
+    }
+    this.monsters = [];
+    const bossHud = document.getElementById('boss-hud');
+    if (bossHud) bossHud.classList.remove('show', 'enraged');
+  }
+
+  setGameMode(mode) {
+    this.gameMode = mode === 'pve' ? 'pve' : 'pvp';
+    if (this.gameMode === 'pve') {
+      this.spawnMonsters();
+    } else {
+      this.clearMonsters();
+    }
+
+    const modeTag = document.getElementById('game-mode-status-tag');
+    const modeBtn = document.getElementById('btn-game-mode');
+    if (modeTag) {
+      modeTag.textContent = this.gameMode === 'pve' ? 'PvE (Có Quái)' : 'PvP (Không Quái)';
+    }
+    if (modeBtn) {
+      modeBtn.classList.toggle('active', this.gameMode === 'pve');
+    }
   }
 
   // Đột phá Cảnh Giới Tu Vi theo chiến tích
@@ -680,6 +751,21 @@ class Game {
       });
     }
 
+    // Nút chuyển chế độ PvP / PvE
+    const gameModeBtn = document.getElementById('btn-game-mode');
+    if (gameModeBtn) {
+      gameModeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nextMode = this.gameMode === 'pvp' ? 'pve' : 'pvp';
+        this.setGameMode(nextMode);
+        this.showNotification(
+          nextMode === 'pve'
+            ? '👹 Đã chuyển sang Chế Độ PvE (Có Quái)!'
+            : '⚔️ Đã chuyển sang Chế Độ PvP (Không Quái)!'
+        );
+      });
+    }
+
     // Nút Âm thanh
     const soundBtn = document.getElementById('btn-sound');
     const soundTag = document.getElementById('sound-status-tag');
@@ -917,21 +1003,23 @@ class Game {
       if (loginModal) loginModal.style.display = 'none';
 
       if (isOnlineMode) {
+        this.setGameMode('pvp');
         const url = (serverInput.value || defaultServerUrl).trim();
         if (this.onlineBadge) this.onlineBadge.textContent = '🌐 Đang kết nối...';
         try {
           await this.network.connect(url, { name, outfit: this.selectedOutfitIndex });
         } catch (err) {
           console.warn('Cannot connect to multiplayer server, running in offline mode:', err);
-          this.showNotification('⚠️ Không thể kết nối server, đang chơi chế độ Đơn!');
+          this.showNotification('⚠️ Không thể kết nối server! Đang ở bản đồ PvP (Không Quái).');
           if (this.onlineBadge) {
-            this.onlineBadge.textContent = '🔴 Offline';
+            this.onlineBadge.textContent = '🔴 Offline (PvP)';
             this.onlineBadge.style.color = '#ff4757';
           }
         }
       } else {
+        this.setGameMode('pve');
         if (this.onlineBadge) {
-          this.onlineBadge.textContent = '🗡️ Chế độ Chơi Đơn';
+          this.onlineBadge.textContent = '👹 Chế độ PvE (Có Quái)';
           this.onlineBadge.style.color = '#70a1ff';
         }
       }
@@ -1094,9 +1182,52 @@ class Game {
     // 3. Cập nhật kỹ năng PixelFX & tàn phá địa hình
     this.pixelFX.update(delta);
 
-    // 4. Cập nhật AI quái vật khổng lồ
+    // 4. Cập nhật AI quái vật & Đại Boss
+    let activeBoss = null;
     for (const monster of this.monsters) {
-      monster.update(delta, this.character.position, this.camera);
+      monster.update(delta, this.character.position, this.camera, this.character);
+      if (monster.isBoss && !monster.isDead) {
+        const distToBoss = monster.position.distanceTo(this.character.position);
+        if (distToBoss <= 60) {
+          activeBoss = monster;
+        }
+      }
+    }
+
+    // Cập nhật Thanh Máu Đại Boss trên HUD
+    const bossHud = document.getElementById('boss-hud');
+    if (bossHud) {
+      if (activeBoss && this.gameMode === 'pve') {
+        bossHud.classList.add('show');
+        bossHud.classList.toggle('enraged', activeBoss.isEnraged);
+        const bossNameEl = document.getElementById('boss-hud-name');
+        const bossSkillEl = document.getElementById('boss-hud-skill');
+        const bossBarEl = document.getElementById('boss-bar-hp');
+        const bossTextEl = document.getElementById('boss-text-hp');
+        if (bossNameEl) {
+          bossNameEl.textContent = activeBoss.isEnraged
+            ? `🔥 ĐẠI BOSS: ${activeBoss.name} (CUỒNG NỘ)`
+            : `🐉 ĐẠI BOSS: ${activeBoss.name}`;
+        }
+        if (bossSkillEl) bossSkillEl.textContent = activeBoss.currentSkillName;
+        const bRatio = Math.max(0, activeBoss.hp / activeBoss.maxHp);
+        if (bossBarEl) bossBarEl.style.width = `${bRatio * 100}%`;
+        if (bossTextEl) bossTextEl.textContent = `${Math.round(activeBoss.hp)} / ${activeBoss.maxHp} HP`;
+      } else {
+        bossHud.classList.remove('show', 'enraged');
+      }
+    }
+
+    // Xử lý hồi sinh khi nhân vật tử trận trong chế độ PvE
+    if (this.character.hp <= 0 && !this.character.isDead && !this.network.isConnected) {
+      this.character.isDead = true;
+      this.showRespawnScreen('Yêu Ma Trường An', 3.5);
+      setTimeout(() => {
+        this.character.respawn({ x: 0, y: 0, z: -38 });
+        this.playerHp = this.character.hp;
+        this.hideRespawnScreen();
+        this.showNotification('✨ Đã tái tạo thần thể, tiếp tục trảm yêu trừ ma!');
+      }, 3500);
     }
 
     // 5. Di chuyển ánh nắng mặt trời theo nhân vật
