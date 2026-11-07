@@ -56,9 +56,14 @@
     }
 
     body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden !important;
+      position: fixed;
+      inset: 0;
+      touch-action: none;
+      -webkit-touch-callout: none;
       background: #08070c;
       font-family: var(--font-sans);
       color: var(--text-ivory);
@@ -1513,11 +1518,10 @@
     /* Bát Quái Cần Gạt Pixel 8 Hướng (8-Way Arcade Plate) */
     .joystick-base {
       position: absolute;
-      bottom: 50px;
-      left: 50px;
-      width: 124px;
-      height: 124px;
-      transform: translate(-50%, 50%);
+      bottom: 24px;
+      left: 24px;
+      width: 110px;
+      height: 110px;
       background: #141222;
       border: 3px solid #000;
       box-shadow:
@@ -1929,84 +1933,433 @@
       font-size: 1.75rem;
     }
 
-    /* RESPONSIVE SCALING CHO MOBILE & TABLET */
-    @media (max-width: 768px) {
-      .player-bars-compact {
-        top: 8px;
-        left: 8px;
-        gap: 6px;
+    /* ========================================================
+       GIAO DIỆN MOBILE TỐI ƯU: KHÔNG SCROLL, ẨN THÔNG TIN THỪA,
+       CHƠI TỐT CẢ MÀN HÌNH DỌC (PORTRAIT) VÀ MÀN HÌNH NGANG (LANDSCAPE)
+       ======================================================== */
+    .outfit-mobile-hint {
+      display: none;
+      font-family: var(--font-pixel-sub);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--pixel-gold);
+      background: #090810;
+      border: 1px solid #3d3559;
+      padding: 3px 8px;
+      text-align: center;
+      margin-top: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 1. QUI TẮC CHUNG CHO THIẾT BỊ DI ĐỘNG (TABLET & MOBILE) */
+    @media (max-width: 900px), (max-height: 550px) {
+      /* Ẩn thông tin thừa thãi làm vướng tầm nhìn */
+      .quick-key-hints,
+      .rpg-aux-slot,
+      .crosshair,
+      .rpg-telemetry-bar,
+      .rpg-cmd-btn#btn-hud-role,
+      .rpg-cmd-btn#btn-hud-leaderboard,
+      .rpg-cmd-btn kbd,
+      .btn-settings-trigger kbd,
+      .rpg-realm-pill,
+      .rpg-sub-status-row,
+      .rpg-kill-counter,
+      .modal-desc,
+      .rpg-counter-banner,
+      #modal-field-server,
+      .outfit-skills-list,
+      .outfit-traits,
+      .outfit-card.active::after,
+      .mobile-orientation-banner {
+        display: none !important;
+      }
+
+      .skill-bar-wrapper {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        left: auto !important;
+        transform: none !important;
+        width: 260px;
+        height: 260px;
+        pointer-events: none;
+      }
+
+      .skill-bar-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        pointer-events: none;
+      }
+
+      .skill-slot {
+        position: absolute;
+      }
+
+      .skill-slot .skill-name,
+      .skill-slot .skill-talisman-tag {
+        display: none !important;
+      }
+
+      .outfit-mobile-hint {
+        display: block;
+      }
+
+      /* Đảm bảo tuyệt đối không cuộn màn hình */
+      body, html {
+        overflow: hidden !important;
+        position: fixed !important;
+      }
+
+      /* Modal chọn vai trò: Bố cục gọn gàng, tự co giãn trong 1 màn hình */
+      #login-modal {
+        padding: 8px;
+      }
+
+      .modal-box {
+        max-height: 96dvh !important;
+        overflow: hidden !important;
+        padding: 10px 14px;
+        box-shadow: inset 2px 2px 0 var(--pixel-gold), inset -2px -2px 0 var(--pixel-gold-dark), 0 4px 0 #000;
+      }
+
+      .modal-header {
+        margin-bottom: 6px;
+        padding-bottom: 4px;
+      }
+
+      .modal-box h2 {
+        font-size: 0.68rem;
+        margin: 0;
+        letter-spacing: 0.4px;
+      }
+
+      .modal-top-inputs {
+        grid-template-columns: 1fr;
+        margin-bottom: 6px;
+        gap: 4px;
+      }
+
+      .modal-field label {
+        font-size: 0.44rem;
+        margin-bottom: 2px;
+      }
+
+      .modal-field input[type="text"] {
         padding: 5px 8px;
+        font-size: 0.72rem;
+        height: 30px;
       }
+
+      .outfit-card {
+        padding: 6px 8px;
+        border-left-width: 3px;
+        min-height: 38px;
+      }
+
+      .outfit-card-header {
+        font-size: 0.52rem;
+        padding-right: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .outfit-dot {
+        width: 6px;
+        height: 6px;
+      }
+
+      .modal-actions {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .btn-modal-primary,
+      .btn-modal-secondary {
+        padding: 8px 10px;
+        font-size: 0.55rem;
+        min-height: 36px;
+      }
+
+      /* HUD In-Game trên Mobile */
+      .player-bars-compact {
+        top: 6px;
+        left: 6px;
+        gap: 6px;
+        padding: 4px 8px;
+      }
+
       .rpg-hero-crest-wrap {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
       }
+
       .rpg-hero-crest-diamond {
-        width: 36px;
-        height: 36px;
+        width: 34px;
+        height: 34px;
       }
+
       .rpg-hero-crest-icon {
-        font-size: 1.15rem;
+        font-size: 1.05rem;
       }
-      .rpg-realm-pill {
-        display: none;
-      }
+
       .rpg-bars-column {
-        min-width: 150px;
+        min-width: 140px;
         gap: 2px;
       }
+
       .rpg-player-name {
         font-size: 0.52rem;
       }
+
       .sect-header-badge {
-        font-size: 0.62rem;
+        font-size: 0.55rem;
         padding: 0 4px;
       }
-      .rpg-kill-counter {
-        display: none;
-      }
+
       .pixel-bar-outer {
-        height: 10px;
+        height: 9px;
       }
+
       .pixel-bar-outer.mp-outer {
         height: 5px;
       }
+
       .pixel-bar-num {
-        font-size: 0.44rem;
+        font-size: 0.42rem;
         padding: 0 4px;
       }
-      .rpg-sub-status-row {
-        display: none;
-      }
+
       .rpg-top-right-cluster {
-        top: 8px;
-        right: 8px;
-        gap: 4px;
+        top: 6px;
+        right: 6px;
       }
-      .rpg-telemetry-bar {
-        font-size: 0.45rem;
-        padding: 2px 6px;
-      }
-      .rpg-cmd-btn kbd,
-      .btn-settings-trigger kbd {
-        display: none;
-      }
-      .rpg-cmd-btn span,
-      .btn-settings-trigger span {
-        font-size: 0.45rem;
-      }
-      .rpg-cmd-btn,
+
       .btn-settings-trigger {
-        padding: 4px 6px;
+        padding: 6px 8px;
+        font-size: 0.65rem;
       }
+
+      .btn-settings-trigger span {
+        font-size: 0.85rem;
+      }
+
       #boss-hud {
-        top: 8px;
-        width: min(320px, 85vw);
+        top: 6px;
+        width: min(260px, 50vw);
       }
-      .modal-top-inputs,
-      .outfit-selector,
+
+      #boss-hud-name {
+        font-size: 0.48rem;
+      }
+
+      .boss-bar-outer {
+        height: 12px;
+      }
+
+      .boss-bar-num {
+        font-size: 0.42rem;
+      }
+    }
+
+    /* 2. CHẾ ĐỘ MÀN HÌNH DỌC (PORTRAIT) */
+    @media (max-width: 768px) and (orientation: portrait), (max-width: 600px) {
+      .outfit-selector {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      /* Bố trí cần gạt và phím ảo cho màn dọc */
+      .joystick-base {
+        bottom: 30px;
+        left: 30px;
+        width: 114px;
+        height: 114px;
+      }
+
+      .mobile-action-cluster {
+        bottom: 14px;
+        right: 14px;
+        width: 260px;
+        height: 260px;
+      }
+
+      body.mobile-ui-active .skill-bar-wrapper {
+        bottom: 14px;
+        right: 14px;
+        width: 260px;
+        height: 260px;
+      }
+    }
+
+    /* 3. CHẾ ĐỘ MÀN HÌNH NGANG (LANDSCAPE) */
+    @media (max-height: 520px) {
+      .modal-box {
+        width: 94vw;
+        max-width: 760px;
+        padding: 8px 14px;
+      }
+
+      .modal-header {
+        margin-bottom: 4px;
+        padding-bottom: 3px;
+      }
+
+      .modal-box h2 {
+        font-size: 0.58rem;
+      }
+
+      .modal-top-inputs {
+        margin-bottom: 4px;
+      }
+
+      .modal-field input[type="text"] {
+        height: 26px;
+        padding: 3px 6px;
+        font-size: 0.65rem;
+      }
+
+      /* 5 thẻ vai trò dàn hàng ngang 1 dòng cực gọn, không tràn */
+      .outfit-selector {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 5px;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      .outfit-card {
+        padding: 4px 6px;
+        min-height: 34px;
+      }
+
+      .outfit-card-header {
+        font-size: 0.46rem;
+      }
+
+      .outfit-mobile-hint {
+        font-size: 0.55rem;
+        padding: 2px 6px;
+        margin-top: 3px;
+      }
+
       .modal-actions {
-        grid-template-columns: 1fr;
+        margin-top: 5px;
+        gap: 6px;
+      }
+
+      .btn-modal-primary,
+      .btn-modal-secondary {
+        padding: 6px 8px;
+        font-size: 0.5rem;
+        min-height: 32px;
+      }
+
+      /* Tinh chỉnh điều khiển trong game khi xoay ngang */
+      .joystick-base {
+        bottom: 12px;
+        left: 18px;
+        width: 96px;
+        height: 96px;
+      }
+
+      .joystick-thumb {
+        width: 40px;
+        height: 40px;
+      }
+
+      .mobile-action-cluster {
+        bottom: 6px;
+        right: 6px;
+        width: 220px;
+        height: 220px;
+      }
+
+      body.mobile-ui-active .skill-bar-wrapper {
+        bottom: 6px;
+        right: 6px;
+        width: 220px;
+        height: 220px;
+      }
+
+      .btn-shoot {
+        bottom: 10px;
+        right: 10px;
+        width: 62px;
+        height: 62px;
+      }
+
+      .btn-shoot .m-icon {
+        font-size: 1.5rem;
+      }
+
+      .btn-shoot .m-label {
+        font-size: 0.4rem;
+      }
+
+      .btn-jump {
+        bottom: 10px;
+        right: 86px;
+        width: 40px;
+        height: 40px;
+      }
+
+      .btn-sprint {
+        bottom: 66px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+      }
+
+      .btn-outfit {
+        bottom: 118px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+      }
+
+      body.mobile-ui-active #skill-slot-1 {
+        bottom: 66px;
+        right: 84px;
+        width: 40px;
+        height: 40px;
+      }
+
+      body.mobile-ui-active #skill-slot-2 {
+        bottom: 114px;
+        right: 60px;
+        width: 40px;
+        height: 40px;
+      }
+
+      body.mobile-ui-active #skill-slot-3 {
+        bottom: 116px;
+        right: 112px;
+        width: 40px;
+        height: 40px;
+      }
+
+      body.mobile-ui-active #skill-slot-4 {
+        bottom: 64px;
+        right: 136px;
+        width: 46px;
+        height: 46px;
+      }
+
+      body.mobile-ui-active .skill-slot .skill-icon {
+        font-size: 1.25rem;
       }
     }
   </style>
@@ -2034,7 +2387,7 @@
           <label for="input-player-name">◆ Danh Hiệu Hiệp Khách</label>
           <input type="text" id="input-player-name" maxlength="18" placeholder="Nhập danh hiệu..." value="Gấu Hiệp Sĩ" autofocus />
         </div>
-        <div class="modal-field">
+        <div class="modal-field" id="modal-field-server">
           <label for="input-server-url">◆ Máy Chủ Kết Nối (LAN / Internet WSS)</label>
           <input type="text" id="input-server-url" placeholder="wss://your-server.onrender.com hoặc ws://localhost:3000" />
         </div>
@@ -2151,6 +2504,7 @@
             </div>
           </div>
         </div>
+        <div class="outfit-mobile-hint" id="outfit-mobile-hint">🛡️ Thiết Giáp: 2600 HP, Giảm 20% ST • Khắc Sát Thủ, Xạ Thủ</div>
       </div>
 
       <div class="modal-actions">

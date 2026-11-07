@@ -43,6 +43,10 @@ class Game {
     this.initUI();
 
     window.addEventListener('resize', () => this.onResize());
+    window.addEventListener('orientationchange', () => setTimeout(() => this.onResize(), 150));
+    if (window.screen && window.screen.orientation) {
+      window.screen.orientation.addEventListener('change', () => setTimeout(() => this.onResize(), 150));
+    }
     this.animate();
   }
 
@@ -1033,6 +1037,21 @@ class Game {
     const savedName = localStorage.getItem('playerName') || 'Hiệp Sĩ Bé Gấu';
     if (nameInput) nameInput.value = savedName;
 
+    const mobileHintEl = document.getElementById('outfit-mobile-hint');
+    const roleHints = [
+      '🛡️ Thiết Giáp: 2600 HP, Giảm 20% ST • Khắc Sát Thủ, Xạ Thủ',
+      '🗡️ Ám Ảnh: Tốc đánh cao, Đâm sau +35% ST • Khắc Pháp Sư, Xạ Thủ',
+      '❄️ Nguyên Tố: Cầu băng làm chậm, ST Phép AoE • Khắc Hộ Vệ, Đấu Sĩ',
+      '🔥 Cuồng Chiến: Hút máu, ST phá giáp • Khắc Hộ Vệ, Sát Thủ',
+      '🏹 Thần Phong: Tầm xa 28m, Bắn tỉa xuyên thấu • Khắc Pháp Sư, Đấu Sĩ',
+      '⭐ NAMCAM: Vai trò ẩn đặc biệt của Bộ Đội Việt Nam'
+    ];
+    const updateMobileRoleHint = (idx) => {
+      if (mobileHintEl && roleHints[idx]) {
+        mobileHintEl.textContent = roleHints[idx];
+      }
+    };
+
     const secretCard = document.getElementById('secret-outfit-namcam');
     const checkSecretName = (rawName, isInitial = false) => {
       const isSecret = (rawName || '').trim() === 'NAMCAM';
@@ -1045,6 +1064,7 @@ class Game {
           localStorage.setItem('playerOutfit', 5);
           this.character.setOutfit(5);
           this.pixelFX.setSect(5);
+          updateMobileRoleHint(5);
           if (!isInitial && sound.playSwordSummon) sound.playSwordSummon();
           if (!isInitial) this.showNotification('🎖️ DANH PHẬN NAMCAM XUẤT THẾ! PHÁI ẨN BỘ ĐỘI VIỆT NAM ĐÃ MỞ!');
         } else if (this.selectedOutfitIndex === 5) {
@@ -1055,6 +1075,7 @@ class Game {
           localStorage.setItem('playerOutfit', 0);
           this.character.setOutfit(0);
           this.pixelFX.setSect(0);
+          updateMobileRoleHint(0);
         }
       }
     };
@@ -1067,6 +1088,9 @@ class Game {
       });
       this.character.setOutfit(this.selectedOutfitIndex);
       this.pixelFX.setSect(this.selectedOutfitIndex);
+      updateMobileRoleHint(this.selectedOutfitIndex);
+    } else {
+      updateMobileRoleHint(0);
     }
 
     if (nameInput) {
@@ -1101,6 +1125,7 @@ class Game {
         localStorage.setItem('playerOutfit', this.selectedOutfitIndex);
         this.character.setOutfit(this.selectedOutfitIndex);
         this.pixelFX.setSect(this.selectedOutfitIndex);
+        updateMobileRoleHint(this.selectedOutfitIndex);
       });
     });
 

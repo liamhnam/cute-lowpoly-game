@@ -13,11 +13,13 @@ export class MobileControlsManager {
     this.character = character;
     this.pixelFX = pixelFX;
 
-    // Nhận diện thiết bị di động / cảm ứng
+    // Nhận diện thiết bị di động / cảm ứng hoặc màn hình di động nhỏ
     this.isTouchDevice = (
       'ontouchstart' in window ||
       navigator.maxTouchPoints > 0 ||
-      window.matchMedia('(pointer: coarse)').matches
+      window.matchMedia('(pointer: coarse)').matches ||
+      window.innerWidth <= 900 ||
+      window.innerHeight <= 550
     );
 
     this.isEnabled = this.isTouchDevice;
@@ -488,33 +490,9 @@ export class MobileControlsManager {
 
   // Xử lý thông báo xoay màn hình ngang (Landscape)
   setupOrientationHandler() {
+    // Cả màn hình ngang và dọc đều được hỗ trợ tự nhiên, không hiển thị banner che tầm nhìn
     const banner = document.getElementById('mobile-orientation-banner');
-    const closeBtn = document.getElementById('btn-close-orientation') || document.getElementById('btn-close-banner') || document.querySelector('.btn-close-banner');
-
-    if (closeBtn && banner) {
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        banner.style.display = 'none';
-      });
-    }
-
-    const checkOrientation = () => {
-      if (!banner) return;
-      const isPortrait = window.innerHeight > window.innerWidth;
-      if (this.isEnabled && isPortrait && window.innerWidth < 768) {
-        banner.classList.add('visible');
-        clearTimeout(this.bannerTimer);
-        this.bannerTimer = setTimeout(() => {
-          banner.classList.remove('visible');
-        }, 5000);
-      } else {
-        banner.classList.remove('visible');
-      }
-    };
-
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    checkOrientation();
+    if (banner) banner.style.display = 'none';
   }
 
   triggerHaptic(ms = 15) {
