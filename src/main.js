@@ -132,7 +132,7 @@ class Game {
     // 6. Hệ thống Kỹ Năng Đạo Pháp PixelFX
     this.pixelFX = new PixelFXManager(this.scene, this.world, this.particles);
     this.pixelFX.remotePlayers = [];
-    this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source) => this.handleHitPlayer(targetId, dmg, hitPos, source);
+    this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source, isCounter, isBackstab) => this.handleHitPlayer(targetId, dmg, hitPos, source, isCounter, isBackstab);
     this.pixelFX.localCharacter = this.character;
 
     this.character.pixelFX = this.pixelFX;
@@ -161,6 +161,13 @@ class Game {
           if (this.network.isConnected) {
             this.network.sendShoot(origin, attackDir, { kind: 'bullet', step: comboStep });
           }
+        } else if (sectStats?.isMageBasic) {
+          this.projectiles.spawnArcaneOrb(
+            origin, attackDir, comboStep, true, sectStats, this.character
+          );
+          if (this.network.isConnected) {
+            this.network.sendShoot(origin, attackDir, { kind: 'arcane', step: comboStep });
+          }
         } else if (sectStats?.isRangedBasic) {
           this.projectiles.spawnFeatherDart(
             origin, attackDir, comboStep, true, sectStats, this.character
@@ -171,7 +178,7 @@ class Game {
         } else {
           this.projectiles.slash(
             origin, attackDir, this.monsters, comboStep === 2 ? 'thrust' : 'sweep',
-            this.pixelFX.remotePlayers, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source),
+            this.pixelFX.remotePlayers, (targetId, dmg, pos, source, isCounter, isBackstab) => this.handleHitPlayer(targetId, dmg, pos, source, isCounter, isBackstab),
             sectStats, this.character
           );
           if (this.network.isConnected) {
@@ -269,42 +276,54 @@ class Game {
     if (this.monsters.length > 0) return;
 
     this.monsters = [
-      // 🐉 ĐẠI BOSS TRẤN THÀNH: Hắc Long Ma Đế (Quảng Trường Trước Đại Điện Cung Đình)
+      // 🐉 1. ĐẠI BOSS TRẤN THÀNH: Hắc Long Ma Đế (Quảng Trường Trước Đại Điện Cung Đình)
       new Monster(this.scene, this.particles, 'boss_dragon_emperor', new THREE.Vector3(0, 0, 28), this.world),
 
-      // 🦁 Thanh Ngọc Thần Sư (Hộ Điện Tinh Anh 2 bên Quảng Trường)
+      // =====================================================================
+      // 🗿🦁🦂 NHÓM QUÁI LỚN HẠNG NẶNG (CỰ YÊU):
+      // Thân hình đồ sộ, đi chậm, animation 4 pha có sức nặng, sát thương cực lớn nhưng dễ né
+      // =====================================================================
+      // 🦁 Thanh Ngọc Cự Thần Sư (Hộ Điện Tinh Anh 2 bên Quảng Trường)
       new Monster(this.scene, this.particles, 'jade_guardian', new THREE.Vector3(-18, 0, 22), this.world),
       new Monster(this.scene, this.particles, 'jade_guardian', new THREE.Vector3(18, 0, 22), this.world),
 
-      // 🗿 Thái Cổ Thạch Yêu (Cận chiến Địa Chấn)
-      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-65, 0, 45), this.world),
-      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(70, 0, 45), this.world),
-      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-42, 0, -35), this.world),
-      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(42, 0, -35), this.world),
+      // 🗿 Thái Cổ Cự Thạch Yêu (Cự Yêu Địa Chấn 4 phương)
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-62, 0, 42), this.world),
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(66, 0, 42), this.world),
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(-38, 0, -32), this.world),
+      new Monster(this.scene, this.particles, 'golem', new THREE.Vector3(38, 0, -32), this.world),
 
-      // 🦖 Hắc Diễm Linh Thú (Xung Phong Húc Đầu)
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-12, 0, -22), this.world),
+      // 🦂 Thiết Giáp Cự Hạt Vương (Cự Yêu Thiết Giáp & Pháo Độc)
+      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(-56, 0, -62), this.world),
+      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(58, 0, -22), this.world),
+      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(46, 0, 70), this.world),
+
+      // =====================================================================
+      // 🦖🦊👻 NHÓM QUÁI NHỎ (TIỂU YÊU):
+      // Nhỏ gọn, chạy cực nhanh, đánh liên hoàn gây khó chịu/làm chậm nhẹ, ít sát thương
+      // =====================================================================
+      // 🦖 Đàn Hắc Diễm Tiểu Thú (Chạy zíc-zắc cắn gót liên hoàn)
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-12, 0, -20), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-7, 0, -24), this.world),
       new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(14, 0, -6), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(19, 0, -10), this.world),
       new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(-26, 0, 8), this.world),
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, -92), this.world),
-      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, 92), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, -88), this.world),
+      new Monster(this.scene, this.particles, 'chomper', new THREE.Vector3(0, 0, 88), this.world),
 
-      // 🦊 Cửu Vĩ Hồ Yêu (Pháp Sư Tầm Xa - Kiting & Bắn 3 Cầu Hồ Hỏa)
-      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(28, 0, 10), this.world),
-      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(-34, 0, -14), this.world),
-      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(52, 0, -58), this.world),
-      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(-52, 0, 72), this.world),
+      // 🦊 Đàn Hồ Hỏa Tiểu Yêu (Lượn vòng bắn tỉa liên thanh & nhào lộn nhảy lùi)
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(26, 0, 10), this.world),
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(31, 0, 14), this.world),
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(-32, 0, -14), this.world),
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(50, 0, -56), this.world),
+      new Monster(this.scene, this.particles, 'fox_mage', new THREE.Vector3(-50, 0, 70), this.world),
 
-      // 👻 U Minh Kiếm Linh (Sát Thủ Bóng Đêm - Ám Ảnh Thuấn Bộ Sau Lưng)
-      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(-18, 0, -48), this.world),
-      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(22, 0, -48), this.world),
-      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(-75, 0, 10), this.world),
-      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(75, 0, 10), this.world),
-
-      // 🦂 Xích Diễm Hạt Vương (Pháo Kích Đầm Lầy Độc Dịch)
-      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(-58, 0, -65), this.world),
-      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(60, 0, -22), this.world),
-      new Monster(this.scene, this.particles, 'flame_scorpion', new THREE.Vector3(48, 0, 72), this.world),
+      // 👻 Đàn U Minh Tiểu Quỷ (Thuấn bộ chọc lén sau lưng & Tam đoạn trảm siêu tốc)
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(-16, 0, -45), this.world),
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(-21, 0, -49), this.world),
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(20, 0, -45), this.world),
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(-72, 0, 10), this.world),
+      new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(72, 0, 10), this.world),
     ];
 
     for (const monster of this.monsters) {
@@ -315,20 +334,23 @@ class Game {
       };
 
       monster.onDefeated = (m) => {
-        this.monstersDefeated += m.isBoss ? 5 : 1;
+        this.monstersDefeated += m.isBoss ? 5 : (m.isLarge ? 2 : 1);
         if (this.killBadge) {
           this.killBadge.textContent = `🎯 Trảm Yêu: ${this.monstersDefeated}`;
         }
 
         const mpGain = m.config?.xpMpReward || 25;
+        const hpHeal = m.config?.healReward || (m.isBoss ? 600 : (m.isLarge ? 180 : 65));
         this.playerMp = Math.min(this.playerMaxMp, this.playerMp + mpGain);
-        this.character.heal(m.isBoss ? 600 : 120);
+        this.character.heal(hpHeal);
 
         if (m.isBoss) {
           this.triggerScreenFlash('sword');
-          this.showNotification(`👑 ĐẠI THẮNG! Đã tru diệt Đại Boss [${m.name}]! (+600 HP, Đầy Linh Lực)`);
+          this.showNotification(`👑 ĐẠI THẮNG! Đã tru diệt Đại Boss [${m.name}]! (+${hpHeal} HP, Đầy Linh Lực)`);
+        } else if (m.isLarge) {
+          this.showNotification(`⚔️ Đã hạ gục Cự Yêu ${m.config?.icon || ''} ${m.name}! (+${hpHeal} HP, +${mpGain} Linh Lực)`);
         } else {
-          this.showNotification(`⚔️ Đã trảm sát ${m.config?.icon || ''} ${m.name}! (+120 HP, +${mpGain} Linh Lực)`);
+          this.showNotification(`✨ Đã tiêu diệt Tiểu Yêu ${m.config?.icon || ''} ${m.name}! (+${hpHeal} HP, +${mpGain} Linh Lực)`);
         }
 
         this.checkRealmBreakthrough();
@@ -382,7 +404,19 @@ class Game {
     }
   }
 
-  handleHitPlayer(targetId, dmg, hitPos, source = 'blaster') {
+  handleHitPlayer(targetId, dmg, hitPos, source = 'blaster', isCounter = false, isBackstab = false) {
+    if (hitPos && this.pixelFX?.damageTexts && ['sword', 'sword_qi', 'feather_dart', 'arcane_orb', 'rifle_bullet'].includes(source)) {
+      let label = `-${dmg}`;
+      let color = '#ff4757';
+      if (isBackstab) {
+        label = `🗡️ -${dmg} CHÍ MẠNG!`;
+        color = '#e056fd';
+      } else if (isCounter) {
+        label = `💥 -${dmg} KHẮC CHẾ!`;
+        color = '#ffd700';
+      }
+      this.pixelFX.damageTexts.spawn(label, hitPos.clone().add(new THREE.Vector3(0, 0.7, 0)), color);
+    }
     if (this.network.isConnected) {
       this.network.sendHit(targetId, dmg, hitPos, source);
     }
@@ -484,6 +518,9 @@ class Game {
       } else if (msg.kind === 'bullet') {
         this.projectiles.spawnBullet(origin, dir, msg.step || 0, false, rpSectStats, rp);
         if (sound.playGunshot) sound.playGunshot();
+      } else if (msg.kind === 'arcane') {
+        this.projectiles.spawnArcaneOrb(origin, dir, msg.step || 0, false, rpSectStats, rp);
+        sound.playSwordSlash();
       } else if (msg.kind === 'feather') {
         this.projectiles.spawnFeatherDart(origin, dir, msg.step || 0, false, rpSectStats, rp);
         if (sound.playFeatherShoot) {
@@ -508,7 +545,13 @@ class Game {
     this.network.on('player_damaged', (msg) => {
       if (msg.targetId === this.network.selfId) {
         const hitPos = msg.hitPos ? new THREE.Vector3(msg.hitPos.x, msg.hitPos.y, msg.hitPos.z) : null;
+        const hadReflect = this.character.shieldReflectTimer > 0 && !this.character.isDead;
         this.character.takeDamage(msg.damage, msg.attackerId, hitPos);
+        if (hadReflect && msg.attackerId && msg.attackerId !== this.network.selfId && msg.source !== 'shield_reflect') {
+          const reflectDmg = Math.max(1, Math.round(msg.damage * 0.35));
+          const attackerRp = this.remotePlayers.get(msg.attackerId);
+          this.handleHitPlayer(msg.attackerId, reflectDmg, attackerRp ? attackerRp.position : this.character.position, 'shield_reflect');
+        }
         this.playerHp = msg.hp;
         this.controller.addTrauma(0.28);
         this.triggerScreenFlash('fire');
@@ -779,16 +822,24 @@ class Game {
       });
     }
 
-    // Nút Đổi trang phục
+    // Nút Đổi trang phục / Vai trò chiến đấu
+    const triggerRoleCycle = (e) => {
+      if (e) e.stopPropagation();
+      const name = this.character.cycleOutfit();
+      this.selectedOutfitIndex = this.character.outfitIndex;
+      localStorage.setItem('playerOutfit', this.selectedOutfitIndex);
+      this.pixelFX.setSect(this.character.outfitIndex);
+      this.showNotification(`Đã hoán đổi môn phái: ${name}`);
+    };
+
     const outfitBtn = document.getElementById('btn-outfit');
-    if (outfitBtn) {
-      outfitBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const name = this.character.cycleOutfit();
-        this.pixelFX.setSect(this.character.outfitIndex);
-        this.showNotification(`Đã hoán đổi môn phái: ${name}`);
-      });
-    }
+    if (outfitBtn) outfitBtn.addEventListener('click', triggerRoleCycle);
+
+    const hudRoleBtn = document.getElementById('btn-hud-role');
+    if (hudRoleBtn) hudRoleBtn.addEventListener('click', triggerRoleCycle);
+
+    const heroCrestWrap = document.querySelector('.rpg-hero-crest-wrap');
+    if (heroCrestWrap) heroCrestWrap.addEventListener('click', triggerRoleCycle);
 
     // Nút Nhảy
     const jumpBtn = document.getElementById('btn-jump');
@@ -853,12 +904,57 @@ class Game {
       }
     }
 
-    // Khi môn phái thay đổi: cập nhật giao diện 3 ô kỹ năng và nhãn môn phái
+    // Khi môn phái / vai trò thay đổi: cập nhật toàn diện HUD nhập vai
     this.pixelFX.onSectChange = (sect) => {
       const sectTag = document.getElementById('hud-sect-name');
       if (sectTag) {
         sectTag.textContent = `${sect.icon} ${sect.name}`;
       }
+
+      const roleDiamond = document.getElementById('hud-role-diamond');
+      const roleCrestIcon = document.getElementById('hud-role-crest-icon');
+      const counterHint = document.getElementById('hud-counter-hint');
+      const basicIcon = document.getElementById('hud-basic-icon');
+      const basicName = document.getElementById('hud-basic-name');
+
+      const currentStats = SECT_STATS[this.character.outfitIndex] || SECT_STATS[0];
+      if (roleDiamond && sect.themeColor) {
+        roleDiamond.style.borderColor = sect.themeColor;
+        roleDiamond.style.boxShadow = `0 0 16px ${sect.themeColor}66`;
+      }
+      if (roleCrestIcon) {
+        roleCrestIcon.textContent = sect.icon || currentStats.icon || '🛡️';
+      }
+      if (counterHint) {
+        if (currentStats.countersText) {
+          counterHint.innerHTML = currentStats.countersText;
+        } else if (currentStats.counterNames) {
+          counterHint.innerHTML = `⚔️ Khắc: <strong>${currentStats.counterNames}</strong> • ⚠️ Kỵ: <em>${currentStats.weaknessNames}</em>`;
+        }
+      }
+
+      // Đổi icon và tên của đòn đánh thường tương ứng với vai trò
+      const basicAttackMap = [
+        { icon: '🛡️⚔️', name: 'Trọng Kiếm Khiên Kích' },
+        { icon: '🗡️✨', name: 'Song Đoản Đao Chém Nhanh' },
+        { icon: '❄️🔮', name: 'Hàn Băng Thủy Cầu' },
+        { icon: '🔥🪓', name: 'Huyết Hỏa Chiến Phủ' },
+        { icon: '🏹🎯', name: 'Thần Phong Vũ Tiễn' },
+        { icon: '🇻🇳🔫', name: 'Súng Trường Tác Chiến' },
+      ];
+      const curBasic = basicAttackMap[this.character.outfitIndex] || basicAttackMap[0];
+      if (basicIcon) basicIcon.textContent = curBasic.icon;
+      if (basicName) basicName.textContent = curBasic.name;
+
+      // Cập nhật nút tấn công trên giao diện di động
+      const mobShootBtn = document.getElementById('btn-m-shoot');
+      if (mobShootBtn) {
+        const mIcon = mobShootBtn.querySelector('.m-icon');
+        const mLabel = mobShootBtn.querySelector('.m-label');
+        if (mIcon) mIcon.textContent = curBasic.icon.slice(0, 2);
+        if (mLabel) mLabel.textContent = curBasic.name.split(' ')[0];
+      }
+
       for (let i = 1; i <= 4; i++) {
         const skill = sect.skills[i - 1];
         const slot = document.getElementById(`skill-slot-${i}`);
@@ -921,6 +1017,7 @@ class Game {
     this.fps = 60;
 
     this.barHp = document.getElementById('bar-hp');
+    this.barHpTrail = document.getElementById('bar-hp-trail');
     this.textHp = document.getElementById('text-hp');
     this.barMp = document.getElementById('bar-mp');
     this.textMp = document.getElementById('text-mp');
@@ -977,7 +1074,22 @@ class Game {
       checkSecretName(nameInput.value, true);
     }
 
-    const defaultServerUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname || 'localhost'}:3000`;
+    const envWsUrl = import.meta.env?.VITE_WS_SERVER_URL;
+    const isLocalHost = Boolean(
+      !window.location.hostname ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('192.168.') ||
+      window.location.hostname.startsWith('10.') ||
+      window.location.hostname.endsWith('.local')
+    );
+    const savedServerUrl = localStorage.getItem('serverUrl');
+    const defaultServerUrl = (envWsUrl && envWsUrl.trim()) ||
+      (savedServerUrl && savedServerUrl.trim()) ||
+      (isLocalHost
+        ? `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.hostname || 'localhost'}:3000`
+        : 'wss://cute-lowpoly-game.onrender.com');
+
     if (serverInput) serverInput.value = defaultServerUrl;
 
     outfitCards.forEach((card) => {
@@ -1000,11 +1112,15 @@ class Game {
       this.character.setOutfit(this.selectedOutfitIndex);
       this.pixelFX.setSect(this.selectedOutfitIndex);
 
+      const hudPlayerName = document.getElementById('hud-player-name');
+      if (hudPlayerName) hudPlayerName.textContent = name;
+
       if (loginModal) loginModal.style.display = 'none';
 
       if (isOnlineMode) {
         this.setGameMode('pvp');
         const url = (serverInput.value || defaultServerUrl).trim();
+        localStorage.setItem('serverUrl', url);
         if (this.onlineBadge) this.onlineBadge.textContent = '🌐 Đang kết nối...';
         try {
           await this.network.connect(url, { name, outfit: this.selectedOutfitIndex });
@@ -1064,6 +1180,14 @@ class Game {
         leaderboardModal.classList.remove('show');
       }
     };
+
+    const hudLeaderboardBtn = document.getElementById('btn-hud-leaderboard');
+    if (hudLeaderboardBtn) {
+      hudLeaderboardBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleLeaderboard();
+      });
+    }
 
     if (btnLeaderboard) {
       btnLeaderboard.addEventListener('click', (e) => {
@@ -1131,6 +1255,7 @@ class Game {
     if (this.barHp && this.textHp) {
       const hpRatio = Math.max(0, this.playerHp / this.playerMaxHp);
       this.barHp.style.width = `${hpRatio * 100}%`;
+      if (this.barHpTrail) this.barHpTrail.style.width = `${hpRatio * 100}%`;
       this.textHp.textContent = `${Math.round(this.playerHp)}/${this.playerMaxHp}`;
     }
     if (this.barMp && this.textMp) {
@@ -1177,7 +1302,7 @@ class Game {
     this.clones.update(delta, this.character, this.monsters, pvpTargets, this.controller.yaw);
 
     // 2. Cập nhật đạn và va chạm với người chơi khác + quái vật
-    this.projectiles.update(delta, this.monsters, pvpTargets, (targetId, dmg, pos, source) => this.handleHitPlayer(targetId, dmg, pos, source));
+    this.projectiles.update(delta, this.monsters, pvpTargets, (targetId, dmg, pos, source, isCounter, isBackstab) => this.handleHitPlayer(targetId, dmg, pos, source, isCounter, isBackstab));
 
     // 3. Cập nhật kỹ năng PixelFX & tàn phá địa hình
     this.pixelFX.update(delta);
@@ -1203,6 +1328,7 @@ class Game {
         const bossNameEl = document.getElementById('boss-hud-name');
         const bossSkillEl = document.getElementById('boss-hud-skill');
         const bossBarEl = document.getElementById('boss-bar-hp');
+        const bossBarTrailEl = document.getElementById('boss-bar-trail');
         const bossTextEl = document.getElementById('boss-text-hp');
         if (bossNameEl) {
           bossNameEl.textContent = activeBoss.isEnraged
@@ -1212,6 +1338,7 @@ class Game {
         if (bossSkillEl) bossSkillEl.textContent = activeBoss.currentSkillName;
         const bRatio = Math.max(0, activeBoss.hp / activeBoss.maxHp);
         if (bossBarEl) bossBarEl.style.width = `${bRatio * 100}%`;
+        if (bossBarTrailEl) bossBarTrailEl.style.width = `${bRatio * 100}%`;
         if (bossTextEl) bossTextEl.textContent = `${Math.round(activeBoss.hp)} / ${activeBoss.maxHp} HP`;
       } else {
         bossHud.classList.remove('show', 'enraged');

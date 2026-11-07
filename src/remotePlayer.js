@@ -44,14 +44,14 @@ export class RemotePlayer {
     this.slashDuration = SLASH_DURATIONS[0];
     this.slashStep = 0;
 
-    // Cùng thứ tự với Character.outfits để chỉ số trang phục gửi qua mạng khớp nhau
+    // Cùng thứ tự với Character.outfits (5 Vai Trò Chiến Đấu + 1 Vai Trò Ẩn)
     this.outfits = [
-      { name: 'Hoàng Bào Đạo Sĩ (Kim Hoàng)', clothes: 0xf6c344, hat: 0x2d3436 },
-      { name: 'Thanh Vân Tiên Bào (Lam Ngọc)', clothes: 0x54a0ff, hat: 0x1dd1a1 },
-      { name: 'Tử Tiêu Kiếm Tông (Tử Kim)', clothes: 0x8854d0, hat: 0xf1c40f },
-      { name: 'Hồng Trần Ma Tu (Chu Sa Hắc Bào)', clothes: 0xeb3b5a, hat: 0x2d3436 },
-      { name: 'Bạch Hạc Chân Nhân (Bạch Ngọc)', clothes: 0xf5f6fa, hat: 0x00d2d3 },
-      { name: 'Chiến Sĩ NAMCAM (Bộ Đội VN)', clothes: 0x2e4a2b, hat: 0x2e4a2b },
+      { name: 'Thiết Giáp Hộ Vệ (Đỡ Đòn / Khống Chế)', icon: '🛡️', clothes: 0xf6b93b, hat: 0x2c3e50 },
+      { name: 'Ám Ảnh Sát Thủ (Cơ Động / Kết Liễu)', icon: '🗡️', clothes: 0x6c5ce7, hat: 0x1e272e },
+      { name: 'Nguyên Tố Pháp Sư (Khống Chế / Phép AoE)', icon: '❄️', clothes: 0x0abde3, hat: 0x2e86de },
+      { name: 'Cuồng Chiến Đấu Sĩ (Hút Máu / Phá Giáp)', icon: '🔥', clothes: 0xeb3b5a, hat: 0x2d3436 },
+      { name: 'Thần Tiễn Xạ Thủ (Bắn Tỉa / Thả Diều)', icon: '🏹', clothes: 0x2ed573, hat: 0x1e272e },
+      { name: 'Chiến Sĩ NAMCAM (Bộ Đội VN)', icon: '🇻🇳', clothes: 0x2e4a2b, hat: 0x2e4a2b },
     ];
 
     this.buildMesh();
@@ -115,14 +115,16 @@ export class RemotePlayer {
     ctx.fill();
     ctx.stroke();
 
-    // 2. Tên người chơi
+    // 2. Tên người chơi + Biểu tượng Vai Trò
+    const roleOutfit = this.outfits[this.outfitIndex % this.outfits.length];
+    const roleIcon = roleOutfit?.icon || '⚔️';
     ctx.fillStyle = '#f1c40f';
     ctx.font = 'bold 22px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
     ctx.shadowColor = '#000000';
     ctx.shadowBlur = 4;
-    const displayTitle = `⚔️ ${this.name}`;
+    const displayTitle = `${roleIcon} ${this.name}`;
     ctx.fillText(displayTitle, w / 2, 14);
 
     // 3. Thanh Máu (Health bar)
@@ -416,6 +418,20 @@ export class RemotePlayer {
     this.fartTimer = 0.55;
   }
 
+  triggerSkillCast(skillId = 1) {
+    this.isCasting = true;
+    this.castSkill = skillId;
+    this.castDuration = skillId === 4 ? 0.85 : 0.55;
+    this.castTimer = this.castDuration;
+  }
+
+  heal(amount) {
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+    this.updateBillboard();
+  }
+
+  setParry() {}
+
   updateState(state) {
     if (state.x !== undefined && state.z !== undefined) {
       this.targetPosition.set(state.x, state.y || 0, state.z);
@@ -623,6 +639,34 @@ export class RemotePlayer {
         this.rightArm.rotation.set(-1.35, 0, side * THREE.MathUtils.lerp(1.5, -1.3, ease));
       }
       this.sword.rotation.x = Math.PI - 0.25;
+    } else if (this.castTimer > 0 || this.isCasting) {
+      if (this.castTimer > 0) {
+        this.castTimer -= delta;
+        if (this.castTimer <= 0) this.isCasting = false;
+      }
+      const p = this.castDuration ? 1.0 - Math.max(0, this.castTimer || 0) / this.castDuration : 0.5;
+      const swing = Math.sin(p * Math.PI);
+      const role = this.outfitIndex % 6;
+      if (role === 0) {
+        this.leftArm.rotation.set(-1.45 * swing, 0.45 * swing, -0.2);
+        this.rightArm.rotation.set(-2.1 * swing, 0, -0.3 * swing);
+        this.body.rotation.x = 0.25 * swing;
+      } else if (role === 1) {
+        this.body.rotation.y = p * Math.PI * 2;
+        this.rightArm.rotation.set(-1.5, 0, 1.3 * swing);
+        this.leftArm.rotation.set(-1.5, 0, -1.3 * swing);
+      } else if (role === 2) {
+        this.rightArm.rotation.set(-2.4 * swing, 0, 0.25);
+        this.leftArm.rotation.set(-2.2 * swing, 0, -0.35);
+        this.body.position.y += 0.35 * swing;
+      } else if (role === 3) {
+        this.rightArm.rotation.set(THREE.MathUtils.lerp(-2.7, -0.3, p), 0, -0.25);
+        this.leftArm.rotation.set(-1.8 * swing, 0, -0.6 * swing);
+        this.body.rotation.x = THREE.MathUtils.lerp(-0.3, 0.45, p);
+      } else {
+        this.leftArm.rotation.set(-1.6, 0.25, 0);
+        this.rightArm.rotation.set(-1.6, -0.35, 0.5 * swing);
+      }
     } else {
       this.sword.rotation.x = THREE.MathUtils.lerp(this.sword.rotation.x, Math.PI / 2, Math.min(1, delta * 12));
     }

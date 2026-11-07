@@ -2,92 +2,130 @@ import * as THREE from 'three';
 import { getTerrainHeight } from './world.js';
 import { sound } from './audio.js';
 
-// Cấu hình chi tiết 7 chủng loại Yêu Ma & Đại Boss trong Trường An Cổ Đô
+// Cấu hình chi tiết 2 nhóm Yêu Ma (QUÁI NHỎ nhanh khó chịu vs QUÁI LỚN chậm nặng nề, sát thương khủng dễ né) & Đại Boss
 export const MONSTER_CONFIGS = {
+  // =========================================================================
+  // NHÓM QUÁI LỚN (LARGE / COLOSSAL BRUTES):
+  // - Thân hình đồ sộ (scale 1.38x - 1.44x), máu trâu, bước đi chậm nặng nề
+  // - Đánh chậm, khóa hướng khi ra đòn, animation 4 pha có sức nặng (lấy đà lâu -> đập sập -> kẹt vũ khí xuống đất -> rút lên)
+  // - Sát thương cực lớn (180 - 245 ST) nhưng có vòng cảnh báo đỏ dài (1.1s - 1.35s) rất dễ né
+  // =========================================================================
   golem: {
-    name: 'Thái Cổ Thạch Yêu',
+    name: 'Thái Cổ Cự Thạch Yêu',
     icon: '🗿',
-    maxHp: 480,
-    speed: 2.5,
-    hitRadius: 2.8,
-    hitHeight: 6.5,
-    barColor: 0x2ecc71,
+    sizeCategory: 'large',
+    modelScale: 1.42,
+    maxHp: 920,
+    speed: 1.75,
+    hitRadius: 3.6,
+    hitHeight: 8.8,
+    barColor: 0xf39c12,
     flankOffset: 0.0,
-    respawnTime: 11.0,
-    xpMpReward: 30,
-  },
-  chomper: {
-    name: 'Hắc Diễm Linh Thú',
-    icon: '🦖',
-    maxHp: 340,
-    speed: 3.4,
-    hitRadius: 2.5,
-    hitHeight: 5.5,
-    barColor: 0x2ecc71,
-    flankOffset: 0.45,
-    respawnTime: 9.5,
-    xpMpReward: 25,
-  },
-  fox_mage: {
-    name: 'Cửu Vĩ Hồ Yêu',
-    icon: '🦊',
-    maxHp: 280,
-    speed: 4.2,
-    hitRadius: 2.0,
-    hitHeight: 4.8,
-    barColor: 0xff6b8b,
-    flankOffset: -0.6,
-    respawnTime: 10.0,
-    xpMpReward: 30,
-  },
-  sword_wraith: {
-    name: 'U Minh Kiếm Linh',
-    icon: '👻',
-    maxHp: 320,
-    speed: 4.8,
-    hitRadius: 2.1,
-    hitHeight: 5.2,
-    barColor: 0xa29bfe,
-    flankOffset: 0.85,
-    respawnTime: 10.5,
-    xpMpReward: 35,
+    respawnTime: 15.0,
+    xpMpReward: 48,
+    healReward: 180,
   },
   flame_scorpion: {
-    name: 'Xích Diễm Hạt Vương',
+    name: 'Thiết Giáp Cự Hạt Vương',
     icon: '🦂',
-    maxHp: 540,
-    speed: 3.1,
-    hitRadius: 2.9,
-    hitHeight: 4.6,
+    sizeCategory: 'large',
+    modelScale: 1.38,
+    maxHp: 860,
+    speed: 1.95,
+    hitRadius: 3.5,
+    hitHeight: 6.4,
     barColor: 0xff7f50,
-    flankOffset: -0.35,
-    respawnTime: 13.0,
-    xpMpReward: 40,
+    flankOffset: -0.15,
+    respawnTime: 14.5,
+    xpMpReward: 45,
+    healReward: 170,
   },
   jade_guardian: {
-    name: 'Thanh Ngọc Thần Sư',
+    name: 'Thanh Ngọc Cự Thần Sư',
     icon: '🦁',
-    maxHp: 650,
-    speed: 2.9,
-    hitRadius: 3.0,
-    hitHeight: 6.2,
+    sizeCategory: 'large',
+    modelScale: 1.40,
+    maxHp: 1020,
+    speed: 1.88,
+    hitRadius: 3.6,
+    hitHeight: 8.5,
     barColor: 0x00d2d3,
-    flankOffset: 0.25,
-    respawnTime: 14.0,
-    xpMpReward: 45,
+    flankOffset: 0.1,
+    respawnTime: 16.0,
+    xpMpReward: 52,
+    healReward: 190,
   },
+
+  // =========================================================================
+  // NHÓM QUÁI NHỎ (SMALL / AGILE SWARMERS):
+  // - Thân hình nhỏ gọn (scale 0.62x - 0.65x), máu ít (185 - 215 HP)
+  // - Chạy cực nhanh (5.8 - 6.6), lách zíc-zắc, nhảy chồm, đánh liên hoàn cực nhanh (0.55s - 0.8s CD)
+  // - Sát thương nhỏ (14 - 24 ST) nhưng làm chậm nhẹ / rỉa máu liên tục gây khó chịu
+  // =========================================================================
+  chomper: {
+    name: 'Hắc Diễm Tiểu Thú',
+    icon: '🦖',
+    sizeCategory: 'small',
+    modelScale: 0.62,
+    maxHp: 215,
+    speed: 6.2,
+    hitRadius: 1.55,
+    hitHeight: 3.4,
+    barColor: 0x2ecc71,
+    flankOffset: 0.65,
+    respawnTime: 7.5,
+    xpMpReward: 18,
+    healReward: 65,
+  },
+  fox_mage: {
+    name: 'Hồ Hỏa Tiểu Yêu',
+    icon: '🦊',
+    sizeCategory: 'small',
+    modelScale: 0.64,
+    maxHp: 185,
+    speed: 5.8,
+    hitRadius: 1.45,
+    hitHeight: 3.2,
+    barColor: 0xff6b8b,
+    flankOffset: -0.75,
+    respawnTime: 8.0,
+    xpMpReward: 20,
+    healReward: 65,
+  },
+  sword_wraith: {
+    name: 'U Minh Tiểu Quỷ',
+    icon: '👻',
+    sizeCategory: 'small',
+    modelScale: 0.65,
+    maxHp: 200,
+    speed: 6.6,
+    hitRadius: 1.5,
+    hitHeight: 3.4,
+    barColor: 0xa29bfe,
+    flankOffset: 0.95,
+    respawnTime: 8.0,
+    xpMpReward: 22,
+    healReward: 70,
+  },
+
+  // =========================================================================
+  // ĐẠI BOSS TRẤN THÀNH (WORLD BOSS)
+  // =========================================================================
   boss_dragon_emperor: {
     name: 'HẮC LONG MA ĐẾ',
     icon: '🐉',
     isBoss: true,
-    maxHp: 3500,
-    speed: 3.8,
-    hitRadius: 3.8,
-    hitHeight: 9.5,
+    sizeCategory: 'boss',
+    modelScale: 1.16,
+    maxHp: 3800,
+    speed: 3.4,
+    hitRadius: 4.1,
+    hitHeight: 10.2,
     barColor: 0xff3838,
     flankOffset: 0.0,
     respawnTime: 25.0,
     xpMpReward: 100,
+    healReward: 600,
   },
 };
 
@@ -98,6 +136,10 @@ export class Monster {
     this.type = MONSTER_CONFIGS[type] ? type : 'golem';
     this.config = MONSTER_CONFIGS[this.type];
     this.isBoss = Boolean(this.config.isBoss);
+    this.sizeCategory = this.config.sizeCategory || (this.isBoss ? 'boss' : 'large');
+    this.isLarge = this.sizeCategory === 'large' || this.isBoss;
+    this.isSmall = this.sizeCategory === 'small';
+    this.baseModelScale = this.config.modelScale || 1.0;
     this.name = this.config.name;
     this.world = world;
 
@@ -116,14 +158,15 @@ export class Monster {
     this.speed = this.config.speed;
     this.rotationY = Math.random() * Math.PI * 2;
     this.walkAnimTime = Math.random() * 10;
+    this.stepDustTimer = 0;
     this.hitFlashTimer = 0;
     this.velocity = new THREE.Vector3();
     this.flankSign = Math.random() < 0.5 ? 1 : -1;
     this.strafePhase = Math.random() * Math.PI * 2;
 
     // Trạng thái chiến đấu & Kỹ năng AI
-    this.attackCooldown = 1.0 + Math.random() * 0.8;
-    this.specialCooldown = 2.8 + Math.random() * 1.8;
+    this.attackCooldown = this.isSmall ? 0.35 + Math.random() * 0.35 : 1.4 + Math.random() * 0.9;
+    this.specialCooldown = this.isSmall ? 1.8 + Math.random() * 1.2 : 3.2 + Math.random() * 1.8;
     this.aiState = 'idle'; // 'idle' | 'windup' | 'charging' | 'leaping' | 'channeling'
     this.stateTimer = 0;
     this.stateDuration = 0;
@@ -132,14 +175,18 @@ export class Monster {
     this.leapStart = new THREE.Vector3();
     this.leapTarget = new THREE.Vector3();
 
-    // Hệ thống Animation Tấn Công chuyên biệt (3 pha: Lấy đà -> Ra đòn -> Thu thế)
+    // Hệ thống Animation Tấn Công chuyên biệt (nhiều pha: Lấy đà -> Giáng đòn -> Chấn động/Kẹt đất -> Thu thế)
     this.attackAnimType = null;
     this.attackAnimTimer = 0;
     this.attackAnimDuration = 0.6;
-    this.attackComboStep = 0;
+    this.attackComboStep = Math.floor(Math.random() * 3);
     this.pendingStrikeCallback = null;
     this.pendingStrikeTriggered = false;
     this.pendingStrikeRatio = 0.45;
+    // Cho phép Quái Nhỏ tung đòn liên hoàn nhiều nhịp trong 1 animation
+    this.secondaryStrikeCallback = null;
+    this.secondaryStrikeTriggered = false;
+    this.secondaryStrikeRatio = 0.78;
 
     // Giai đoạn Cuồng Nộ của Đại Boss
     this.isEnraged = false;
@@ -183,24 +230,27 @@ export class Monster {
     this.activeEffects = [];
   }
 
-  // Kích hoạt animation tấn công kèm callback đúng thời điểm ra đòn (impact frame)
-  startAttackAnimation(animType, duration = 0.6, impactRatio = 0.45, onImpact = null) {
+  // Kích hoạt animation tấn công kèm callback đúng thời điểm ra đòn (impact frame) + hỗ trợ nhịp 2 liên hoàn
+  startAttackAnimation(animType, duration = 0.6, impactRatio = 0.45, onImpact = null, secondaryRatio = 0, onSecondaryImpact = null) {
     this.attackAnimType = animType;
     this.attackAnimTimer = 0;
     this.attackAnimDuration = duration;
     this.pendingStrikeRatio = impactRatio;
     this.pendingStrikeCallback = onImpact;
     this.pendingStrikeTriggered = false;
+    this.secondaryStrikeRatio = secondaryRatio;
+    this.secondaryStrikeCallback = onSecondaryImpact;
+    this.secondaryStrikeTriggered = !onSecondaryImpact;
   }
 
   buildContactShadow() {
-    const radius = this.isBoss ? 4.2 : this.hitRadius * 0.88;
-    const geo = new THREE.CircleGeometry(radius, 20);
+    const radius = this.isBoss ? 4.6 : (this.isLarge ? this.hitRadius * 1.05 : this.hitRadius * 0.78);
+    const geo = new THREE.CircleGeometry(radius, 22);
     geo.rotateX(-Math.PI / 2);
     this.shadowMat = new THREE.MeshBasicMaterial({
-      color: this.isBoss ? 0x2c041c : 0x111111,
+      color: this.isBoss ? 0x2c041c : (this.isLarge ? 0x0b0b12 : 0x151520),
       transparent: true,
-      opacity: this.isBoss ? 0.58 : 0.42,
+      opacity: this.isBoss ? 0.62 : (this.isLarge ? 0.52 : 0.34),
       depthWrite: false,
     });
     this.contactShadow = new THREE.Mesh(geo, this.shadowMat);
@@ -227,6 +277,8 @@ export class Monster {
       this.buildBossDragonEmperorMesh();
     }
 
+    // Áp dụng tỉ lệ kích thước phân hóa rõ rệt giữa Quái Nhỏ (0.62x) và Quái Lớn (1.42x)
+    this.model.scale.setScalar(this.baseModelScale);
     this.group.add(this.model);
   }
 
@@ -849,18 +901,30 @@ export class Monster {
 
   buildHealthBar() {
     this.healthBarGroup = new THREE.Group();
-    this.healthBarGroup.position.y = this.hitHeight + (this.isBoss ? 1.4 : 0.85);
+    this.healthBarGroup.position.y = this.hitHeight + (this.isBoss ? 1.4 : (this.isLarge ? 1.05 : 0.55));
 
-    const barWidth = this.isBoss ? 5.6 : 3.2;
-    const barHeight = this.isBoss ? 0.52 : 0.38;
-    this.barInnerWidth = barWidth - 0.2;
+    const barWidth = this.isBoss ? 5.6 : (this.isLarge ? 4.2 : 2.15);
+    const barHeight = this.isBoss ? 0.52 : (this.isLarge ? 0.44 : 0.28);
+    this.barInnerWidth = barWidth - 0.18;
 
-    const bgMat = new THREE.MeshBasicMaterial({ color: 0x181824, transparent: true, opacity: 0.82 });
+    // Viền vàng kim nổi bật cho Quái Lớn (Cự Yêu) & Đại Boss
+    if (this.isLarge) {
+      const borderMat = new THREE.MeshBasicMaterial({
+        color: this.isBoss ? 0xff4757 : 0xfbbf24,
+        transparent: true,
+        opacity: 0.9,
+      });
+      const borderMesh = new THREE.Mesh(new THREE.PlaneGeometry(barWidth + 0.12, barHeight + 0.1), borderMat);
+      borderMesh.position.z = -0.01;
+      this.healthBarGroup.add(borderMesh);
+    }
+
+    const bgMat = new THREE.MeshBasicMaterial({ color: 0x181824, transparent: true, opacity: 0.85 });
     const bgMesh = new THREE.Mesh(new THREE.PlaneGeometry(barWidth, barHeight), bgMat);
     this.healthBarGroup.add(bgMesh);
 
     this.barMat = new THREE.MeshBasicMaterial({ color: this.config.barColor });
-    this.barMesh = new THREE.Mesh(new THREE.PlaneGeometry(this.barInnerWidth, barHeight - 0.12), this.barMat);
+    this.barMesh = new THREE.Mesh(new THREE.PlaneGeometry(this.barInnerWidth, barHeight - 0.1), this.barMat);
     this.barMesh.position.z = 0.01;
     this.healthBarGroup.add(this.barMesh);
 
@@ -890,19 +954,22 @@ export class Monster {
       const toHit = new THREE.Vector3().subVectors(hitPos, this.position).normalize();
       const forward = new THREE.Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
       if (forward.dot(toHit) > 0.35) {
-        finalAmount = Math.max(1, Math.round(amount * 0.6));
+        finalAmount = Math.max(1, Math.round(amount * 0.65));
       }
     }
 
     this.hp = Math.max(0, this.hp - finalAmount);
     this.hitFlashTimer = 0.18;
-    if (this.torso) this.torso.position.z -= 0.3;
+    // Quái nhỏ bị giật lùi mạnh khi trúng đòn, quái lớn chỉ nhúc nhích nhẹ vì sức nặng
+    if (this.torso && !this.attackAnimType) {
+      this.torso.position.z -= this.isSmall ? 0.42 : 0.12;
+    }
 
     if (this.isBoss && !this.isEnraged && this.hp > 0 && this.hp <= this.maxHp * 0.5) {
       this.isEnraged = true;
       this.speed = this.config.speed * 1.35;
       this.currentSkillName = '🔥 CUỒNG NỘ HUYẾT LONG (PHASE 2)!';
-      this.model.scale.set(1.12, 1.12, 1.12);
+      this.model.scale.setScalar(this.baseModelScale * 1.12);
       if (this.particles) {
         this.particles.emitShockwave(this.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 0xff1e1e, 16.0, 0.7);
         this.particles.emitElementalParticles(
@@ -937,7 +1004,7 @@ export class Monster {
 
   freeze(duration = 2.6) {
     if (this.isDead) return;
-    const actualDuration = this.isBoss ? duration * 0.35 : duration;
+    const actualDuration = this.isBoss ? duration * 0.35 : (this.isLarge ? duration * 0.75 : duration);
     this.isFrozen = true;
     this.freezeTimer = Math.max(this.freezeTimer, actualDuration);
     this.hitFlashTimer = 0.3;
@@ -956,7 +1023,8 @@ export class Monster {
 
   knockback(fromPos, force = 12) {
     if (this.isDead) return;
-    const resist = this.isBoss ? 0.22 : (this.type === 'golem' || this.type === 'jade_guardian' ? 0.5 : 1.0);
+    // Quái Lớn nặng nề kháng đẩy lùi rất cao (0.28), trong khi Quái Nhỏ nhẹ cân bị đánh văng xa (1.35)
+    const resist = this.isBoss ? 0.18 : (this.isLarge ? 0.28 : 1.35);
     const actualForce = force * resist;
     const dir = new THREE.Vector3().subVectors(this.position, fromPos);
     dir.y = 0;
@@ -964,8 +1032,8 @@ export class Monster {
     dir.normalize();
     this.velocity.x += dir.x * actualForce;
     this.velocity.z += dir.z * actualForce;
-    this.velocity.y += actualForce * 0.35;
-    if (this.torso) this.torso.position.z -= 0.45;
+    this.velocity.y += actualForce * (this.isSmall ? 0.45 : 0.18);
+    if (this.torso && !this.attackAnimType) this.torso.position.z -= this.isSmall ? 0.55 : 0.2;
   }
 
   die() {
@@ -973,17 +1041,18 @@ export class Monster {
     this.aiState = 'idle';
     this.attackAnimType = null;
     this.pendingStrikeCallback = null;
+    this.secondaryStrikeCallback = null;
     this.respawnTimer = this.config.respawnTime;
     this.clearActiveEffects();
     sound.playMonsterDefeated();
     this.particles.emitMonsterDefeat(this.position.clone().add(new THREE.Vector3(0, 3, 0)));
 
-    if (this.world && (this.type === 'golem' || this.type === 'jade_guardian' || this.isBoss)) {
-      const debrisColor = this.isBoss ? 0xc0392b : (this.type === 'jade_guardian' ? 0x1dd1a1 : 0x7f8c8d);
+    if (this.world && this.isLarge) {
+      const debrisColor = this.isBoss ? 0xc0392b : (this.type === 'jade_guardian' ? 0x1dd1a1 : (this.type === 'flame_scorpion' ? 0xb33939 : 0x7f8c8d));
       const rockMat = new THREE.MeshStandardMaterial({ color: debrisColor, flatShading: true, roughness: 0.8 });
-      const count = this.isBoss ? 12 : 6;
+      const count = this.isBoss ? 12 : 7;
       for (let i = 0; i < count; i++) {
-        const chunk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7 + Math.random() * 0.6, 0), rockMat);
+        const chunk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75 + Math.random() * 0.65, 0), rockMat);
         chunk.position.copy(this.position);
         chunk.position.y += 1.5 + Math.random() * 2.5;
         chunk.castShadow = true;
@@ -1004,6 +1073,7 @@ export class Monster {
     this.aiState = 'idle';
     this.attackAnimType = null;
     this.pendingStrikeCallback = null;
+    this.secondaryStrikeCallback = null;
     this.isEnraged = false;
     this.speed = this.config.speed;
     this.velocity.set(0, 0, 0);
@@ -1017,14 +1087,14 @@ export class Monster {
       this.position.copy(this.spawnOrigin);
     } else {
       const angle = Math.random() * Math.PI * 2;
-      const offset = 6 + Math.random() * 10;
+      const offset = 5 + Math.random() * 9;
       this.position.x = THREE.MathUtils.clamp(this.spawnOrigin.x + Math.cos(angle) * offset, -110, 110);
       this.position.z = THREE.MathUtils.clamp(this.spawnOrigin.z + Math.sin(angle) * offset, -110, 110);
     }
     this.position.y = getTerrainHeight(this.position.x, this.position.z);
     this.group.position.copy(this.position);
 
-    this.model.scale.set(1, 1, 1);
+    this.model.scale.setScalar(this.baseModelScale);
     this.model.rotation.set(0, 0, 0);
     this.healthBarGroup.visible = true;
 
@@ -1033,8 +1103,52 @@ export class Monster {
   }
 
   // =========================================================================
-  // HIỆU ỨNG VỆT CHÉM 3D (SLASH ARC), VÒNG CẢNH BÁO, ĐẠN & SÓNG XUNG KÍCH
+  // HIỆU ỨNG CHẤN ĐỘNG MẶT ĐẤT HẠNG NẶNG (HEAVY GROUND IMPACT), VỆT CHÉM & CẢNH BÁO
   // =========================================================================
+
+  // Hiệu ứng sức nặng ngàn cân khi Quái Lớn giáng đòn xuống đất: đá văng 3D + sóng xung kích + bụi + rung chấn
+  emitHeavyGroundImpact(impactPos, radius = 5.5, colorHex = 0xffa502, debrisCount = 5, player = null) {
+    const groundY = getTerrainHeight(impactPos.x, impactPos.z);
+    const center = new THREE.Vector3(impactPos.x, groundY + 0.25, impactPos.z);
+
+    sound.playExplosion?.();
+    if (this.particles) {
+      this.particles.emitShockwave(center, colorHex, radius * 1.15, 0.55);
+      this.particles.emitElementalParticles(
+        center.clone().add(new THREE.Vector3(0, 0.6, 0)),
+        26,
+        [colorHex, 0xffd32a, 0x7f8c8d, 0xffffff],
+        [2.5, 6.5],
+        0.95,
+        5.5,
+        0.85
+      );
+      for (let i = 0; i < 4; i++) {
+        this.particles.emitDust(center.clone().add(new THREE.Vector3((Math.random() - 0.5) * radius * 0.7, 0, (Math.random() - 0.5) * radius * 0.7)));
+      }
+    }
+
+    if (this.world && debrisCount > 0) {
+      const rockMat = new THREE.MeshStandardMaterial({ color: 0x636e72, flatShading: true, roughness: 0.9 });
+      for (let i = 0; i < debrisCount; i++) {
+        const chunk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42 + Math.random() * 0.45, 0), rockMat);
+        chunk.position.copy(center);
+        chunk.castShadow = true;
+        const a = (i / debrisCount) * Math.PI * 2 + Math.random() * 0.5;
+        const dir = new THREE.Vector3(Math.cos(a) * 0.85, 0.95 + Math.random() * 0.35, Math.sin(a) * 0.85).normalize();
+        this.world.addDebris(chunk, dir, 6.5 + Math.random() * 5.5, 22, 2.8, 0.45);
+      }
+    }
+
+    // Rung màn hình theo khoảng cách để người chơi cảm nhận rõ sức nặng đòn đập của Quái Lớn dù đã né được
+    if (player && player.pixelFX?.controller) {
+      const d = Math.hypot(player.position.x - impactPos.x, player.position.z - impactPos.z);
+      if (d < 26) {
+        const shake = Math.max(0.08, (1.0 - d / 26) * 0.32);
+        player.pixelFX.controller.addTrauma(shake);
+      }
+    }
+  }
 
   // Tạo vệt chém 3D (Slash Arc / Claw Swipe) hiển thị quỹ đạo vung vũ khí của quái & Boss
   spawnSlashArc(radius = 3.2, colorHex = 0xff4757, tiltZ = 0.0, heightOffset = 2.0, duration = 0.28) {
@@ -1076,24 +1190,34 @@ export class Monster {
       color: colorHex,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.75,
+      opacity: 0.88,
       depthWrite: false,
     });
-    const outerRing = new THREE.Mesh(new THREE.RingGeometry(radius * 0.92, radius, 28), outerMat);
+    const outerRing = new THREE.Mesh(new THREE.RingGeometry(radius * 0.9, radius, 32), outerMat);
     outerRing.rotateX(-Math.PI / 2);
+
+    const innerBorderMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    });
+    const innerRing = new THREE.Mesh(new THREE.RingGeometry(radius * 0.85, radius * 0.9, 32), innerBorderMat);
+    innerRing.rotateX(-Math.PI / 2);
 
     const fillMat = new THREE.MeshBasicMaterial({
       color: colorHex,
       side: THREE.DoubleSide,
       transparent: true,
-      opacity: 0.25,
+      opacity: 0.32,
       depthWrite: false,
     });
-    const fillDisk = new THREE.Mesh(new THREE.CircleGeometry(radius, 28), fillMat);
+    const fillDisk = new THREE.Mesh(new THREE.CircleGeometry(radius, 32), fillMat);
     fillDisk.rotateX(-Math.PI / 2);
     fillDisk.scale.set(0.05, 0.05, 1);
 
-    group.add(outerRing, fillDisk);
+    group.add(outerRing, innerRing, fillDisk);
     this.scene.add(group);
 
     this.activeEffects.push({
@@ -1513,19 +1637,20 @@ export class Monster {
     this.attackCooldown -= delta;
     this.specialCooldown -= delta;
 
-    // Đang trong trạng thái lao Húc Tốc Độ Cao (Hắc Diễm Linh Thú)
+    // 1. Trạng thái lao vọt cắn gót của Hắc Diễm Tiểu Thú (Quái Nhỏ)
     if (this.aiState === 'charging') {
       this.stateTimer += delta;
-      const chargeSpeed = this.speed * 3.4;
+      const chargeSpeed = this.speed * 2.35;
       this.position.x += this.chargeDir.x * chargeSpeed * delta;
       this.position.z += this.chargeDir.z * chargeSpeed * delta;
-      if (this.particles && Math.random() < 0.5) {
+      if (this.particles && Math.random() < 0.45) {
         this.particles.emitDust(this.position);
       }
-      if (distToPlayer <= this.hitRadius + 1.1 && this.attackCooldown <= 0) {
-        this.attackCooldown = 1.2;
-        this.spawnSlashArc(3.2, 0xffa502, 0, 2.0, 0.25);
-        this.inflictDamageToPlayer(player, 95, '-95 🦖 MAN NGƯU HÚC ĐẦU!', '#ffa502', null, 14);
+      if (distToPlayer <= this.hitRadius + 1.15 && this.attackCooldown <= 0) {
+        this.attackCooldown = 0.65;
+        this.spawnSlashArc(2.0, 0xffa502, 0.25, 1.2, 0.18);
+        this.inflictDamageToPlayer(player, 22, '-22 🦖 CẮN GÓT LÀM CHẬM!', '#ffa502', 'slow', 3);
+        this.aiState = 'idle';
       }
       if (this.stateTimer >= this.stateDuration) {
         this.aiState = 'idle';
@@ -1533,17 +1658,19 @@ export class Monster {
       return;
     }
 
-    // Đang gồng lực tại chỗ chờ nổ chiêu (Thạch Yêu / Thần Sư)
-    if (this.aiState === 'windup') {
-      this.stateTimer += delta;
-      if (this.stateTimer >= this.stateDuration) {
-        this.aiState = 'idle';
+    // 2. Quái Lớn đang trong chu kỳ vung đòn hạng nặng -> KHÓA HƯỚNG & ĐỨNG YÊN TRỤ VỮNG (giúp người chơi dễ né)
+    if (this.aiState === 'windup' || (this.isLarge && this.attackAnimType)) {
+      if (this.aiState === 'windup') {
+        this.stateTimer += delta;
+        if (this.stateTimer >= this.stateDuration) {
+          this.aiState = 'idle';
+        }
       }
       return;
     }
 
-    // Ngoài phạm vi phát hiện (46m) -> Đi tuần quanh điểm xuất hiện
-    if (distToPlayer > 46) {
+    // 3. Ngoài phạm vi phát hiện (48m) -> Đi tuần quanh điểm xuất hiện
+    if (distToPlayer > 48) {
       this.walkAnimTime += delta * 0.4;
       const toHomeX = this.spawnOrigin.x - this.position.x;
       const toHomeZ = this.spawnOrigin.z - this.position.z;
@@ -1560,222 +1687,383 @@ export class Monster {
     const dirToPlayerZ = player.position.z - this.position.z;
     const directAngle = Math.atan2(dirToPlayerX, dirToPlayerZ);
 
-    // --- HÀNH VI & ANIMATION TẤN CÔNG THEO CHỦNG LOẠI QUÁI ---
-    if (this.type === 'fox_mage') {
-      let moveAngle = directAngle;
-      let moveSpeed = this.speed;
+    // =========================================================================
+    // A. HÀNH VI NHÓM QUÁI NHỎ (SMALL / FAST / ANNOYING SWARMERS)
+    // - Chạy cực nhanh, lách ngang liên tục, đánh chớp nhoáng (0.35s - 0.42s), ít ST nhưng gây khó chịu
+    // =========================================================================
+    if (this.isSmall) {
+      // 🦊 1. HỒ HỎA TIỂU YÊU (Kiting nhanh + bắn tỉa liên thanh làm chậm)
+      if (this.type === 'fox_mage') {
+        let moveAngle = directAngle;
+        let moveSpeed = this.speed;
 
-      if (distToPlayer < 8.5) {
-        if (this.specialCooldown <= 0) {
-          this.specialCooldown = 4.5;
-          const awayDir = new THREE.Vector3(-dirToPlayerX, 0, -dirToPlayerZ).normalize();
-          this.velocity.x += awayDir.x * 18;
-          this.velocity.z += awayDir.z * 18;
-          this.velocity.y += 6.5;
-          this.startAttackAnimation('fox_spin_evade', 0.55, 0.2, null);
-          if (this.particles) {
-            this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1.5, 0)), 18, [0xff6b8b, 0xd980fa, 0xffffff], [2, 5], 0.6, 3.0, 0.7);
+        if (distToPlayer < 8.5) {
+          if (this.specialCooldown <= 0) {
+            this.specialCooldown = 2.8;
+            const awayDir = new THREE.Vector3(-dirToPlayerX, 0, -dirToPlayerZ).normalize();
+            this.velocity.x += awayDir.x * 16;
+            this.velocity.z += awayDir.z * 16;
+            this.velocity.y += 5.8;
+            this.startAttackAnimation('fox_spin_evade', 0.38, 0.25, () => {
+              const origin = this.position.clone().add(new THREE.Vector3(0, 1.4, 0));
+              const aimDir = new THREE.Vector3(Math.sin(directAngle), 0, Math.cos(directAngle));
+              this.spawnMonsterProjectile(origin, aimDir, 21.0, 0.38, 14, 0xff6b8b, 1.8, 'slow', false);
+            });
+            if (this.particles) {
+              this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1.2, 0)), 12, [0xff6b8b, 0xd980fa], [1.5, 3.5], 0.45, 2.5, 0.5);
+            }
           }
+          moveAngle = directAngle + Math.PI;
+        } else if (distToPlayer < 19.0) {
+          this.strafePhase += delta * 3.2;
+          moveAngle = directAngle + (Math.PI / 2.1) * Math.sin(this.strafePhase);
+          moveSpeed = this.speed * 0.95;
         }
-        moveAngle = directAngle + Math.PI;
-      } else if (distToPlayer < 18.0) {
-        this.strafePhase += delta * 1.4;
-        moveAngle = directAngle + (Math.PI / 2) * Math.sign(Math.sin(this.strafePhase));
-        moveSpeed = this.speed * 0.85;
-      }
 
-      this.rotationY = directAngle;
-      this.model.rotation.y = this.rotationY;
-      this.position.x += Math.sin(moveAngle) * moveSpeed * delta;
-      this.position.z += Math.cos(moveAngle) * moveSpeed * delta;
-
-      // Bắn 3 Quả Cầu Hồ Hỏa kèm Vũ Đạo Xòe 9 Đuôi & Đẩy Ngọc Châu
-      if (distToPlayer <= 28.0 && this.attackCooldown <= 0 && !this.attackAnimType) {
-        this.attackCooldown = 2.4;
-        this.startAttackAnimation('fox_cast', 0.68, 0.5, () => {
-          const pred = this.predictPlayerPosition(player, 0.45);
-          const aimAngle = Math.atan2(pred.x - this.position.x, pred.z - this.position.z);
-          const origin = this.position.clone().add(new THREE.Vector3(0, 2.2, 0));
-          for (const offset of [-0.22, 0, 0.22]) {
-            const dir = new THREE.Vector3(Math.sin(aimAngle + offset), 0, Math.cos(aimAngle + offset));
-            this.spawnMonsterProjectile(origin, dir, 17.5, 0.55, 65, 0xff6b8b, 2.6, 'slow', false);
-          }
-        });
-      }
-      return;
-    }
-
-    if (this.type === 'sword_wraith') {
-      // 👻 U MINH KIẾM LINH: Ám Ảnh Thuấn Bộ ra sau lưng + Xoay Kiếm Lốc Xoáy
-      if (distToPlayer > 7.5 && distToPlayer < 24.0 && this.specialCooldown <= 0 && !this.attackAnimType) {
-        this.specialCooldown = 5.5;
-        if (this.particles) {
-          this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 2, 0)), 18, [0x706fd3, 0x00d2d3], [2, 5], 0.6, 3.0, 0.6);
-        }
-        const behindX = player.position.x - Math.sin(player.rotationY) * 3.2;
-        const behindZ = player.position.z - Math.cos(player.rotationY) * 3.2;
-        this.position.x = THREE.MathUtils.clamp(behindX, -115, 115);
-        this.position.z = THREE.MathUtils.clamp(behindZ, -115, 115);
-        this.position.y = getTerrainHeight(this.position.x, this.position.z);
-        this.rotationY = Math.atan2(player.position.x - this.position.x, player.position.z - this.position.z);
+        this.rotationY = directAngle;
         this.model.rotation.y = this.rotationY;
+        this.position.x += Math.sin(moveAngle) * moveSpeed * delta;
+        this.position.z += Math.cos(moveAngle) * moveSpeed * delta;
 
-        const strikePos = player.position.clone();
-        this.startAttackAnimation('wraith_whirlwind', 0.65, 0.7, () => {
-          this.spawnSlashArc(3.8, 0x00d2d3, 0.1, 2.2, 0.3);
-          sound.playSwordSlash?.();
-        });
-        this.spawnTelegraphAOE(strikePos, 3.6, 0.5, 0xa29bfe, (pl) => {
-          if (pl && !pl.isDead && Math.hypot(pl.position.x - strikePos.x, pl.position.z - strikePos.z) <= 3.6) {
-            this.inflictDamageToPlayer(pl, 95, '-95 👻 ÁM ẢNH KIẾM TRẢM!', '#a29bfe');
-          }
-        });
+        // Bắn liên thanh 2 tia Hồ Hỏa nhỏ tốc độ cao gây rỉa máu & làm chậm nhẹ
+        if (distToPlayer <= 25.0 && this.attackCooldown <= 0 && !this.attackAnimType) {
+          this.attackCooldown = 0.88;
+          const fireQuickDart = (spreadOffset = 0) => {
+            const pred = this.predictPlayerPosition(player, 0.25);
+            const aimAngle = Math.atan2(pred.x - this.position.x, pred.z - this.position.z) + spreadOffset;
+            const origin = this.position.clone().add(new THREE.Vector3(0, 1.45, 0));
+            const dir = new THREE.Vector3(Math.sin(aimAngle), 0, Math.cos(aimAngle));
+            this.spawnMonsterProjectile(origin, dir, 22.5, 0.36, 15, 0xff6b8b, 2.0, 'slow', false);
+          };
+          this.startAttackAnimation(
+            'fox_quick_dart',
+            0.36,
+            0.35,
+            () => fireQuickDart(-0.06),
+            0.78,
+            () => fireQuickDart(0.06)
+          );
+        }
         return;
       }
 
-      const zigZag = Math.sin(this.walkAnimTime * 1.6) * 0.55;
-      const moveAngle = distToPlayer > 3.2 ? directAngle + zigZag : directAngle;
-      this.rotationY = directAngle;
-      this.model.rotation.y = this.rotationY;
-      if (distToPlayer > 3.2) {
-        this.position.x += Math.sin(moveAngle) * this.speed * delta;
-        this.position.z += Math.cos(moveAngle) * this.speed * delta;
-      } else if (this.attackCooldown <= 0 && !this.attackAnimType) {
-        this.attackCooldown = 1.4;
-        this.startAttackAnimation('wraith_slash', 0.55, 0.45, () => {
-          sound.playSwordSlash?.();
-          this.spawnSlashArc(3.2, 0x00d2d3, -0.2, 2.3, 0.26);
-          if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= 4.2) {
-            this.inflictDamageToPlayer(player, 70, '-70 ⚔️ U MINH KIẾM!', '#00d2d3');
-          }
-        });
-      }
-      return;
-    }
-
-    if (this.type === 'flame_scorpion') {
-      if (distToPlayer >= 7.0 && distToPlayer <= 28.0 && this.specialCooldown <= 0 && !this.attackAnimType) {
-        this.specialCooldown = 5.2;
-        const targetSpot = this.predictPlayerPosition(player, 0.65);
-        this.startAttackAnimation('scorpion_mortar', 0.72, 0.4, null);
-        this.spawnTelegraphAOE(targetSpot, 4.5, 0.95, 0x2ed573, (pl) => {
+      // 👻 2. U MINH TIỂU QUỶ (Ám ảnh thuấn bộ chọc lén + Tam đoạn trảm siêu tốc)
+      if (this.type === 'sword_wraith') {
+        if (distToPlayer > 5.0 && distToPlayer < 22.0 && this.specialCooldown <= 0 && !this.attackAnimType) {
+          this.specialCooldown = 3.2;
           if (this.particles) {
-            this.particles.emitElementalParticles(targetSpot.clone().add(new THREE.Vector3(0, 0.8, 0)), 22, [0x2ed573, 0xbadc58, 0xff7f50], [2, 5], 0.8, 4.5, 0.8);
+            this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1.4, 0)), 12, [0x706fd3, 0x00d2d3], [1.5, 3.5], 0.45, 2.2, 0.45);
           }
-          if (pl && !pl.isDead && Math.hypot(pl.position.x - targetSpot.x, pl.position.z - targetSpot.z) <= 4.5) {
-            this.inflictDamageToPlayer(pl, 85, '-85 🦂 PHÁO ĐỘC HẠT VƯƠNG!', '#2ed573', 'slow');
-          }
-          this.spawnPoisonPool(targetSpot, 4.5, 4.0, 28);
-        });
-      }
-    }
+          const sideOffset = (Math.random() < 0.5 ? 1 : -1) * 0.65;
+          const behindX = player.position.x - Math.sin(player.rotationY + sideOffset) * 2.3;
+          const behindZ = player.position.z - Math.cos(player.rotationY + sideOffset) * 2.3;
+          this.position.x = THREE.MathUtils.clamp(behindX, -115, 115);
+          this.position.z = THREE.MathUtils.clamp(behindZ, -115, 115);
+          this.position.y = getTerrainHeight(this.position.x, this.position.z);
+          this.rotationY = Math.atan2(player.position.x - this.position.x, player.position.z - this.position.z);
+          this.model.rotation.y = this.rotationY;
 
-    if (this.type === 'chomper') {
-      if (distToPlayer >= 7.5 && distToPlayer <= 20.0 && this.specialCooldown <= 0 && !this.attackAnimType) {
-        this.specialCooldown = 5.0;
-        this.aiState = 'charging';
-        this.stateTimer = 0;
-        this.stateDuration = 0.85;
-        const pred = this.predictPlayerPosition(player, 0.35);
-        this.chargeDir.set(pred.x - this.position.x, 0, pred.z - this.position.z).normalize();
-        this.rotationY = Math.atan2(this.chargeDir.x, this.chargeDir.z);
+          this.startAttackAnimation('wraith_blink_poke', 0.34, 0.45, () => {
+            sound.playSwordSlash?.();
+            this.spawnSlashArc(2.1, 0xa29bfe, 0.15, 1.4, 0.18);
+            if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= 3.2) {
+              this.inflictDamageToPlayer(player, 24, '-24 👻 CHỌC LÉN LÀM CHẬM!', '#a29bfe', 'slow');
+            }
+          });
+          return;
+        }
+
+        const zigZag = Math.sin(this.walkAnimTime * 2.4) * 0.68;
+        const moveAngle = distToPlayer > 2.4 ? directAngle + zigZag : directAngle;
+        this.rotationY = directAngle;
         this.model.rotation.y = this.rotationY;
-        sound.playMonsterRoar?.();
+        if (distToPlayer > 2.35) {
+          this.position.x += Math.sin(moveAngle) * this.speed * delta;
+          this.position.z += Math.cos(moveAngle) * this.speed * delta;
+        } else if (this.attackCooldown <= 0 && !this.attackAnimType) {
+          this.attackCooldown = 0.62;
+          this.startAttackAnimation(
+            'wraith_rapid_flurry',
+            0.38,
+            0.32,
+            () => {
+              sound.playSwordSlash?.();
+              this.spawnSlashArc(2.0, 0x00d2d3, -0.35, 1.45, 0.16);
+              if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= 3.1) {
+                this.inflictDamageToPlayer(player, 13, '-13 👻 Tiểu Quỷ Trảm!', '#00d2d3');
+              }
+            },
+            0.76,
+            () => {
+              sound.playSwordSlash?.();
+              this.spawnSlashArc(2.0, 0xa29bfe, 0.35, 1.45, 0.16);
+              if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= 3.1) {
+                this.inflictDamageToPlayer(player, 15, '-15 👻 Liên Hoàn Thứ!', '#a29bfe');
+              }
+            }
+          );
+        }
+        return;
+      }
+
+      // 🦖 3. HẮC DIỄM TIỂU THÚ (Chạy zíc-zắc áp sát + Cắn nhấp nhả 2 nhịp cực nhanh vào chân)
+      if (this.type === 'chomper') {
+        if (distToPlayer >= 5.2 && distToPlayer <= 16.5 && this.specialCooldown <= 0 && !this.attackAnimType) {
+          this.specialCooldown = 2.9;
+          this.aiState = 'charging';
+          this.stateTimer = 0;
+          this.stateDuration = 0.55;
+          const pred = this.predictPlayerPosition(player, 0.2);
+          this.chargeDir.set(pred.x - this.position.x, 0, pred.z - this.position.z).normalize();
+          this.rotationY = Math.atan2(this.chargeDir.x, this.chargeDir.z);
+          this.model.rotation.y = this.rotationY;
+          return;
+        }
+
+        const dartWeave = Math.sin(this.walkAnimTime * 2.2) * 0.52;
+        const moveAngle = distToPlayer > 2.5 ? directAngle + dartWeave : directAngle;
+        this.rotationY = directAngle;
+        this.model.rotation.y = this.rotationY;
+
+        if (distToPlayer > 2.35) {
+          this.position.x += Math.sin(moveAngle) * this.speed * delta;
+          this.position.z += Math.cos(moveAngle) * this.speed * delta;
+        } else if (this.attackCooldown <= 0 && !this.attackAnimType) {
+          this.attackCooldown = 0.58;
+          this.attackComboStep++;
+          this.startAttackAnimation(
+            'chomper_rapid_bite',
+            0.35,
+            0.34,
+            () => {
+              this.spawnSlashArc(1.9, 0x9b59b6, 0.3, 1.2, 0.15);
+              if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= 3.0) {
+                this.inflictDamageToPlayer(player, 14, '-14 🦖 Rỉa Chân!', '#ff6b81');
+              }
+            },
+            0.78,
+            () => {
+              this.spawnSlashArc(1.9, 0xf39c12, -0.3, 1.2, 0.15);
+              if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= 3.0) {
+                this.inflictDamageToPlayer(player, 15, '-15 🦖 Cắn Nhấp Nhả!', '#ffa502');
+              }
+            }
+          );
+        }
         return;
       }
     }
 
-    if (this.type === 'golem' && distToPlayer <= 6.2 && this.specialCooldown <= 0 && !this.attackAnimType) {
-      this.specialCooldown = 4.8;
-      this.aiState = 'windup';
-      this.stateTimer = 0;
-      this.stateDuration = 0.85;
-      this.startAttackAnimation('golem_slam', 0.95, 0.82, null);
-      const slamPos = this.position.clone().add(new THREE.Vector3(Math.sin(this.rotationY) * 2.2, 0, Math.cos(this.rotationY) * 2.2));
-      this.spawnTelegraphAOE(slamPos, 5.2, 0.85, 0xffa502, (pl) => {
-        if (this.particles) {
-          this.particles.emitShockwave(slamPos.clone().add(new THREE.Vector3(0, 0.2, 0)), 0xffa502, 5.5, 0.45);
-        }
-        if (pl && !pl.isDead && Math.hypot(pl.position.x - slamPos.x, pl.position.z - slamPos.z) <= 5.2) {
-          this.inflictDamageToPlayer(pl, 110, '-110 🗿 THẠCH YÊU ĐỊA CHẤN!', '#ffa502', null, 14);
-        }
-      });
-      return;
-    }
+    // =========================================================================
+    // B. HÀNH VI NHÓM QUÁI LỚN HẠNG NẶNG (LARGE / SLOW / HEAVY MULTI-STAGE / HIGH DMG / EASY DODGE)
+    // - Sải bước chậm rãi (1.75 - 1.95), xoay người chậm
+    // - Khi vào tầm đánh, KHÓA HƯỚNG và tung 1 trong 3 thế đánh hạng nặng (kéo dài 1.5s - 1.82s)
+    // - Luôn có Vòng Cảnh Báo Đỏ/Cam (Telegraph AOE) từ 1.0s - 1.28s trước khi chạm đất -> Cực dễ né!
+    // - Đánh trúng gây sát thương khổng lồ (180 - 245 ST) + hất văng + nổ đá 3D mặt đất
+    // =========================================================================
 
-    if (this.type === 'jade_guardian' && distToPlayer <= 7.5 && this.specialCooldown <= 0 && !this.attackAnimType) {
-      this.specialCooldown = 5.5;
-      this.aiState = 'windup';
-      this.stateTimer = 0;
-      this.stateDuration = 0.85;
-      this.startAttackAnimation('guardian_roar', 0.95, 0.8, null);
-      const roarPos = this.position.clone().add(new THREE.Vector3(Math.sin(this.rotationY) * 3.5, 0, Math.cos(this.rotationY) * 3.5));
-      this.spawnTelegraphAOE(roarPos, 5.8, 0.85, 0x00d2d3, (pl) => {
-        if (this.particles) {
-          this.particles.emitShockwave(roarPos.clone().add(new THREE.Vector3(0, 0.4, 0)), 0x00d2d3, 6.2, 0.5);
-          this.particles.emitElementalParticles(roarPos.clone().add(new THREE.Vector3(0, 1.2, 0)), 24, [0x00d2d3, 0x7ed6df, 0xffffff], [2, 5], 0.9, 4.0, 0.8);
-        }
-        if (pl && !pl.isDead && Math.hypot(pl.position.x - roarPos.x, pl.position.z - roarPos.z) <= 5.8) {
-          this.inflictDamageToPlayer(pl, 115, '-115 ❄️ HÀN BĂNG SƯ TỬ HỐNG!', '#00d2d3', 'freeze');
-        }
-      });
-      return;
-    }
-
-    // Di chuyển bao vây thông minh (Flanking)
-    const flankInfluence = distToPlayer > 7.0 ? Math.min(0.45, (distToPlayer - 7.0) * 0.03) : 0;
-    const targetAngle = directAngle + this.config.flankOffset * this.flankSign * flankInfluence;
-
-    let rotDiff = targetAngle - this.rotationY;
+    // Xoay thân chậm nặng nề về phía người chơi khi đang đi bộ
+    let rotDiff = directAngle - this.rotationY;
     while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
     while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
-    this.rotationY += rotDiff * Math.min(1.0, delta * 4.2);
+    this.rotationY += rotDiff * Math.min(1.0, delta * 2.2);
     this.model.rotation.y = this.rotationY;
 
-    if (distToPlayer > this.hitRadius + 1.25) {
-      const moveFactor = this.attackAnimType ? 0.35 : 1.0;
-      this.position.x += Math.sin(this.rotationY) * this.speed * moveFactor * delta;
-      this.position.z += Math.cos(this.rotationY) * this.speed * moveFactor * delta;
-    } else if (this.attackCooldown <= 0 && !this.attackAnimType) {
-      // KÍCH HOẠT ANIMATION ĐÒN ĐÁNH THƯỜNG ĐẶC TRƯNG TỪNG LOẠI QUÁI
-      this.attackCooldown = 1.55;
+    // 🦂 Pháo kích tầm xa của Thiết Giáp Cự Hạt Vương khi người chơi đứng xa (8.5m - 26m)
+    if (this.type === 'flame_scorpion' && distToPlayer >= 8.5 && distToPlayer <= 26.0 && this.specialCooldown <= 0 && !this.attackAnimType) {
+      this.specialCooldown = 6.2;
+      this.attackCooldown = 2.8;
+      this.aiState = 'windup';
+      this.stateTimer = 0;
+      this.stateDuration = 1.65;
+      const targetSpot = this.predictPlayerPosition(player, 0.45);
+      // Cảnh báo rõ ràng suốt 1.25s trước khi pháo độc rơi xuống
+      this.spawnTelegraphAOE(targetSpot, 5.0, 1.25, 0x2ed573, null);
+      this.startAttackAnimation('scorpion_heavy_mortar', 1.65, 0.76, () => {
+        this.emitHeavyGroundImpact(targetSpot, 5.0, 0x2ed573, 5, player);
+        if (player && !player.isDead && Math.hypot(player.position.x - targetSpot.x, player.position.z - targetSpot.z) <= 5.0) {
+          this.inflictDamageToPlayer(player, 210, '-210 🦂 CỰ HẠT ĐỘC PHÁO!', '#2ed573', 'slow', 16);
+        }
+        this.spawnPoisonPool(targetSpot, 4.8, 4.5, 25);
+      });
+      return;
+    }
+
+    const engageRange = this.hitRadius + 2.4;
+    if (distToPlayer > engageRange) {
+      this.position.x += Math.sin(this.rotationY) * this.speed * delta;
+      this.position.z += Math.cos(this.rotationY) * this.speed * delta;
+      return;
+    }
+
+    // Khi đã vào tầm cận chiến và hồi chiêu xong -> Chọn 1 trong 3 Thế Đánh Hạng Nặng của từng loài Quái Lớn
+    if (this.attackCooldown <= 0 && !this.attackAnimType) {
+      this.attackCooldown = 2.7 + Math.random() * 0.6;
+      const moveVariant = this.attackComboStep % 3;
       this.attackComboStep++;
 
+      // Khóa hướng ngay lúc bắt đầu lấy đà để người chơi dễ dàng lách qua bên hông hoặc lùi ra ngoài
+      this.rotationY = directAngle;
+      this.model.rotation.y = this.rotationY;
+      const forward = new THREE.Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
+
       if (this.type === 'golem') {
-        this.startAttackAnimation('golem_punch', 0.65, 0.48, () => {
-          this.spawnSlashArc(3.6, 0xffaa00, 0.35, 2.5, 0.28);
-          if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= this.hitRadius + 2.2) {
-            this.inflictDamageToPlayer(player, 80, `-80 🗿 Quyền Đá Nghìn Cân!`, '#ffa502', null, 8);
-          }
-        });
-      } else if (this.type === 'chomper') {
-        const isTailWhip = this.attackComboStep % 2 === 0;
-        this.startAttackAnimation(isTailWhip ? 'chomper_tail_whip' : 'chomper_bite', 0.58, 0.45, () => {
-          this.spawnSlashArc(3.3, 0x9b59b6, isTailWhip ? 0.0 : 0.4, 2.1, 0.26);
-          if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= this.hitRadius + 2.0) {
-            this.inflictDamageToPlayer(player, 68, isTailWhip ? `-68 🦖 Đuôi Rồng Quật Ngang!` : `-68 🦖 Nanh Độc Cắn Xé!`, '#ff6b81');
-          }
-        });
+        if (moveVariant === 0) {
+          // THỨC 1: KHAI SƠN ĐỘC THỦ (Vặn mình giương cao tay phải đập sập mặt đất)
+          const totalDur = 1.58;
+          const impactRatio = 0.68; // 1.07s lấy đà cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 3.2);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 4.5, totalDur * impactRatio, 0xffa502, null);
+          this.startAttackAnimation('golem_heavy_overhead', totalDur, impactRatio, () => {
+            this.spawnSlashArc(4.8, 0xffaa00, Math.PI / 2, 3.2, 0.38);
+            this.emitHeavyGroundImpact(strikePos, 4.5, 0xffa502, 6, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 4.5) {
+              this.inflictDamageToPlayer(player, 185, '-185 🗿 KHAI SƠN ĐỘC THỦ!', '#ffa502', null, 18);
+            }
+          });
+        } else if (moveVariant === 1) {
+          // THỨC 2: HOÀNH TẢO CỰ THẠCH (Kéo tay đá ra sau lưng 135 độ rồi quét ngang cực mạnh)
+          const totalDur = 1.62;
+          const impactRatio = 0.66; // 1.07s lấy đà cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 2.8);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 4.8, totalDur * impactRatio, 0xff7f50, null);
+          this.startAttackAnimation('golem_colossal_sweep', totalDur, impactRatio, () => {
+            this.spawnSlashArc(5.4, 0xff7f50, 0.12, 2.8, 0.4);
+            this.emitHeavyGroundImpact(strikePos, 4.8, 0xff7f50, 5, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 4.8) {
+              this.inflictDamageToPlayer(player, 195, '-195 🗿 HOÀNH TẢO CỰ THẠCH!', '#ff7f50', null, 20);
+            }
+          });
+        } else {
+          // THỨC 3: THÁI CỔ SONG QUYỀN ĐỊA CHẤN (Nhón chân giương 2 tay đá khổng lồ đập sập cả thân người)
+          const totalDur = 1.85;
+          const impactRatio = 0.70; // 1.30s lấy đà cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 2.6);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 5.8, totalDur * impactRatio, 0xff4757, null);
+          this.startAttackAnimation('golem_double_titan_slam', totalDur, impactRatio, () => {
+            this.spawnSlashArc(5.8, 0xff4757, Math.PI / 2, 3.0, 0.42);
+            this.emitHeavyGroundImpact(strikePos, 5.8, 0xff4757, 8, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 5.8) {
+              this.inflictDamageToPlayer(player, 245, '-245 💥 SONG QUYỀN ĐỊA CHẤN!', '#ff4757', null, 24);
+            }
+          });
+        }
       } else if (this.type === 'flame_scorpion') {
-        this.startAttackAnimation('scorpion_sting', 0.62, 0.46, () => {
-          this.spawnSlashArc(3.5, 0x2ed573, -0.35, 1.8, 0.28);
-          if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= this.hitRadius + 2.2) {
-            this.inflictDamageToPlayer(player, 75, `-75 🦂 Ngòi Độc Hạt Vương!`, '#2ed573', 'slow');
-          }
-        });
+        if (moveVariant === 0) {
+          // THỨC 1: SONG CÀNG ĐOẠT MỆNH (Mở rộng 2 càng thiết giáp sang 2 bên rồi kẹp sập chéo)
+          const totalDur = 1.54;
+          const impactRatio = 0.66; // 1.02s cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 3.2);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 4.4, totalDur * impactRatio, 0xff7f50, null);
+          this.startAttackAnimation('scorpion_guillotine_crush', totalDur, impactRatio, () => {
+            this.spawnSlashArc(4.8, 0xff7f50, 0.25, 2.0, 0.36);
+            this.emitHeavyGroundImpact(strikePos, 4.4, 0xff7f50, 5, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 4.4) {
+              this.inflictDamageToPlayer(player, 180, '-180 🦂 SONG CÀNG ĐOẠT MỆNH!', '#ff7f50', null, 16);
+            }
+          });
+        } else if (moveVariant === 1) {
+          // THỨC 2: THIÊN CHU ĐỘC KÍCH (Uốn cong 4 đốt đuôi khổng lồ lên đỉnh đầu rồi đâm ngập ngòi độc xuống đất)
+          const totalDur = 1.72;
+          const impactRatio = 0.68; // 1.17s cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 3.6);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 4.7, totalDur * impactRatio, 0x2ed573, null);
+          this.startAttackAnimation('scorpion_tail_impale', totalDur, impactRatio, () => {
+            this.spawnSlashArc(5.0, 0x2ed573, Math.PI / 2, 2.6, 0.4);
+            this.emitHeavyGroundImpact(strikePos, 4.7, 0x2ed573, 6, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 4.7) {
+              this.inflictDamageToPlayer(player, 215, '-215 🦂 THIÊN CHU ĐỘC KÍCH!', '#2ed573', 'slow', 18);
+            }
+          });
+        } else {
+          // THỨC 3: DUNG NHAM ĐỘC PHÁO CẬN CHIẾN (Quật đuôi nổ độc địa chấn quanh thân)
+          const totalDur = 1.78;
+          const impactRatio = 0.70; // 1.25s cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 3.0);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 5.2, totalDur * impactRatio, 0x2ed573, null);
+          this.startAttackAnimation('scorpion_heavy_mortar', totalDur, impactRatio, () => {
+            this.emitHeavyGroundImpact(strikePos, 5.2, 0x2ed573, 6, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 5.2) {
+              this.inflictDamageToPlayer(player, 225, '-225 🦂 ĐỘC LONG ĐỊA CHẤN!', '#2ed573', 'slow', 20);
+            }
+            this.spawnPoisonPool(strikePos, 4.5, 4.0, 24);
+          });
+        }
       } else if (this.type === 'jade_guardian') {
-        this.startAttackAnimation('guardian_pounce', 0.64, 0.48, () => {
-          this.spawnSlashArc(3.8, 0x1dd1a1, 0.25, 2.2, 0.28);
-          if (Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= this.hitRadius + 2.2) {
-            this.inflictDamageToPlayer(player, 85, `-85 🦁 Thần Sư Vồ Mồi!`, '#00d2d3', null, 9);
-          }
-        });
+        if (moveVariant === 0) {
+          // THỨC 1: THẦN SƯ GIÁNG THẾ (Chồm dựng đứng 2 chân trước lên trời rồi vồ sập xuống đất)
+          const totalDur = 1.65;
+          const impactRatio = 0.68; // 1.12s cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 3.4);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 4.8, totalDur * impactRatio, 0x1dd1a1, null);
+          this.startAttackAnimation('guardian_titan_pounce', totalDur, impactRatio, () => {
+            this.spawnSlashArc(5.2, 0x1dd1a1, 0.35, 2.8, 0.38);
+            this.emitHeavyGroundImpact(strikePos, 4.8, 0x1dd1a1, 6, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 4.8) {
+              this.inflictDamageToPlayer(player, 205, '-205 🦁 THẦN SƯ GIÁNG THẾ!', '#1dd1a1', null, 20);
+            }
+          });
+        } else if (moveVariant === 1) {
+          // THỨC 2: NGỌC TRẢO KHAI THIÊN (Nghiêng bờm vàng giơ cao chân ngọc phải rồi tát sập mặt đất)
+          const totalDur = 1.55;
+          const impactRatio = 0.66; // 1.02s cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 3.1);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 4.5, totalDur * impactRatio, 0xffd32a, null);
+          this.startAttackAnimation('guardian_heavy_paw_crush', totalDur, impactRatio, () => {
+            this.spawnSlashArc(5.0, 0xffd32a, -0.3, 2.6, 0.36);
+            this.emitHeavyGroundImpact(strikePos, 4.5, 0xffd32a, 5, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 4.5) {
+              this.inflictDamageToPlayer(player, 185, '-185 🦁 NGỌC TRẢO KHAI THIÊN!', '#ffd32a', null, 17);
+            }
+          });
+        } else {
+          // THỨC 3: HÀN BĂNG SƯ TỬ HỐNG (Thu cổ tụ lực pháp luân rồi gầm nổ tung băng giá)
+          const totalDur = 1.80;
+          const impactRatio = 0.70; // 1.26s cảnh báo
+          const strikePos = this.position.clone().addScaledVector(forward, 3.6);
+          this.aiState = 'windup';
+          this.stateTimer = 0;
+          this.stateDuration = totalDur;
+          this.spawnTelegraphAOE(strikePos, 5.8, totalDur * impactRatio, 0x00d2d3, null);
+          this.startAttackAnimation('guardian_glacier_roar', totalDur, impactRatio, () => {
+            this.emitHeavyGroundImpact(strikePos, 5.8, 0x00d2d3, 7, player);
+            if (Math.hypot(player.position.x - strikePos.x, player.position.z - strikePos.z) <= 5.8) {
+              this.inflictDamageToPlayer(player, 230, '-230 ❄️ HÀN BĂNG SƯ TỬ HỐNG!', '#00d2d3', 'freeze', 22);
+            }
+          });
+        }
       }
     }
   }
 
   // =========================================================================
-  // HỆ THỐNG PROCEDURAL ANIMATION TẤN CÔNG CHI TIẾT CHO TỪNG LOẠI QUÁI & BOSS
+  // HỆ THỐNG PROCEDURAL ANIMATION TẤN CÔNG CHI TIẾT:
+  // - QUÁI NHỎ: Nhanh, dồn dập nhiều nhịp (flurry / double-bite / quick-dart)
+  // - QUÁI LỚN: Chậm mà nhiều pha (1. Lấy đà gồng rung -> 2. Giáng đòn nghìn cân -> 3. Kẹt lún đất -> 4. Rút vũ khí nặng nhọc)
   // =========================================================================
   applyAttackAnimation(delta) {
     if (!this.attackAnimType) return false;
@@ -1783,7 +2071,7 @@ export class Monster {
     this.attackAnimTimer += delta;
     const p = Math.min(1.0, this.attackAnimTimer / this.attackAnimDuration);
 
-    // Kích hoạt sát thương/đạn đúng thời điểm ra đòn (impact frame)
+    // Nhịp sát thương chính (Impact frame 1)
     if (!this.pendingStrikeTriggered && p >= this.pendingStrikeRatio) {
       this.pendingStrikeTriggered = true;
       if (this.pendingStrikeCallback) {
@@ -1791,157 +2079,366 @@ export class Monster {
       }
     }
 
+    // Nhịp sát thương phụ liên hoàn (dành cho Quái Nhỏ đánh 2 nhát liên tiếp)
+    if (!this.secondaryStrikeTriggered && p >= this.secondaryStrikeRatio) {
+      this.secondaryStrikeTriggered = true;
+      if (this.secondaryStrikeCallback) {
+        this.secondaryStrikeCallback();
+      }
+    }
+
     const type = this.attackAnimType;
 
-    if (type === 'golem_punch') {
-      // Thạch Yêu vặn mình giương nắm đấm đá phải lên cao rồi giáng mạnh xuống
-      if (p < 0.45) {
-        const w = p / 0.45;
-        this.torso.rotation.y = -0.55 * w;
-        this.torso.rotation.x = -0.22 * w;
-        this.armR.rotation.x = -2.7 * w;
-        this.armL.rotation.x = 0.6 * w;
+    // -------------------------------------------------------------------------
+    // I. ANIMATION QUÁI LỚN HẠNG NẶNG (4 PHA RÕ RỆT & SỨC NẶNG NGÀN CÂN)
+    // -------------------------------------------------------------------------
+    if (type === 'golem_heavy_overhead') {
+      // 🗿 Thức 1 Thạch Yêu: Vặn xoắn thân sang phải, nhấc bổng tay đá phải lên đỉnh đầu rung gồng -> Đập sập -> Kẹt dưới đất -> Kéo lên
+      if (p < 0.58) {
+        const w = p / 0.58;
+        const easeW = w * w * (3 - 2 * w);
+        const tremor = w > 0.5 ? Math.sin(p * 55) * 0.08 : 0;
+        this.torso.rotation.y = -0.78 * easeW + tremor;
+        this.torso.rotation.x = -0.35 * easeW;
+        this.torso.position.y = 3.2 + 0.55 * easeW;
+        this.armR.rotation.x = -2.95 * easeW + tremor;
+        this.armR.rotation.z = -0.35 * easeW;
+        this.armL.rotation.x = 0.75 * easeW;
+        this.legR.position.y = 1.8 + 0.45 * easeW;
+      } else if (p < 0.70) {
+        // Pha 2: Giáng sập nghìn cân xuống đất
+        const s = (p - 0.58) / 0.12;
+        const slam = s * s;
+        this.torso.rotation.y = THREE.MathUtils.lerp(-0.78, 0.55, slam);
+        this.torso.rotation.x = THREE.MathUtils.lerp(-0.35, 0.58, slam);
+        this.torso.position.y = THREE.MathUtils.lerp(3.75, 2.25, slam);
+        this.torso.position.z = 1.15 * slam;
+        this.armR.rotation.x = THREE.MathUtils.lerp(-2.95, -0.35, slam);
+        this.legR.position.y = 1.8;
+      } else if (p < 0.85) {
+        // Pha 3: Nắm đấm đá KẸT LÚN DƯỚI ĐẤT, thân rung chấn vì sức nặng
+        const stuckShake = Math.sin(p * 45) * 0.04;
+        this.torso.rotation.y = 0.55;
+        this.torso.rotation.x = 0.58 + stuckShake;
+        this.torso.position.y = 2.25;
+        this.torso.position.z = 1.15;
+        this.armR.rotation.x = -0.35 + stuckShake;
       } else {
-        const s = (p - 0.45) / 0.55;
-        const swing = Math.sin(s * Math.PI);
-        this.torso.rotation.y = THREE.MathUtils.lerp(-0.55, 0.5, Math.min(1, s * 1.8));
-        this.torso.rotation.x = 0.35 * swing;
-        this.armR.rotation.x = THREE.MathUtils.lerp(-2.7, -0.4, Math.min(1, s * 2.0));
-        this.torso.position.z = 0.65 * swing;
+        // Pha 4: Gồng vai rút nắm đấm đá từ dưới đất lên nặng nhọc
+        const r = (p - 0.85) / 0.15;
+        this.torso.rotation.y = THREE.MathUtils.lerp(0.55, 0, r);
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.58, 0, r);
+        this.torso.position.y = THREE.MathUtils.lerp(2.25, 3.2, r);
+        this.torso.position.z = THREE.MathUtils.lerp(1.15, 0, r);
+        this.armR.rotation.x = THREE.MathUtils.lerp(-0.35, 0, r);
+        this.armR.rotation.z = THREE.MathUtils.lerp(-0.35, 0, r);
+        this.armL.rotation.x = THREE.MathUtils.lerp(0.75, 0, r);
       }
-    } else if (type === 'golem_slam') {
-      // Thạch Yêu giương cả 2 cánh tay đá lên trời rung lắc rồi đập sập xuống đất
-      if (p < 0.78) {
-        const w = p / 0.78;
-        this.torso.position.y = 3.2 + w * 0.6;
-        this.torso.rotation.x = -0.32 * w;
-        this.armL.rotation.x = -2.95 * w + Math.sin(p * 35) * 0.08;
-        this.armR.rotation.x = -2.95 * w - Math.sin(p * 35) * 0.08;
+    } else if (type === 'golem_colossal_sweep') {
+      // 🗿 Thức 2 Thạch Yêu: Mở vai kéo ngược cánh tay đá 135 độ ra sau lưng -> Quét ngang 180 độ -> Đà quán tính làm xoay lệch người -> Thu thế
+      if (p < 0.56) {
+        const w = p / 0.56;
+        const easeW = w * w * (3 - 2 * w);
+        const tremor = w > 0.5 ? Math.sin(p * 50) * 0.07 : 0;
+        this.torso.rotation.y = 1.05 * easeW + tremor;
+        this.torso.rotation.z = -0.18 * easeW;
+        this.armL.rotation.x = -1.55 * easeW;
+        this.armL.rotation.z = 1.45 * easeW + tremor;
+        this.armR.rotation.x = 0.65 * easeW;
+      } else if (p < 0.70) {
+        const s = (p - 0.56) / 0.14;
+        const sweep = s * s;
+        this.torso.rotation.y = THREE.MathUtils.lerp(1.05, -1.05, sweep);
+        this.torso.rotation.x = 0.38 * sweep;
+        this.torso.position.z = 0.95 * sweep;
+        this.armL.rotation.x = -1.55;
+        this.armL.rotation.z = THREE.MathUtils.lerp(1.45, -1.35, sweep);
+      } else if (p < 0.84) {
+        // Quán tính nặng làm thân đá chúi nghiêng sang phải
+        this.torso.rotation.y = -1.05;
+        this.torso.rotation.x = 0.38;
+        this.torso.position.z = 0.95;
+        this.armL.rotation.x = -1.55;
+        this.armL.rotation.z = -1.35;
       } else {
-        const s = (p - 0.78) / 0.22;
-        this.torso.position.y = THREE.MathUtils.lerp(3.8, 2.5, s);
-        this.torso.rotation.x = THREE.MathUtils.lerp(-0.32, 0.48, s);
-        this.armL.rotation.x = THREE.MathUtils.lerp(-2.95, -0.5, s);
-        this.armR.rotation.x = THREE.MathUtils.lerp(-2.95, -0.5, s);
+        const r = (p - 0.84) / 0.16;
+        this.torso.rotation.y = THREE.MathUtils.lerp(-1.05, 0, r);
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.38, 0, r);
+        this.torso.rotation.z = THREE.MathUtils.lerp(-0.18, 0, r);
+        this.torso.position.z = THREE.MathUtils.lerp(0.95, 0, r);
+        this.armL.rotation.x = THREE.MathUtils.lerp(-1.55, 0, r);
+        this.armL.rotation.z = THREE.MathUtils.lerp(-1.35, 0, r);
+        this.armR.rotation.x = THREE.MathUtils.lerp(0.65, 0, r);
       }
-    } else if (type === 'chomper_bite') {
-      // Khủng long ngửa cổ lấy đà rồi lao chồm cả đầu và thân tới đớp mạnh
-      if (p < 0.4) {
-        const w = p / 0.4;
-        this.torso.rotation.x = -0.35 * w;
-        this.head.rotation.x = -0.55 * w;
-        this.torso.position.z = -0.4 * w;
+    } else if (type === 'golem_double_titan_slam') {
+      // 🗿 Thức 3 Thạch Yêu: Nhón chân nhấc bổng cả 2 tay đá khổng lồ lên trời gồng rung -> Đập sập toàn thân xuống đất -> Kẹt lún cả 2 tay -> Gượng dậy
+      if (p < 0.62) {
+        const w = p / 0.62;
+        const easeW = w * w * (3 - 2 * w);
+        const tremor = w > 0.45 ? Math.sin(p * 65) * 0.1 : 0;
+        this.torso.position.y = 3.2 + 0.95 * easeW;
+        this.torso.rotation.x = -0.45 * easeW;
+        this.armL.rotation.x = -3.05 * easeW + tremor;
+        this.armR.rotation.x = -3.05 * easeW - tremor;
+        this.armL.rotation.z = 0.3 * easeW;
+        this.armR.rotation.z = -0.3 * easeW;
+      } else if (p < 0.72) {
+        const s = (p - 0.62) / 0.10;
+        const crush = s * s;
+        this.torso.position.y = THREE.MathUtils.lerp(4.15, 2.05, crush);
+        this.torso.rotation.x = THREE.MathUtils.lerp(-0.45, 0.65, crush);
+        this.torso.position.z = 1.2 * crush;
+        this.armL.rotation.x = THREE.MathUtils.lerp(-3.05, -0.4, crush);
+        this.armR.rotation.x = THREE.MathUtils.lerp(-3.05, -0.4, crush);
+      } else if (p < 0.86) {
+        // Cả 2 tay đá lún sâu dưới mặt đất
+        const shake = Math.sin(p * 50) * 0.04;
+        this.torso.position.y = 2.05;
+        this.torso.rotation.x = 0.65 + shake;
+        this.torso.position.z = 1.2;
+        this.armL.rotation.x = -0.4 + shake;
+        this.armR.rotation.x = -0.4 - shake;
       } else {
-        const s = (p - 0.4) / 0.6;
-        const lunge = Math.sin(s * Math.PI);
-        this.torso.rotation.x = 0.45 * lunge;
-        this.head.rotation.x = 0.5 * lunge;
-        this.head.scale.setScalar(1.0 + 0.25 * lunge);
-        this.torso.position.z = 1.15 * lunge;
+        const r = (p - 0.86) / 0.14;
+        this.torso.position.y = THREE.MathUtils.lerp(2.05, 3.2, r);
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.65, 0, r);
+        this.torso.position.z = THREE.MathUtils.lerp(1.2, 0, r);
+        this.armL.rotation.x = THREE.MathUtils.lerp(-0.4, 0, r);
+        this.armR.rotation.x = THREE.MathUtils.lerp(-0.4, 0, r);
+        this.armL.rotation.z = THREE.MathUtils.lerp(0.3, 0, r);
+        this.armR.rotation.z = THREE.MathUtils.lerp(-0.3, 0, r);
       }
-    } else if (type === 'chomper_tail_whip') {
-      // Khủng long xoay tròn toàn thân 360 độ quật đuôi
-      this.torso.rotation.y = p * Math.PI * 2;
-      this.tail.rotation.y = Math.sin(p * Math.PI * 2) * 0.9;
-    } else if (type === 'fox_cast') {
-      // Cửu Vĩ Hồ Yêu bung xòe 9 chiếc đuôi dựng đứng phát sáng + đẩy Ngọc Châu Hồ Hỏa về trước
-      const flare = Math.sin(p * Math.PI);
-      this.torso.position.y = 2.4 + flare * 0.55;
-      this.armL.rotation.x = -1.6 * flare;
-      this.armR.rotation.x = -1.6 * flare;
+    } else if (type === 'scorpion_guillotine_crush') {
+      // 🦂 Thức 1 Cự Hạt: Mở rộng 2 càng thiết giáp sang 2 bên + nâng cao thân trước lấy đà -> Kẹp sập chéo xuống đất -> Càng kẹt đất -> Rút về
+      if (p < 0.58) {
+        const w = p / 0.58;
+        const easeW = w * w * (3 - 2 * w);
+        const tremor = w > 0.5 ? Math.sin(p * 55) * 0.07 : 0;
+        this.torso.position.y = 1.65 + 0.55 * easeW;
+        this.torso.rotation.x = -0.35 * easeW;
+        this.armL.rotation.y = -0.95 * easeW + tremor;
+        this.armR.rotation.y = 0.95 * easeW - tremor;
+        this.armL.rotation.x = -0.85 * easeW;
+        this.armR.rotation.x = -0.85 * easeW;
+        this.tail.rotation.x = -0.45 * easeW;
+      } else if (p < 0.70) {
+        const s = (p - 0.58) / 0.12;
+        const snap = s * s;
+        this.torso.position.y = THREE.MathUtils.lerp(2.2, 1.25, snap);
+        this.torso.rotation.x = THREE.MathUtils.lerp(-0.35, 0.35, snap);
+        this.torso.position.z = 1.05 * snap;
+        this.armL.rotation.y = THREE.MathUtils.lerp(-0.95, 0.85, snap);
+        this.armR.rotation.y = THREE.MathUtils.lerp(0.95, -0.85, snap);
+        this.armL.rotation.x = THREE.MathUtils.lerp(-0.85, 0.35, snap);
+        this.armR.rotation.x = THREE.MathUtils.lerp(-0.85, 0.35, snap);
+      } else if (p < 0.85) {
+        this.torso.position.y = 1.25;
+        this.torso.rotation.x = 0.35;
+        this.torso.position.z = 1.05;
+        this.armL.rotation.y = 0.85;
+        this.armR.rotation.y = -0.85;
+      } else {
+        const r = (p - 0.85) / 0.15;
+        this.torso.position.y = THREE.MathUtils.lerp(1.25, 1.65, r);
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.35, 0, r);
+        this.torso.position.z = THREE.MathUtils.lerp(1.05, 0, r);
+        this.armL.rotation.y = THREE.MathUtils.lerp(0.85, 0, r);
+        this.armR.rotation.y = THREE.MathUtils.lerp(-0.85, 0, r);
+        this.armL.rotation.x = THREE.MathUtils.lerp(0.35, 0, r);
+        this.armR.rotation.x = THREE.MathUtils.lerp(0.35, 0, r);
+        this.tail.rotation.x = THREE.MathUtils.lerp(-0.45, 0, r);
+      }
+    } else if (type === 'scorpion_tail_impale') {
+      // 🦂 Thức 2 Cự Hạt: Uốn cong 4 đốt đuôi khổng lồ dựng đứng lên trời rung lắc -> Đâm ngập ngòi độc xuống mặt đất -> Ngòi độc cắm kẹt dưới đất -> Giật nhổ lên
+      if (p < 0.60) {
+        const w = p / 0.60;
+        const easeW = w * w * (3 - 2 * w);
+        const tremor = w > 0.45 ? Math.sin(p * 60) * 0.09 : 0;
+        this.torso.rotation.x = 0.25 * easeW;
+        this.torso.position.z = -0.55 * easeW;
+        this.tail.rotation.x = -0.85 * easeW + tremor;
+        this.armL.rotation.y = -0.55 * easeW;
+        this.armR.rotation.y = 0.55 * easeW;
+      } else if (p < 0.70) {
+        const s = (p - 0.60) / 0.10;
+        const stab = s * s;
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.25, -0.22, stab);
+        this.torso.position.z = THREE.MathUtils.lerp(-0.55, 1.15, stab);
+        this.tail.rotation.x = THREE.MathUtils.lerp(-0.85, 1.55, stab);
+      } else if (p < 0.86) {
+        // Ngòi độc cắm sâu dưới đất, đuôi rung giật để rút ra
+        const tug = Math.sin(p * 55) * 0.06;
+        this.torso.position.z = 1.15;
+        this.tail.rotation.x = 1.55 + tug;
+      } else {
+        const r = (p - 0.86) / 0.14;
+        this.torso.rotation.x = THREE.MathUtils.lerp(-0.22, 0, r);
+        this.torso.position.z = THREE.MathUtils.lerp(1.15, 0, r);
+        this.tail.rotation.x = THREE.MathUtils.lerp(1.55, 0, r);
+        this.armL.rotation.y = THREE.MathUtils.lerp(-0.55, 0, r);
+        this.armR.rotation.y = THREE.MathUtils.lerp(0.55, 0, r);
+      }
+    } else if (type === 'scorpion_heavy_mortar') {
+      // 🦂 Thức 3 Cự Hạt: Nén thấp toàn bộ giáp lưng lấy đà rồi quật mạnh đuôi bắn pháo độc hạng nặng
+      if (p < 0.64) {
+        const w = p / 0.64;
+        const tremor = Math.sin(p * 50) * 0.06;
+        this.torso.position.y = 1.65 - 0.45 * w;
+        this.torso.rotation.x = 0.32 * w;
+        this.tail.rotation.x = -0.65 * w + tremor;
+      } else if (p < 0.78) {
+        const s = (p - 0.64) / 0.14;
+        this.torso.position.y = THREE.MathUtils.lerp(1.2, 2.05, s);
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.32, -0.25, s);
+        this.tail.rotation.x = THREE.MathUtils.lerp(-0.65, 1.35, s);
+      } else {
+        const r = (p - 0.78) / 0.22;
+        this.torso.position.y = THREE.MathUtils.lerp(2.05, 1.65, r);
+        this.torso.rotation.x = THREE.MathUtils.lerp(-0.25, 0, r);
+        this.tail.rotation.x = THREE.MathUtils.lerp(1.35, 0, r);
+      }
+    } else if (type === 'guardian_titan_pounce') {
+      // 🦁 Thức 1 Cự Thần Sư: Chồm dựng đứng 2 chân trước lên trời lấy đà -> Vồ sập toàn bộ sức nặng hàng tấn xuống đất -> Lún sâu -> Đứng dậy
+      if (p < 0.60) {
+        const w = p / 0.60;
+        const easeW = w * w * (3 - 2 * w);
+        const tremor = w > 0.5 ? Math.sin(p * 55) * 0.07 : 0;
+        this.torso.rotation.x = -0.78 * easeW + tremor;
+        this.torso.position.y = 2.9 + 1.55 * easeW;
+        this.armL.rotation.x = -2.15 * easeW;
+        this.armR.rotation.x = -2.15 * easeW;
+        if (this.guardianHalo) this.guardianHalo.rotation.z += delta * 10;
+      } else if (p < 0.72) {
+        const s = (p - 0.60) / 0.12;
+        const slam = s * s;
+        this.torso.rotation.x = THREE.MathUtils.lerp(-0.78, 0.48, slam);
+        this.torso.position.y = THREE.MathUtils.lerp(4.45, 2.15, slam);
+        this.torso.position.z = 1.25 * slam;
+        this.armL.rotation.x = THREE.MathUtils.lerp(-2.15, 0.55, slam);
+        this.armR.rotation.x = THREE.MathUtils.lerp(-2.15, 0.55, slam);
+      } else if (p < 0.86) {
+        this.torso.rotation.x = 0.48;
+        this.torso.position.y = 2.15;
+        this.torso.position.z = 1.25;
+      } else {
+        const r = (p - 0.86) / 0.14;
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.48, 0, r);
+        this.torso.position.y = THREE.MathUtils.lerp(2.15, 2.9, r);
+        this.torso.position.z = THREE.MathUtils.lerp(1.25, 0, r);
+        this.armL.rotation.x = THREE.MathUtils.lerp(0.55, 0, r);
+        this.armR.rotation.x = THREE.MathUtils.lerp(0.55, 0, r);
+      }
+    } else if (type === 'guardian_heavy_paw_crush') {
+      // 🦁 Thức 2 Cự Thần Sư: Nghiêng bờm vàng giơ cao chân ngọc phải -> Tát sập móng vuốt xuống mặt đất -> Giữ thế đè nặng -> Thu chân
+      if (p < 0.58) {
+        const w = p / 0.58;
+        const easeW = w * w * (3 - 2 * w);
+        this.torso.rotation.y = -0.68 * easeW;
+        this.torso.rotation.z = 0.25 * easeW;
+        this.torso.position.y = 2.9 + 0.65 * easeW;
+        this.armR.rotation.x = -2.45 * easeW;
+        this.armR.rotation.z = -0.55 * easeW;
+      } else if (p < 0.70) {
+        const s = (p - 0.58) / 0.12;
+        const swipe = s * s;
+        this.torso.rotation.y = THREE.MathUtils.lerp(-0.68, 0.55, swipe);
+        this.torso.rotation.x = 0.38 * swipe;
+        this.torso.position.y = THREE.MathUtils.lerp(3.55, 2.35, swipe);
+        this.torso.position.z = 1.05 * swipe;
+        this.armR.rotation.x = THREE.MathUtils.lerp(-2.45, 0.35, swipe);
+        this.armR.rotation.z = THREE.MathUtils.lerp(-0.55, 0.45, swipe);
+      } else if (p < 0.85) {
+        this.torso.rotation.y = 0.55;
+        this.torso.rotation.x = 0.38;
+        this.torso.position.y = 2.35;
+        this.torso.position.z = 1.05;
+      } else {
+        const r = (p - 0.85) / 0.15;
+        this.torso.rotation.y = THREE.MathUtils.lerp(0.55, 0, r);
+        this.torso.rotation.x = THREE.MathUtils.lerp(0.38, 0, r);
+        this.torso.rotation.z = THREE.MathUtils.lerp(0.25, 0, r);
+        this.torso.position.y = THREE.MathUtils.lerp(2.35, 2.9, r);
+        this.torso.position.z = THREE.MathUtils.lerp(1.05, 0, r);
+        this.armR.rotation.x = THREE.MathUtils.lerp(0.35, 0, r);
+        this.armR.rotation.z = THREE.MathUtils.lerp(0.45, 0, r);
+      }
+    } else if (type === 'guardian_glacier_roar') {
+      // 🦁 Thức 3 Cự Thần Sư: Thu cổ về sau tụ hàn khí, pháp luân xoay tít -> Rướn cổ gầm nổ tung sóng băng giá
+      if (p < 0.64) {
+        const w = p / 0.64;
+        const tremor = Math.sin(p * 60) * 0.06;
+        this.torso.position.z = -0.65 * w;
+        this.torso.rotation.x = -0.25 * w;
+        this.head.position.z = 1.45 - 0.35 * w;
+        this.head.scale.setScalar(1.0 + 0.22 * w + tremor);
+        if (this.guardianHalo) this.guardianHalo.rotation.z += delta * 18;
+      } else {
+        const s = (p - 0.64) / 0.36;
+        const roar = Math.sin(s * Math.PI);
+        this.torso.position.z = 0.95 * roar;
+        this.torso.rotation.x = 0.32 * roar;
+        this.head.position.z = 1.45 + 0.85 * roar;
+        this.head.scale.setScalar(1.0 + 0.32 * roar);
+        if (this.guardianHalo) this.guardianHalo.rotation.z += delta * 24;
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // II. ANIMATION QUÁI NHỎ (CHỚP NHOÁNG, LIÊN HOÀN NHIỀU NHỊP, LINH HOẠT)
+    // -------------------------------------------------------------------------
+    else if (type === 'chomper_rapid_bite') {
+      // 🦖 Tiểu Thú đớp liên hoàn 2 phát cực nhanh vào chân người chơi
+      const biteWave = Math.sin(p * Math.PI * 2);
+      this.torso.position.z = Math.abs(biteWave) * 0.95;
+      this.torso.rotation.x = Math.abs(biteWave) * 0.38;
+      this.torso.rotation.y = biteWave * 0.35;
+      this.head.scale.setScalar(1.0 + Math.abs(biteWave) * 0.28);
+      this.tail.rotation.y = -biteWave * 0.85;
+    } else if (type === 'fox_quick_dart') {
+      // 🦊 Tiểu Hồ Yêu nhảy chân sáo vẫy 9 đuôi bắn liên thanh 2 tia lửa
+      const pulse = Math.sin(p * Math.PI * 2);
+      this.torso.position.y = 2.4 + Math.abs(pulse) * 0.45;
+      this.torso.rotation.y = pulse * 0.32;
+      this.armL.rotation.x = -1.45 * Math.abs(pulse);
+      this.armR.rotation.x = -1.45 * Math.abs(pulse);
       if (this.foxOrb) {
-        this.foxOrb.position.z = 1.6 + flare * 1.1;
-        this.foxOrb.scale.setScalar(1.0 + flare * 0.65);
+        this.foxOrb.position.z = 1.6 + Math.abs(pulse) * 0.95;
+        this.foxOrb.scale.setScalar(1.0 + Math.abs(pulse) * 0.5);
       }
       if (this.foxTails) {
         for (let i = 0; i < this.foxTails.length; i++) {
           const tail = this.foxTails[i];
-          tail.rotation.x = tail.userData.baseX + flare * 0.65;
-          tail.rotation.z = tail.userData.baseZ * (1.0 + flare * 0.35);
+          tail.rotation.x = tail.userData.baseX + Math.abs(pulse) * 0.55;
         }
       }
     } else if (type === 'fox_spin_evade') {
-      // Hồ Yêu xoay mình lộn vòng trên không khi nhảy lùi
       this.torso.rotation.y = p * Math.PI * 2;
-    } else if (type === 'wraith_slash') {
-      // U Minh Kiếm Linh vung Ma Kiếm chém ngang 180 độ + 3 thanh kiếm hộ thể phóng ra trước
-      const swing = Math.sin(p * Math.PI);
-      if (p < 0.4) {
-        const w = p / 0.4;
-        this.torso.rotation.y = 0.6 * w;
-        this.armR.rotation.x = -1.5;
-        this.armR.rotation.z = 1.3 * w;
-      } else {
-        const s = (p - 0.4) / 0.6;
-        this.torso.rotation.y = THREE.MathUtils.lerp(0.6, -0.7, s);
-        this.armR.rotation.x = -1.5;
-        this.armR.rotation.z = THREE.MathUtils.lerp(1.3, -1.4, s);
-      }
-      if (this.orbitSwordNodes) {
-        for (const sw of this.orbitSwordNodes) {
-          const r = 2.1 + swing * 1.3;
-          sw.position.set(Math.cos(sw.userData.baseAngle) * r, 0, Math.sin(sw.userData.baseAngle) * r);
-          sw.rotation.x = swing * 1.2;
-        }
-      }
-    } else if (type === 'wraith_whirlwind') {
-      // Ám Ảnh Thuấn Bộ: Xoay kiếm lốc xoáy 2 vòng liên tiếp
-      this.torso.rotation.y = p * Math.PI * 4;
+    } else if (type === 'wraith_rapid_flurry') {
+      // 👻 Tiểu Quỷ chém liên hoàn trái - phải siêu tốc
+      const slashWave = Math.sin(p * Math.PI * 2);
+      this.torso.rotation.y = slashWave * 0.85;
+      this.torso.position.z = Math.abs(slashWave) * 0.65;
       this.armR.rotation.x = -1.55;
-      this.armR.rotation.z = -1.2;
+      this.armR.rotation.z = slashWave * 1.45;
       if (this.orbitSwordNodes) {
-        const expand = Math.sin(p * Math.PI);
         for (const sw of this.orbitSwordNodes) {
-          const r = 2.1 + expand * 1.6;
+          const r = 2.1 + Math.abs(slashWave) * 1.1;
           sw.position.set(Math.cos(sw.userData.baseAngle) * r, 0, Math.sin(sw.userData.baseAngle) * r);
+          sw.rotation.x = Math.abs(slashWave) * 1.3;
         }
       }
-    } else if (type === 'scorpion_sting') {
-      // Hạt Vương cắt chéo 2 càng lửa + bổ mạnh chiếc đuôi ngòi độc từ trên lưng xuống trước mặt!
-      if (p < 0.4) {
-        const w = p / 0.4;
-        this.armL.rotation.y = -0.65 * w;
-        this.armR.rotation.y = 0.65 * w;
-        this.tail.rotation.x = -0.55 * w;
-      } else {
-        const s = (p - 0.4) / 0.6;
-        const strike = Math.sin(s * Math.PI);
-        this.armL.rotation.y = 0.75 * strike;
-        this.armR.rotation.y = -0.75 * strike;
-        this.tail.rotation.x = 1.35 * strike;
-        this.torso.position.z = 0.75 * strike;
-      }
-    } else if (type === 'scorpion_mortar') {
-      // Hạt Vương uốn cong đuôi lên đỉnh đầu bắn pháo cầu độc
-      const arch = Math.sin(p * Math.PI);
-      this.torso.rotation.x = 0.25 * arch;
-      this.tail.rotation.x = 1.15 * arch;
-    } else if (type === 'guardian_pounce') {
-      // Thanh Ngọc Thần Sư chồm 2 chân trước lên cao rồi vồ đập mạnh xuống đất
-      if (p < 0.45) {
-        const w = p / 0.45;
-        this.torso.rotation.x = -0.55 * w;
-        this.torso.position.y = 2.9 + 1.1 * w;
-        this.armL.rotation.x = -1.6 * w;
-        this.armR.rotation.x = -1.6 * w;
-      } else {
-        const s = (p - 0.45) / 0.55;
-        const slam = Math.sin(s * Math.PI);
-        this.torso.rotation.x = THREE.MathUtils.lerp(-0.55, 0.35, Math.min(1, s * 1.8));
-        this.torso.position.y = THREE.MathUtils.lerp(4.0, 2.7, Math.min(1, s * 1.8));
-        this. torso.position.z = 0.9 * slam;
-        this.armL.rotation.x = 0.4 * slam;
-        this.armR.rotation.x = 0.4 * slam;
-      }
-    } else if (type === 'guardian_roar') {
-      // Sư Tử Hống: Rướn cổ gầm vang, pháp luân sau lưng xoay tít
-      const roar = Math.sin(p * Math.PI);
-      this.head.position.z = 1.45 + roar * 0.65;
-      this.head.rotation.x = 0.28 * roar;
-      this.head.scale.setScalar(1.0 + roar * 0.18);
-      if (this.guardianHalo) this.guardianHalo.rotation.z += delta * 12;
-    } else if (type === 'boss_ cleave_lr' || type === 'boss_wave_slash') {
-      // Đại Boss vung Phương Thiên Họa Kích quét ngang 180 độ uy lực
+    } else if (type === 'wraith_blink_poke') {
+      // 👻 Tiểu Quỷ lướt ra sau lưng đâm chọc nhanh
+      const thrust = Math.sin(p * Math.PI);
+      this.torso.position.z = thrust * 1.1;
+      this.torso.rotation.x = thrust * 0.35;
+      this.armR.rotation.x = -1.8 * thrust;
+    }
+
+    // -------------------------------------------------------------------------
+    // III. ANIMATION ĐẠI BOSS HẮC LONG MA ĐẾ
+    // -------------------------------------------------------------------------
+    else if (type === 'boss_ cleave_lr' || type === 'boss_wave_slash') {
       if (p < 0.42) {
         const w = p / 0.42;
         this.torso.rotation.y = -0.75 * w;
@@ -1956,7 +2453,6 @@ export class Monster {
         this.armR.rotation.z = THREE.MathUtils.lerp(-1.25, 1.35, Math.min(1, s * 1.7));
       }
     } else if (type === 'boss_overhead_slam') {
-      // Đại Boss giương cao Họa Kích bổ dọc từ đỉnh đầu xuống đất
       if (p < 0.45) {
         const w = p / 0.45;
         this.torso.rotation.x = -0.35 * w;
@@ -1969,7 +2465,6 @@ export class Monster {
         this.armL.rotation.x = THREE.MathUtils.lerp(-2.4, -0.5, Math.min(1, s * 1.8));
       }
     } else if (type === 'boss_thrust') {
-      // Đại Boss rút Họa Kích về hông rồi đâm thẳng về phía trước
       if (p < 0.38) {
         const w = p / 0.38;
         this.torso.rotation.y = -0.45 * w;
@@ -1982,7 +2477,6 @@ export class Monster {
         this.armR.rotation.x = -1.85 * thrust;
       }
     } else if (type === 'boss_summon_sky') {
-      // Đại Boss bay lơ lửng, giương thẳng Họa Kích chỉ lên trời triệu hồi Cửu Thiên Huyết Vũ
       const lift = Math.sin(p * Math.PI);
       this.torso.position.y = 4.6 + lift * 1.8;
       this.head.rotation.x = -0.45 * lift;
@@ -1998,6 +2492,7 @@ export class Monster {
     if (this.attackAnimTimer >= this.attackAnimDuration) {
       this.attackAnimType = null;
       this.pendingStrikeCallback = null;
+      this.secondaryStrikeCallback = null;
       if (this.torso) {
         this.torso.rotation.set(0, 0, 0);
         this.torso.position.z = 0;
@@ -2005,9 +2500,11 @@ export class Monster {
       if (this.head) {
         this.head.rotation.set(0, 0, 0);
         this.head.scale.setScalar(1.0);
+        if (this.type === 'jade_guardian') this.head.position.z = 1.45;
       }
       if (this.armL) this.armL.rotation.set(0, 0, 0);
       if (this.armR) this.armR.rotation.set(0, 0, 0);
+      if (this.tail) this.tail.rotation.set(this.type === 'chomper' ? -Math.PI / 2.5 : (this.type === 'jade_guardian' ? -0.8 : 0), 0, 0);
       if (this.foxOrb) {
         this.foxOrb.position.z = 1.6;
         this.foxOrb.scale.setScalar(1.0);
@@ -2105,26 +2602,39 @@ export class Monster {
     if (this.contactShadow) {
       this.contactShadow.position.set(this.position.x, groundY + 0.025, this.position.z);
       const heightAbove = Math.max(0, this.position.y - groundY);
-      this.shadowMat.opacity = this.isDead ? 0 : Math.max(0.06, (this.isBoss ? 0.58 : 0.42) - heightAbove * 0.04);
+      this.shadowMat.opacity = this.isDead ? 0 : Math.max(0.06, (this.isBoss ? 0.62 : (this.isLarge ? 0.52 : 0.34)) - heightAbove * 0.04);
       const s = Math.max(0.35, 1.0 - heightAbove * 0.05);
       this.contactShadow.scale.set(s, s, s);
     }
 
-    // 8. PROCEDURAL ANIMATION: DI CHUYỂN & TẤN CÔNG
-    const stepFreq = this.isBoss ? 4.0 : (this.type === 'golem' ? 3.5 : (this.aiState === 'charging' ? 11.0 : 4.8));
+    // 8. PROCEDURAL ANIMATION: TƯƠNG PHẢN NHỊP BƯỚC GIỮA QUÁI NHỎ (THOĂN THOẮT 11.5x) & QUÁI LỚN (NẶNG NỀ 2.35x)
+    const stepFreq = this.isBoss
+      ? 3.8
+      : (this.isLarge ? 2.35 : (this.aiState === 'charging' ? 16.0 : 11.2));
     this.walkAnimTime += delta * stepFreq;
-    const stepSwing = Math.sin(this.walkAnimTime) * 0.45;
+    const stepSwing = Math.sin(this.walkAnimTime) * (this.isLarge ? 0.38 : 0.55);
 
     if (this.legL) this.legL.rotation.x = stepSwing;
     if (this.legR) this.legR.rotation.x = -stepSwing;
 
+    // Bụi đất dưới gót chân nặng nề của Quái Lớn khi di chuyển gần người chơi
+    if (this.isLarge && !this.isBoss && !this.attackAnimType && distToPlayer < 35) {
+      this.stepDustTimer += delta;
+      if (this.stepDustTimer >= 0.85) {
+        this.stepDustTimer = 0;
+        if (this.particles) {
+          this.particles.emitDust(this.position);
+        }
+      }
+    }
+
     // Cập nhật các bộ phận xoay liên tục (Pháp luân, Ngọc Châu, Kiếm Hộ Thể, Cánh Rồng)
     if (this.foxOrb) {
-      this.foxOrb.rotation.y += delta * 3.5;
-      this.foxOrb.rotation.x += delta * 2.0;
+      this.foxOrb.rotation.y += delta * 5.0;
+      this.foxOrb.rotation.x += delta * 3.0;
     }
     if (this.orbitSwords) {
-      this.orbitSwords.rotation.y += delta * (this.attackAnimType ? 9.5 : 3.8);
+      this.orbitSwords.rotation.y += delta * (this.attackAnimType ? 14.0 : 6.0);
     }
     if (this.guardianHalo) {
       this.guardianHalo.rotation.z += delta * 1.8;
@@ -2137,7 +2647,6 @@ export class Monster {
         this.wingL.rotation.y = flap;
         this.wingR.rotation.y = -flap;
       }
-      // Tư thế đặc biệt khi Đại Boss đang nhảy trên không hoặc cắm kích hút Hắc Động
       if (this.aiState === 'leaping') {
         this.torso.rotation.x = 0.45;
         this.armR.rotation.x = -2.6;
@@ -2159,28 +2668,29 @@ export class Monster {
 
     // Animation bước đi / tuần tra mặc định khi không ra đòn
     if (this.type === 'golem') {
-      this.armL.rotation.x = -stepSwing * 0.6;
-      this.armR.rotation.x = stepSwing * 0.6;
-      this.torso.rotation.z = Math.sin(this.walkAnimTime) * 0.05;
-      this.torso.position.y = 3.2 + Math.abs(Math.sin(this.walkAnimTime)) * 0.2;
+      this.armL.rotation.x = -stepSwing * 0.55;
+      this.armR.rotation.x = stepSwing * 0.55;
+      // Nghiêng vai nặng trịch sang hai bên theo từng bước dậm chân của Cự Thạch Yêu
+      this.torso.rotation.z = Math.sin(this.walkAnimTime) * 0.09;
+      this.torso.position.y = 3.2 - Math.abs(Math.cos(this.walkAnimTime)) * 0.26;
     } else if (this.type === 'chomper') {
-      this.tail.rotation.y = Math.sin(this.walkAnimTime) * 0.28;
-      this.head.rotation.z = Math.sin(this.walkAnimTime) * 0.06;
+      this.tail.rotation.y = Math.sin(this.walkAnimTime) * 0.42;
+      this.head.rotation.z = Math.sin(this.walkAnimTime) * 0.1;
       this.head.rotation.x = this.aiState === 'charging' ? 0.55 : 0;
       this.torso.rotation.x = this.aiState === 'charging' ? 0.3 : 0;
-      this.torso.position.y = 2.8 + Math.abs(Math.sin(this.walkAnimTime)) * 0.25;
+      this.torso.position.y = 2.8 + Math.abs(Math.sin(this.walkAnimTime)) * 0.35;
     } else if (this.type === 'fox_mage') {
-      this.torso.position.y = 2.4 + Math.sin(this.walkAnimTime * 0.8) * 0.18;
+      this.torso.position.y = 2.4 + Math.sin(this.walkAnimTime * 0.9) * 0.24;
       if (this.foxTails) {
         for (let i = 0; i < this.foxTails.length; i++) {
           const tail = this.foxTails[i];
           tail.rotation.x = tail.userData.baseX;
           tail.rotation.z = tail.userData.baseZ;
-          tail.rotation.y = Math.sin(this.walkAnimTime * 0.9 + i * 0.5) * 0.22;
+          tail.rotation.y = Math.sin(this.walkAnimTime + i * 0.5) * 0.28;
         }
       }
     } else if (this.type === 'sword_wraith') {
-      this.torso.position.y = 2.7 + Math.sin(this.walkAnimTime * 0.9) * 0.32;
+      this.torso.position.y = 2.7 + Math.sin(this.walkAnimTime) * 0.36;
       if (this.orbitSwordNodes) {
         for (const sw of this.orbitSwordNodes) {
           sw.position.set(Math.cos(sw.userData.baseAngle) * 2.1, 0, Math.sin(sw.userData.baseAngle) * 2.1);
@@ -2188,14 +2698,16 @@ export class Monster {
         }
       }
     } else if (this.type === 'flame_scorpion') {
-      this.torso.position.y = 1.65 + Math.abs(Math.sin(this.walkAnimTime * 1.3)) * 0.12;
+      this.torso.position.y = 1.65 - Math.abs(Math.cos(this.walkAnimTime)) * 0.18;
+      this.torso.rotation.z = Math.sin(this.walkAnimTime) * 0.06;
       if (this.tail) {
         this.tail.rotation.x = Math.sin(this.walkAnimTime * 0.8) * 0.18;
       }
-      this.armL.rotation.y = Math.sin(this.walkAnimTime) * 0.2;
-      this.armR.rotation.y = -Math.sin(this.walkAnimTime) * 0.2;
+      this.armL.rotation.y = Math.sin(this.walkAnimTime) * 0.22;
+      this.armR.rotation.y = -Math.sin(this.walkAnimTime) * 0.22;
     } else if (this.type === 'jade_guardian') {
-      this.torso.position.y = 2.9 + Math.abs(Math.sin(this.walkAnimTime)) * 0.16;
+      this.torso.position.y = 2.9 - Math.abs(Math.cos(this.walkAnimTime)) * 0.22;
+      this.torso.rotation.z = Math.sin(this.walkAnimTime) * 0.07;
     } else if (this.isBoss) {
       this.torso.position.y = 4.6 + Math.sin(this.walkAnimTime * 0.7) * 0.25;
       this.armL.rotation.x = -stepSwing * 0.5;

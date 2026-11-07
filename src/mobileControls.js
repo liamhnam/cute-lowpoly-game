@@ -489,7 +489,7 @@ export class MobileControlsManager {
   // Xử lý thông báo xoay màn hình ngang (Landscape)
   setupOrientationHandler() {
     const banner = document.getElementById('mobile-orientation-banner');
-    const closeBtn = document.getElementById('btn-close-banner');
+    const closeBtn = document.getElementById('btn-close-orientation') || document.getElementById('btn-close-banner') || document.querySelector('.btn-close-banner');
 
     if (closeBtn && banner) {
       closeBtn.addEventListener('click', (e) => {

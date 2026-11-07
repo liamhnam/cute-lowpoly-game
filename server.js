@@ -33,6 +33,10 @@ function getRandomSpawn() {
   };
 }
 
+// Máu tối đa & Giảm sát thương theo Vai Trò Chiến Đấu (0: Hộ Vệ, 1: Sát Thủ, 2: Pháp Sư, 3: Đấu Sĩ, 4: Xạ Thủ, 5: NAMCAM)
+const ROLE_MAX_HP = [2600, 1750, 1700, 2250, 1650, 2500];
+const ROLE_DMG_REDUCTION = [0.20, 0.0, 0.0, 0.12, 0.0, 0.15];
+
 let nextPlayerId = 1;
 const players = new Map(); // id -> playerData
 
@@ -47,10 +51,12 @@ wss.on('connection', (ws) => {
       switch (msg.type) {
         case 'join': {
           const spawn = getRandomSpawn();
+          const roleIdx = Math.max(0, Math.min(5, Number(msg.outfit) || 0));
+          const roleMaxHp = ROLE_MAX_HP[roleIdx] || 2000;
           player = {
             id: playerId,
             name: (msg.name || 'Gấu Hiệp Sĩ').trim().substring(0, 18),
-            outfit: Number(msg.outfit) || 0,
+            outfit: roleIdx,
             x: spawn.x,
             y: spawn.y,
             z: spawn.z,
@@ -60,8 +66,8 @@ wss.on('connection', (ws) => {
             isGrounded: true,
             isCasting: false,
             castSkill: 0,
-            hp: 2000,
-            maxHp: 2000,
+            hp: roleMaxHp,
+            maxHp: roleMaxHp,
             kills: 0,
             deaths: 0,
             isDead: false,
@@ -135,7 +141,13 @@ wss.on('connection', (ws) => {
           player.isGrounded = msg.isGrounded;
           player.isCasting = msg.isCasting;
           player.castSkill = msg.castSkill;
-          if (msg.outfit !== undefined) player.outfit = Number(msg.outfit) || 0;
+          if (msg.outfit !== undefined && Number(msg.outfit) !== player.outfit) {
+            player.outfit = Math.max(0, Math.min(5, Number(msg.outfit) || 0));
+            const newMaxHp = ROLE_MAX_HP[player.outfit] || 2000;
+            const ratio = player.maxHp > 0 ? player.hp / player.maxHp : 1;
+            player.maxHp = newMaxHp;
+            player.hp = Math.round(newMaxHp * ratio);
+          }
           player.lastUpdate = Date.now();
 
           // Broadcast trạng thái cho các người chơi khác
@@ -164,13 +176,10 @@ wss.on('connection', (ws) => {
             id: playerId,
             origin: msg.origin,
             direction: msg.direction,
-            // Loại đòn kiếm: chém combo (step 0-2), phi vũ lông vũ, súng đạn (bullet), kiếm khí tụ lực (power 0-1),
-            // chém hoàng kim của Bạch Ảnh (gslash) hoặc tia sét vàng của Tử Ảnh (bolt, kèm target)
-            kind: ['qi', 'feather', 'bullet', 'gslash', 'bolt'].includes(msg.kind) ? msg.kind : 'slash',
+            kind: ['qi', 'feather', 'arcane', 'bullet', 'gslash', 'bolt'].includes(msg.kind) ? msg.kind : 'slash',
             target: sanitizePoint(msg.target),
             step: Math.min(2, Math.max(0, Math.floor(Number(msg.step) || 0))),
             power: Math.min(1, Math.max(0, Number(msg.power) || 0)),
-            // Đòn do đạo ảnh phân thân (0 hoặc 1) chém ra, không có thì là đòn của chính người chơi
             clone: msg.clone === 0 || msg.clone === 1 ? msg.clone : null,
           });
           break;
@@ -208,7 +217,9 @@ wss.on('connection', (ws) => {
           const target = players.get(msg.targetId);
           if (!target || target.isDead) return;
 
-          const dmg = Math.min(99999, Math.max(5, Math.round(Number(msg.damage) || 30)));
+          const rawDmg = Math.min(99999, Math.max(5, Math.round(Number(msg.damage) || 30)));
+          const dmgReduction = rawDmg >= 90000 ? 0 : (ROLE_DMG_REDUCTION[target.outfit] || 0);
+          const dmg = Math.max(5, Math.round(rawDmg * (1.0 - dmgReduction)));
           target.hp = Math.max(0, target.hp - dmg);
 
           // Broadcast cho toàn phòng biết mục tiêu bị dính sát thương
