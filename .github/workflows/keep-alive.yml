@@ -1,0 +1,15 @@
+name: Keep Render Server Alive
+
+on:
+  schedule:
+    # Tự động ping mỗi 10 phút để server Render không bao giờ rơi vào trạng thái ngủ đông
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Server Health Check
+        run: |
+          curl -s -f https://cute-lowpoly-game.onrender.com/ || echo "Ping failed, will retry next run"
