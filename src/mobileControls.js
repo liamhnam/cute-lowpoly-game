@@ -42,6 +42,21 @@ export class MobileControlsManager {
     // Trạng thái Auto-fire cho nút Pháp Kích khi giữ ngón tay
     this.isShootingHeld = false;
 
+    // Giữ nút Pháp Kích rồi rê ngón tay để ngắm/xoay camera cùng lúc
+    this.shootTouchId = null;
+    this.shootTouchPrev = { x: 0, y: 0 };
+
+    // Cài đặt camera cảm ứng (lưu lại giữa các lần chơi)
+    this.sensitivityLevels = [
+      { label: 'THẤP', value: 0.0038 },
+      { label: 'VỪA', value: 0.0058 },
+      { label: 'CAO', value: 0.0085 },
+      { label: 'RẤT CAO', value: 0.012 },
+    ];
+    this.sensitivityIndex = this.loadSetting('camSensIndex', 1);
+    if (!this.sensitivityLevels[this.sensitivityIndex]) this.sensitivityIndex = 1;
+    this.autoFollowCamera = this.loadSetting('camAutoFollow', 1) === 1;
+
     // DOM Elements
     this.container = null;
     this.joystickZone = null;
@@ -59,6 +74,7 @@ export class MobileControlsManager {
     this.bindCameraTouchEvents();
     this.bindActionButtons();
     this.bindSkillSlotsTouch();
+    this.bindCameraSettings();
     this.setupOrientationHandler();
 
     // Cập nhật class trên document.body
@@ -284,6 +300,7 @@ export class MobileControlsManager {
           // Ngón đầu tiên trong vùng camera
           this.cameraTouchId = touch.identifier;
           this.cameraTouchPrev = { x: touch.clientX, y: touch.clientY };
+          this.syncCameraTouchState();
         } else if (this.pinchTouchIds === null) {
           // Ngón thứ hai bắt đầu pinch zoom
           this.pinchTouchIds = [this.cameraTouchId, touch.identifier];
@@ -325,7 +342,7 @@ export class MobileControlsManager {
           const deltaX = touch.clientX - this.cameraTouchPrev.x;
           const deltaY = touch.clientY - this.cameraTouchPrev.y;
 
-          const sensitivity = 0.0055;
+          const sensitivity = this.getSensitivity();
           if (this.controller) {
             this.controller.rotateCamera(-deltaX * sensitivity, deltaY * sensitivity);
           }
@@ -345,9 +362,15 @@ export class MobileControlsManager {
           this.pinchTouchIds = null;
         }
       }
+      this.syncCameraTouchState();
     };
 
     this.cameraZone.addEventListener('touchstart', onTouchStart, { passive: false });
+    // Vuốt ở BẤT KỲ chỗ trống nào trên màn hình (không phải nút/joystick) cũng xoay được camera
+    const canvas = this.controller && this.controller.domElement;
+    if (canvas && canvas !== this.cameraZone) {
+      canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+    }
     window.addEventListener('touchmove', onTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd, { passive: false });
     window.addEventListener('touchcancel', onTouchEnd, { passive: false });
@@ -368,6 +391,12 @@ export class MobileControlsManager {
         this.triggerHaptic(18);
         shootBtn.classList.add('pressed');
 
+        if (e.changedTouches && e.changedTouches.length > 0 && this.shootTouchId === null) {
+          const t = e.changedTouches[0];
+          this.shootTouchId = t.identifier;
+          this.shootTouchPrev = { x: t.clientX, y: t.clientY };
+        }
+
         if (this.controller) {
           this.controller.beginAttackHold();
         }
@@ -376,12 +405,35 @@ export class MobileControlsManager {
       const stopShooting = (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (e.changedTouches) {
+          const ended = Array.from(e.changedTouches).some(t => t.identifier === this.shootTouchId);
+          if (!ended) return;
+        }
+        this.shootTouchId = null;
+        this.syncCameraTouchState();
         shootBtn.classList.remove('pressed');
         if (this.controller) {
           this.controller.releaseAttackHold();
         }
       };
 
+      // Rê ngón tay đang giữ nút Pháp Kích để xoay camera (vừa đánh vừa ngắm)
+      const aimWhileShooting = (e) => {
+        if (this.shootTouchId === null) return;
+        const t = Array.from(e.changedTouches).find(tt => tt.identifier === this.shootTouchId);
+        if (!t) return;
+        e.preventDefault();
+        const dx = t.clientX - this.shootTouchPrev.x;
+        const dy = t.clientY - this.shootTouchPrev.y;
+        this.shootTouchPrev = { x: t.clientX, y: t.clientY };
+        if (this.controller) {
+          const sens = this.getSensitivity();
+          this.controller.rotateCamera(-dx * sens, dy * sens);
+        }
+        this.syncCameraTouchState(true);
+      };
+
+      shootBtn.addEventListener('touchmove', aimWhileShooting, { passive: false });
       shootBtn.addEventListener('touchstart', startShooting, { passive: false });
       shootBtn.addEventListener('touchend', stopShooting, { passive: false });
       shootBtn.addEventListener('touchcancel', stopShooting, { passive: false });
@@ -493,6 +545,74 @@ export class MobileControlsManager {
     // Cả màn hình ngang và dọc đều được hỗ trợ tự nhiên, không hiển thị banner che tầm nhìn
     const banner = document.getElementById('mobile-orientation-banner');
     if (banner) banner.style.display = 'none';
+  }
+
+  getSensitivity() {
+    return this.sensitivityLevels[this.sensitivityIndex].value;
+  }
+
+  // Báo cho controller biết người chơi đang tự xoay camera (tạm dừng camera tự bám theo)
+  syncCameraTouchState(force = false) {
+    if (!this.controller) return;
+    const active = force || this.cameraTouchId !== null || this.shootTouchId !== null;
+    this.controller.cameraTouchActive = active;
+    if (active) this.controller.lastManualCameraTime = performance.now();
+  }
+
+  loadSetting(key, fallback) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) return fallback;
+      const n = parseInt(raw, 10);
+      return Number.isFinite(n) ? n : fallback;
+    } catch (err) {
+      return fallback;
+    }
+  }
+
+  saveSetting(key, value) {
+    try {
+      localStorage.setItem(key, String(value));
+    } catch (err) {}
+  }
+
+  // Nút cài đặt: Độ nhạy vuốt camera & Camera tự bám theo hướng chạy
+  bindCameraSettings() {
+    if (this.controller) {
+      this.controller.autoFollowCamera = this.autoFollowCamera;
+    }
+
+    const sensBtn = document.getElementById('btn-cam-sens');
+    const sensTag = document.getElementById('cam-sens-tag');
+    const followBtn = document.getElementById('btn-cam-follow');
+    const followTag = document.getElementById('cam-follow-tag');
+
+    const render = () => {
+      if (sensTag) sensTag.textContent = this.sensitivityLevels[this.sensitivityIndex].label;
+      if (followTag) followTag.textContent = this.autoFollowCamera ? 'BẬT' : 'TẮT';
+      if (followBtn) followBtn.classList.toggle('active', this.autoFollowCamera);
+    };
+
+    if (sensBtn) {
+      sensBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.sensitivityIndex = (this.sensitivityIndex + 1) % this.sensitivityLevels.length;
+        this.saveSetting('camSensIndex', this.sensitivityIndex);
+        render();
+      });
+    }
+
+    if (followBtn) {
+      followBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.autoFollowCamera = !this.autoFollowCamera;
+        if (this.controller) this.controller.autoFollowCamera = this.autoFollowCamera;
+        this.saveSetting('camAutoFollow', this.autoFollowCamera ? 1 : 0);
+        render();
+      });
+    }
+
+    render();
   }
 
   triggerHaptic(ms = 15) {

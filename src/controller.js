@@ -63,6 +63,11 @@ export class ThirdPersonController {
     this.isTouchDragging = false;
     this.prevTouchPos = { x: 0, y: 0 };
 
+    // Camera tự xoay theo hướng chạy khi dùng cần gạt ảo (giúp người chơi điện thoại)
+    this.autoFollowCamera = false;
+    this.cameraTouchActive = false;
+    this.lastManualCameraTime = 0;
+
     this.initListeners();
   }
 
@@ -438,6 +443,20 @@ export class ThirdPersonController {
       if (worldMoveVector.length() > 1) {
         worldMoveVector.normalize();
       }
+    }
+
+    // Camera tự bám sau lưng khi chạy chéo/ngang bằng cần gạt (tạm dừng khi người chơi đang tự vuốt camera)
+    if (
+      this.autoFollowCamera &&
+      this.isMobileActive &&
+      !this.cameraTouchActive &&
+      performance.now() - this.lastManualCameraTime > 600 &&
+      this.joystickInput.lengthSq() > 0.04 &&
+      this.joystickInput.y > -0.35
+    ) {
+      const strength = Math.min(1, this.joystickInput.length());
+      const followRate = 1.5; // rad/s ở hướng ngang tối đa
+      this.yaw -= this.joystickInput.x * strength * followRate * delta;
     }
 
     const isSprinting = this.keys.sprint || this.joystickSprint;
