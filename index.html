@@ -55,6 +55,11 @@
       -webkit-user-select: none;
     }
 
+    html {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
     body, html {
       width: 100vw;
       height: 100vh;
@@ -976,6 +981,17 @@
       justify-content: center;
       padding: 16px;
       image-rendering: pixelated;
+    }
+
+    .desktop-mode-warning {
+      background: #5a1020;
+      border: 2px solid #ff4757;
+      color: #fff;
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      line-height: 1.4;
+      padding: 8px 10px;
+      margin-bottom: 8px;
     }
 
     /* Chặn tràn ngang & cho phép chạm/cuộn dọc trên iOS (không bị zoom lệch điểm chạm) */
@@ -1970,7 +1986,7 @@
     }
 
     /* 1. QUI TẮC CHUNG CHO THIẾT BỊ DI ĐỘNG (TABLET & MOBILE) */
-    @media (max-width: 900px), (max-height: 550px) {
+    @media (max-width: 900px), (max-height: 550px), (hover: none) and (pointer: coarse) {
       /* Ẩn thông tin thừa thãi làm vướng tầm nhìn */
       .quick-key-hints,
       .rpg-aux-slot,
@@ -2188,7 +2204,7 @@
     }
 
     /* 2. CHẾ ĐỘ MÀN HÌNH DỌC (PORTRAIT) */
-    @media (max-width: 768px) and (orientation: portrait), (max-width: 600px) {
+    @media (max-width: 768px) and (orientation: portrait), (max-width: 600px), (hover: none) and (pointer: coarse) and (orientation: portrait) and (max-width: 1100px) {
       .outfit-selector {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2221,7 +2237,7 @@
     }
 
     /* 3. CHẾ ĐỘ MÀN HÌNH NGANG (LANDSCAPE) */
-    @media (max-height: 520px) {
+    @media (max-height: 520px), (hover: none) and (pointer: coarse) and (orientation: landscape) and (max-width: 1100px) {
       .modal-box {
         width: 94vw;
         max-width: 760px;

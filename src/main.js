@@ -1034,6 +1034,24 @@ class Game {
     const btnPlayOffline = document.getElementById('btn-play-offline');
     const outfitCards = document.querySelectorAll('.outfit-card');
 
+    // Điện thoại đang mở ở chế độ "Yêu cầu trang web cho máy tính" (viewport ~980px):
+    // giao diện bị thu nhỏ, chạm dễ lệch -> nhắc người chơi tắt chế độ đó
+    try {
+      const isCoarseTouch = window.matchMedia('(hover: none) and (pointer: coarse)').matches ||
+        navigator.maxTouchPoints > 1;
+      const shortSide = Math.min(window.screen.width, window.screen.height);
+      const longSide = Math.max(window.screen.width, window.screen.height);
+      const isPortrait = window.innerHeight > window.innerWidth;
+      const expectedWidth = isPortrait ? shortSide : longSide;
+      if (loginModal && isCoarseTouch && shortSide < 600 && window.innerWidth > expectedWidth * 1.5) {
+        const warn = document.createElement('div');
+        warn.className = 'desktop-mode-warning';
+        warn.textContent = '⚠️ Trình duyệt đang ở chế độ "trang cho máy tính". Hãy bấm AA (hoặc ⋯) → "Yêu cầu trang web cho thiết bị di động" để chơi mượt hơn.';
+        const box = loginModal.querySelector('.modal-box');
+        if (box) box.prepend(warn);
+      }
+    } catch (err) {}
+
     const savedName = localStorage.getItem('playerName') || 'Hiệp Sĩ Bé Gấu';
     if (nameInput) nameInput.value = savedName;
 
