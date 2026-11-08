@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { hitStop, impactShake } from './feel.js';
 import { sound } from './audio.js';
 import { getTerrainHeight } from './world.js';
 import { getRoleCounterMultiplier } from './character.js';
@@ -250,6 +251,8 @@ export class ProjectileSystem {
     }
 
     let hitAny = false;
+    let hitAnyMonster = false;
+    let heavyHit = false;
     for (const monster of monsters || []) {
       if (monster.isDead) continue;
       const dx = monster.position.x - center.x;
@@ -279,13 +282,17 @@ export class ProjectileSystem {
 
       const finalDamage = Math.round(baseDamage * counterMult * backstabMult);
       monster.takeDamage(finalDamage, hitPos);
-      if (effectiveKnockback > 0) monster.knockback(center, effectiveKnockback);
+      // Bước 4 - Đẩy lùi: nhát nào trúng cũng hất nhẹ (đòn kết combo hất mạnh như cũ)
+      monster.knockback(center, effectiveKnockback > 0 ? effectiveKnockback : 3.2);
+      if (backstabMult > 1 || counterMult > 1.05) heavyHit = true;
+      if (styleName === 'thrust') heavyHit = true;
 
       if (this.particles) {
         this.particles.emitHitSparkles(hitPos, backstabMult > 1 ? 22 : 14);
         this.particles.emitShockwave(hitPos, backstabMult > 1 ? 0xff00ff : slashColor, backstabMult > 1 ? 3.4 : 2.5, 0.25);
       }
       hitAny = true;
+      hitAnyMonster = true;
     }
 
     // PvP: người chơi khác trong cùng hình quạt
@@ -327,7 +334,13 @@ export class ProjectileSystem {
     }
 
     if (hitAny) {
-      sound.playHit();
+      // Bước 2 + 5: tiếng WHACK đúng khung hình va chạm, rung màn hình & đóng băng vài khung hình KHI TRÚNG
+      const hitMonster = hitAnyMonster;
+      sound.playImpact(heavyHit ? 1.0 : 0.55);
+      if (hitMonster && sourceCharacter && sourceCharacter.pixelFX?.localCharacter === sourceCharacter) {
+        hitStop(heavyHit ? 0.085 : 0.045);
+        impactShake(heavyHit ? 0.22 : 0.12);
+      }
       // 🔥 Cuồng Chiến Đấu Sĩ: Hút máu mỗi đòn cận chiến (Nhân đôi khi máu < 50%)
       if (sectStats?.lifesteal > 0 && sourceCharacter) {
         const lowHpBonus = (sourceCharacter.hp < sourceCharacter.maxHp * 0.5) ? 2.0 : 1.0;

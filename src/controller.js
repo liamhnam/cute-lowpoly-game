@@ -286,7 +286,8 @@ export class ThirdPersonController {
     this.character.triggerSlashAnimation(Math.atan2(forward.x, forward.z), step);
     const dashDist = (this.character.sectStats?.dashDist !== undefined) ? this.character.sectStats.dashDist : 1.6;
     if (step === 2 && !this.character.sectStats?.isRangedBasic) this.character.startDash(forward, dashDist, 0.15); // Nhát đâm lướt tới (chỉ cận chiến)
-    this.addTrauma(step === 2 ? 0.16 : 0.08); // Rung nhẹ tạo cảm giác đầm tay
+    // Rung chủ yếu khi TRÚNG đòn (feel.js); lúc vung chỉ rung rất nhẹ để chém trượt không bị "giả lực"
+    this.addTrauma(step === 2 ? 0.06 : 0.0);
 
     if (this.onShoot) {
       this.onShoot(this.getAttackOrigin(), forward, step);

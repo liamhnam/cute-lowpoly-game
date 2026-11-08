@@ -14,6 +14,7 @@ import { NetworkManager } from './network.js';
 import { RemotePlayer } from './remotePlayer.js';
 import { CloneManager } from './clones.js';
 import { AutoFarm } from './autoFarm.js';
+import { hitStop, consumeHitStop, setShakeHook } from './feel.js';
 
 class Game {
   constructor() {
@@ -382,6 +383,9 @@ class Game {
       };
 
       monster.onDefeated = (m) => {
+        // Khựng lại khoảnh khắc hạ gục cho đã tay (Boss khựng lâu hơn)
+        hitStop(m.isBoss ? 0.22 : (m.isLarge ? 0.1 : 0.06));
+        if (m.isBoss || m.isLarge) this.controller.addTrauma(m.isBoss ? 0.5 : 0.25);
         this.monstersDefeated += m.isBoss ? 5 : (m.isLarge ? 2 : 1);
         if (m.isBoss) {
           this.onBossDefeated(m);
@@ -1035,6 +1039,8 @@ class Game {
       });
     }
 
+    setShakeHook((amount) => this.controller.addTrauma(amount));
+
     // Tự Động Trảm Yêu (Auto Farm PvE): nút AUTO trên HUD hoặc phím T
     this.autoFarm = new AutoFarm(this);
     const autoBtn = document.getElementById('btn-auto-farm');
@@ -1475,7 +1481,9 @@ class Game {
   animate() {
     requestAnimationFrame(() => this.animate());
 
-    const delta = Math.min(this.clock.getDelta(), 0.1);
+    // Hitstop: đóng băng thời gian game vài khung hình khi đòn trúng / hạ quái (vẫn vẽ hình bình thường)
+    const realDelta = Math.min(this.clock.getDelta(), 0.1);
+    const delta = realDelta * consumeHitStop(realDelta);
     const elapsedTime = this.clock.getElapsedTime();
 
     // Hồi phục Linh Lực tự nhiên (8 linh lực / giây)

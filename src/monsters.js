@@ -2003,6 +2003,7 @@ export class Monster {
 
     this.hp = Math.max(0, this.hp - finalAmount);
     this.hitFlashTimer = 0.18;
+    this.whiteFlashTimer = 0.07; // Bước 1 - Chớp TRẮNG vài khung hình ngay lúc trúng, sau đó ửng đỏ
     // Quái nhỏ bị giật lùi mạnh khi trúng đòn, quái lớn chỉ nhúc nhích nhẹ vì sức nặng
     if (this.torso && !this.attackAnimType) {
       this.torso.position.z -= this.isSmall ? 0.42 : 0.12;
@@ -2089,6 +2090,8 @@ export class Monster {
     this.pendingStrikeCallback = null;
     this.secondaryStrikeCallback = null;
     this.respawnTimer = this.config.respawnTime;
+    this.popTimer = 0;      // Bonus - phồng lên rồi NỔ BỤP như bong bóng
+    this.popped = false;
     this.clearActiveEffects();
     this.removeBossShield();
     this.guardTimer = 0;
@@ -3956,8 +3959,26 @@ export class Monster {
     // 3. Xử lý trạng thái CHẾT & Hồi sinh
     if (this.isDead) {
       this.respawnTimer -= delta;
-      this.model.rotation.x = THREE.MathUtils.lerp(this.model.rotation.x, -Math.PI / 2.2, delta * 5);
-      this.model.scale.multiplyScalar(0.96);
+      if (!this.popped && this.popTimer !== undefined) {
+        // Phồng to & trắng xoá trong tích tắc rồi nổ bung thành hạt
+        const inflate = this.isBoss ? 0.28 : (this.isLarge ? 0.16 : 0.11);
+        this.popTimer += delta;
+        const k = Math.min(1, this.popTimer / inflate);
+        this.model.scale.setScalar(this.baseModelScale * (1 + 0.32 * k * k));
+        for (const mat of this.damageableMaterials) {
+          if (mat.emissive) mat.emissive.setHex(0xffffff);
+        }
+        if (k >= 1) {
+          this.popped = true;
+          this.model.visible = false;
+          const c = this.position.clone().add(new THREE.Vector3(0, this.hitHeight * 0.45, 0));
+          const color = this.config.barColor || 0xffffff;
+          const n = this.isBoss ? 70 : (this.isLarge ? 40 : 24);
+          this.particles.emitElementalParticles(c, n, [color, 0xffffff, color], [5, this.isBoss ? 16 : 11], 0.7, 7.0, this.isLarge ? 1.4 : 1.0);
+          this.particles.emitShockwave(c, color, this.isBoss ? 14 : (this.isLarge ? 8 : 4.5), 0.35);
+          sound.playPop?.(this.isLarge);
+        }
+      }
       this.healthBarGroup.visible = false;
       // Ẩn vệt bóng dưới chân để không để lại vết tối trên mặt đất khi quái đã chết / tan biến / chờ giáng thế
       if (this.contactShadow) this.contactShadow.visible = false;
@@ -3986,7 +4007,13 @@ export class Monster {
     }
 
     // 5. Hiệu ứng nhấp nháy khi bị trúng đòn hoặc đang Cuồng Nộ
-    if (this.hitFlashTimer > 0) {
+    if (this.whiteFlashTimer > 0) {
+      this.whiteFlashTimer -= delta;
+      this.hitFlashTimer -= delta;
+      for (const mat of this.damageableMaterials) {
+        if (mat.emissive) mat.emissive.setHex(0xffffff);
+      }
+    } else if (this.hitFlashTimer > 0) {
       this.hitFlashTimer -= delta;
       for (const mat of this.damageableMaterials) {
         if (mat.emissive) mat.emissive.setHex(0xff3333);

@@ -78,6 +78,85 @@ class SoundManager {
     osc.stop(now + 0.16);
   }
 
+  // Tiếng "WHACK" đòn trúng nhiều lớp: lực đập trầm + tiếng va giòn (nhiễu lọc) + click đầu đòn.
+  // strength 0..1 (đòn thường ~0.55, đòn kết/chí mạng 1.0); cao độ ngẫu nhiên nhẹ để không bị lặp nhàm.
+  playImpact(strength = 0.6) {
+    if (this.muted || !this.ctx) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const pitch = 0.9 + Math.random() * 0.2;
+    const out = ctx.createGain();
+    out.gain.value = 0.6 + strength * 0.4;
+    out.connect(ctx.destination);
+
+    // 1. Lực đập trầm (thump)
+    const thump = ctx.createOscillator();
+    const tg = ctx.createGain();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(170 * pitch, now);
+    thump.frequency.exponentialRampToValueAtTime(42, now + 0.12 + strength * 0.06);
+    tg.gain.setValueAtTime(0.42, now);
+    tg.gain.exponentialRampToValueAtTime(0.001, now + 0.16 + strength * 0.08);
+    thump.connect(tg);
+    tg.connect(out);
+    thump.start(now);
+    thump.stop(now + 0.26);
+
+    // 2. Tiếng va giòn (nhiễu trắng qua lọc dải)
+    if (!this._noiseBuf) {
+      const len = Math.floor(ctx.sampleRate * 0.25);
+      this._noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = this._noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = this._noiseBuf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(2400 * pitch, now);
+    bp.frequency.exponentialRampToValueAtTime(700, now + 0.09);
+    bp.Q.value = 1.1;
+    const ng = ctx.createGain();
+    ng.gain.setValueAtTime(0.32 + strength * 0.2, now);
+    ng.gain.exponentialRampToValueAtTime(0.001, now + 0.07 + strength * 0.05);
+    noise.connect(bp);
+    bp.connect(ng);
+    ng.connect(out);
+    noise.start(now);
+    noise.stop(now + 0.15);
+
+    // 3. Click sắc đầu đòn
+    const click = ctx.createOscillator();
+    const cg = ctx.createGain();
+    click.type = 'square';
+    click.frequency.setValueAtTime(900 * pitch, now);
+    click.frequency.exponentialRampToValueAtTime(200, now + 0.03);
+    cg.gain.setValueAtTime(0.12, now);
+    cg.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+    click.connect(cg);
+    cg.connect(out);
+    click.start(now);
+    click.stop(now + 0.04);
+  }
+
+  // Tiếng "bụp" nổ bong bóng khi quái hết máu
+  playPop(big = false) {
+    if (this.muted || !this.ctx) return;
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(big ? 260 : 520, now);
+    osc.frequency.exponentialRampToValueAtTime(big ? 60 : 140, now + 0.09);
+    g.gain.setValueAtTime(big ? 0.4 : 0.3, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.14);
+  }
+
   playHit() {
     if (this.muted || !this.ctx) return;
     const now = this.ctx.currentTime;
