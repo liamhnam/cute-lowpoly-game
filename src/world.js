@@ -54,6 +54,8 @@ export class World {
     this.banners = [];
     this.lotusPads = [];
     this.braziers = [];
+    this.floatingLanterns = [];
+    this.animatedBells = [];
 
     // Mảng quản lý các bộ phận nhà có thể phá hủy từng phần (MODULAR BUILDING DESTRUCTION)
     this.buildingParts = [];
@@ -114,7 +116,19 @@ export class World {
     // 10. Đạo Cụ Sinh Hoạt Phố Cổ: Phố Rèn Than Lửa, Xe Kéo Hàng, Bia Rùa Đá, Bàn Cờ
     this.createLivingStreetDetails();
 
-    // 11. Cập nhật toàn bộ toạ độ AABB thế giới cho mọi khối công trình phá hủy được
+    // 11. Quảng Trường Hoàng Cung: Chu Tước Bài Phường, Ngự Đạo Bài Phường, Cửu Long Bích, Lư Hương Đồng & Trụ Biểu Hoa Biểu
+    this.createImperialPlazasAndPailou();
+
+    // 12. Võ Đài Tỉ Võ Thiên Kiếm, Đại Cổ Trận, Bù Nhìn Rơm, Đại Hồng Chung & Lò Luyện Đan Bát Quái
+    this.createMartialArenaAndCultivation();
+
+    // 13. Cảnh Quan Cổ Phong: Rừng Phong Lá Đỏ, Giàn Hoa Tử Đằng Rủ & Ghềnh Đá Thủy Thạch
+    this.createRedMaplesAndScenicLandscape();
+
+    // 14. Đèn Hoa Đăng Kênh Đào, Tượng Thị Vệ Giáp Trụ Hoàng Cung & Chiến Lũy Chông Gỗ
+    this.createFloatingLanternsAndPalaceGuards();
+
+    // 15. Cập nhật toàn bộ toạ độ AABB thế giới cho mọi khối công trình phá hủy được
     this.refreshBuildingPartsBounds();
   }
 
@@ -2742,6 +2756,989 @@ export class World {
     this.scene.add(this.streetDetailsGroup);
   }
 
+  // --- 11. QUẢNG TRƯỜNG HOÀNG CUNG: CHU TƯỚC BÀI PHƯỜNG, NGỰ ĐẠO BÀI PHƯỜNG, CỬU LONG BÍCH, LƯ HƯƠNG ĐỒNG & TRỤ BIỂU HOA BIỂU ---
+  createImperialPlazasAndPailou() {
+    this.imperialPlazaGroup = new THREE.Group();
+
+    const stoneBaseMat = new THREE.MeshStandardMaterial({ color: 0xdcdde1, flatShading: true, roughness: 0.7 });
+    const whiteMarbleMat = new THREE.MeshStandardMaterial({ color: 0xf5f6fa, flatShading: true, roughness: 0.5 });
+    const redLacquerMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true, roughness: 0.45 });
+    const goldRoofMat = new THREE.MeshStandardMaterial({ color: 0xf39c12, flatShading: true, roughness: 0.35, metalness: 0.35 });
+    const jadeRoofMat = new THREE.MeshStandardMaterial({ color: 0x16a085, flatShading: true, roughness: 0.4, metalness: 0.2 });
+    const goldPlateMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.85, roughness: 0.2 });
+    const bronzeDingMat = new THREE.MeshStandardMaterial({ color: 0x795548, metalness: 0.7, roughness: 0.35 });
+    const emberGlowMat = new THREE.MeshBasicMaterial({ color: 0xff3838 });
+    const darkWoodMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, flatShading: true, roughness: 0.7 });
+
+    // Helper tạo Bài Phường Tứ Trụ Tam Lầu (4-Pillar 3-Eave Grand Pailou)
+    const buildGrandPailou = (pz, roofMat, nameId) => {
+      const pailouGroup = new THREE.Group();
+      pailouGroup.position.set(0, 0, pz);
+
+      const pillarSpecs = [
+        { x: -6.8, h: 6.2, r: 0.4 },
+        { x: -2.4, h: 7.8, r: 0.45 },
+        { x: 2.4, h: 7.8, r: 0.45 },
+        { x: 6.8, h: 6.2, r: 0.4 }
+      ];
+
+      pillarSpecs.forEach((p, idx) => {
+        // Chân tảng đá hoa cương chạm cánh sen
+        const plinth = new THREE.Mesh(new THREE.CylinderGeometry(p.r + 0.22, p.r + 0.32, 0.9, 8), stoneBaseMat);
+        plinth.position.set(p.x, 0.45, 0);
+        plinth.castShadow = true;
+        pailouGroup.add(plinth);
+
+        // Thân cột gỗ sơn son
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(p.r * 0.92, p.r, p.h, 8), redLacquerMat);
+        col.position.set(p.x, 0.9 + p.h / 2, 0);
+        col.castShadow = true;
+        pailouGroup.add(col);
+        this.registerBuildingPart(col, 95, 'pillar', 'wood', `${nameId}_col_${idx}`);
+
+        // Đấu củng đỡ mái trên đầu cột
+        const bracket = new THREE.Mesh(new THREE.BoxGeometry(p.r * 2.8, 0.45, p.r * 2.8), darkWoodMat);
+        bracket.position.set(p.x, 0.9 + p.h + 0.2, 0);
+        pailouGroup.add(bracket);
+      });
+
+      // Xà ngang gian giữa & 2 gian bên
+      const centerBeam = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.65, 0.6), redLacquerMat);
+      centerBeam.position.set(0, 6.6, 0);
+      pailouGroup.add(centerBeam);
+      this.registerBuildingPart(centerBeam, 80, 'eave', 'wood', `${nameId}_beam_c`);
+
+      for (const side of [-1, 1]) {
+        const sideBeam = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.55, 0.5), redLacquerMat);
+        sideBeam.position.set(side * 4.6, 5.2, 0);
+        pailouGroup.add(sideBeam);
+        this.registerBuildingPart(sideBeam, 70, 'eave', 'wood', `${nameId}_beam_s_${side}`);
+      }
+
+      // Biển ngạch đề chữ dát vàng ở gian chính giữa
+      const signBoard = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.25, 0.22), darkWoodMat);
+      signBoard.position.set(0, 7.6, 0);
+      pailouGroup.add(signBoard);
+
+      const signInner = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.95, 0.26), goldPlateMat);
+      signInner.position.set(0, 7.6, 0);
+      pailouGroup.add(signInner);
+
+      // Mái ngói gian giữa (cao nhất)
+      const centerRoof = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.85, 2.6), roofMat);
+      centerRoof.position.set(0, 8.8, 0);
+      centerRoof.castShadow = true;
+      pailouGroup.add(centerRoof);
+      this.registerBuildingPart(centerRoof, 100, 'eave', 'tile', `${nameId}_roof_c`);
+
+      // Mái ngói 2 gian bên (thấp hơn)
+      for (const side of [-1, 1]) {
+        const sideRoof = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.75, 2.2), roofMat);
+        sideRoof.position.set(side * 4.6, 7.1, 0);
+        sideRoof.castShadow = true;
+        pailouGroup.add(sideRoof);
+        this.registerBuildingPart(sideRoof, 85, 'eave', 'tile', `${nameId}_roof_s_${side}`);
+
+        // Đèn lồng đỏ treo dưới mái hiên bài phường
+        const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.38, 6, 6), redLacquerMat);
+        lantern.position.set(side * 4.6, 6.2, 0);
+        pailouGroup.add(lantern);
+
+        const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.12, 0.45, 6), goldPlateMat);
+        tassel.position.set(side * 4.6, 5.8, 0);
+        pailouGroup.add(tassel);
+      }
+
+      this.imperialPlazaGroup.add(pailouGroup);
+    };
+
+    // A. Chu Tước Bài Phường (Cổng Nam đại lộ Chu Tước)
+    buildGrandPailou(-94, goldRoofMat, 'chutuoc_pailou');
+
+    // B. Ngự Đạo Bài Phường (Lối vào Hoàng Cung)
+    buildGrandPailou(24, jadeRoofMat, 'ngudao_pailou');
+
+    // C. Cửu Long Bích (Nine Dragon Screen Wall) tại trục chính Hoàng Cung (z = 36)
+    const screenWallGroup = new THREE.Group();
+    screenWallGroup.position.set(0, 0, 36);
+
+    // Bệ đá sen hoa cương 2 cấp
+    const basePedestal1 = new THREE.Mesh(new THREE.BoxGeometry(16.8, 0.5, 2.4), stoneBaseMat);
+    basePedestal1.position.y = 0.25;
+    screenWallGroup.add(basePedestal1);
+
+    const basePedestal2 = new THREE.Mesh(new THREE.BoxGeometry(16.0, 0.45, 1.8), whiteMarbleMat);
+    basePedestal2.position.y = 0.72;
+    screenWallGroup.add(basePedestal2);
+
+    // Thân bức bình phong
+    const wallBody = new THREE.Mesh(new THREE.BoxGeometry(15.2, 3.2, 1.1), stoneBaseMat);
+    wallBody.position.y = 2.55;
+    wallBody.castShadow = true;
+    screenWallGroup.add(wallBody);
+    this.registerBuildingPart(wallBody, 220, 'wall', 'masonry', 'nine_dragon_wall');
+
+    // 9 Khối phù điêu rồng ngọc 9 màu rực rỡ
+    const dragonColors = [
+      0x2980b9, 0xf39c12, 0x27ae60, 0xc0392b, 0x8e44ad,
+      0xecf0f1, 0xd35400, 0x16a085, 0xf1c40f
+    ];
+    for (let d = 0; d < 9; d++) {
+      const dx = -6.0 + d * 1.5;
+      const dMat = new THREE.MeshStandardMaterial({
+        color: dragonColors[d],
+        metalness: 0.4,
+        roughness: 0.35,
+        flatShading: true
+      });
+      // Thân rồng uốn lượn low-poly
+      const dragonBody = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.16, 6, 8, Math.PI * 1.3), dMat);
+      dragonBody.position.set(dx, 2.55, -0.6);
+      dragonBody.rotation.z = (d % 2 === 0 ? 0.4 : -0.4);
+      screenWallGroup.add(dragonBody);
+
+      // Đầu rồng ngậm ngọc
+      const dHead = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.35, 5), dMat);
+      dHead.position.set(dx + 0.3, 2.9, -0.62);
+      dHead.rotation.z = -Math.PI / 4;
+      screenWallGroup.add(dHead);
+    }
+
+    // Mái ngói lưu ly vàng che đỉnh Cửu Long Bích
+    const wallRoof = new THREE.Mesh(new THREE.BoxGeometry(16.4, 0.75, 2.2), goldRoofMat);
+    wallRoof.position.y = 4.45;
+    wallRoof.castShadow = true;
+    screenWallGroup.add(wallRoof);
+    this.registerBuildingPart(wallRoof, 110, 'eave', 'tile', 'nine_dragon_roof');
+
+    this.imperialPlazaGroup.add(screenWallGroup);
+
+    // D. Lư Hương Đồng Khổng Lồ (Imperial Bronze Ding Incense Burner) tại z = 48
+    const dingGroup = new THREE.Group();
+    dingGroup.position.set(0, 0, 48);
+
+    // 3 Chân đỉnh vạc thú đồng
+    for (let leg = 0; leg < 3; leg++) {
+      const angle = (leg * Math.PI * 2) / 3;
+      const legMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.12, 0.85, 6), bronzeDingMat);
+      legMesh.position.set(Math.sin(angle) * 0.9, 0.42, Math.cos(angle) * 0.9);
+      legMesh.rotation.z = Math.sin(angle) * 0.2;
+      legMesh.rotation.x = Math.cos(angle) * 0.2;
+      dingGroup.add(legMesh);
+    }
+
+    // Thân đỉnh vạc tròn chạm khắc
+    const dingBody = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.1, 1.35, 12), bronzeDingMat);
+    dingBody.position.y = 1.35;
+    dingBody.castShadow = true;
+    dingGroup.add(dingBody);
+
+    // Vành quai đỉnh vạc vươn cao
+    for (const side of [-1, 1]) {
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.9, 0.4), bronzeDingMat);
+      handle.position.set(side * 1.55, 2.1, 0);
+      dingGroup.add(handle);
+    }
+
+    // Lớp tro hương & than hồng
+    const ashBed = new THREE.Mesh(new THREE.CylinderGeometry(1.35, 1.35, 0.2, 12), new THREE.MeshStandardMaterial({
+      color: 0x7f8c8d, roughness: 0.95, flatShading: true
+    }));
+    ashBed.position.y = 1.95;
+    dingGroup.add(ashBed);
+
+    // 3 Nén hương lớn nghi ngút đốm đỏ
+    for (let ins = -1; ins <= 1; ins++) {
+      const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 5), darkWoodMat);
+      stick.position.set(ins * 0.35, 2.9, 0);
+      dingGroup.add(stick);
+
+      const ember = new THREE.Mesh(new THREE.SphereGeometry(0.07, 4, 4), emberGlowMat);
+      ember.position.set(ins * 0.35, 4.0, 0);
+      dingGroup.add(ember);
+    }
+
+    const dingLight = new THREE.PointLight(0xff7675, 1.4, 5.5);
+    dingLight.position.set(0, 2.5, 0);
+    dingGroup.add(dingLight);
+    this.lanternLights.push(dingLight);
+
+    this.imperialPlazaGroup.add(dingGroup);
+
+    this.rocks.push({
+      mesh: dingGroup,
+      pos: new THREE.Vector3(0, 1.3, 48),
+      scale: new THREE.Vector3(1, 1, 1),
+      radius: 1.8,
+      hp: 160,
+      isBroken: false,
+    });
+
+    // E. Đôi Trụ Biểu Hoa Biểu (Huabiao Dragon Columns) flanking the grand axis (x: -9, 9, z: 44)
+    for (const side of [-9, 9]) {
+      const huabiaoGroup = new THREE.Group();
+      huabiaoGroup.position.set(side, 0, 44);
+
+      // Bệ bát giác chạm cánh sen
+      const hBase = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.05, 0.9, 8), whiteMarbleMat);
+      hBase.position.y = 0.45;
+      hBase.castShadow = true;
+      huabiaoGroup.add(hBase);
+
+      // Thân cột trụ đá cẩm thạch trắng
+      const hCol = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 8.2, 10), whiteMarbleMat);
+      hCol.position.y = 4.95;
+      hCol.castShadow = true;
+      huabiaoGroup.add(hCol);
+      this.registerBuildingPart(hCol, 150, 'pillar', 'masonry', `huabiao_${side > 0 ? 'r' : 'l'}`);
+
+      // Vân bản (Bản mây bay ngang thân cột)
+      const cloudWing = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.55, 0.14), whiteMarbleMat);
+      cloudWing.position.set(0, 7.8, 0);
+      huabiaoGroup.add(cloudWing);
+
+      // Đĩa Thừa Lộ Bàn hứng sương trời
+      const dewdish = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.62, 0.22, 10), whiteMarbleMat);
+      dewdish.position.y = 9.15;
+      huabiaoGroup.add(dewdish);
+
+      // Linh thú Hống (Denglong) ngồi chầu trên đĩa
+      const beast = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.48), whiteMarbleMat);
+      beast.position.set(0, 9.55, 0);
+      huabiaoGroup.add(beast);
+
+      this.imperialPlazaGroup.add(huabiaoGroup);
+    }
+
+    this.scene.add(this.imperialPlazaGroup);
+  }
+
+  // --- 12. VÕ ĐÀI TỈ VÕ THIÊN KIẾM, ĐẠI CỔ TRẬN, BÙ NHÌN RƠM, ĐẠI HỒNG CHUNG & LÒ BÁT QUÁI ---
+  createMartialArenaAndCultivation() {
+    this.martialGroup = new THREE.Group();
+
+    const stonePlinthMat = new THREE.MeshStandardMaterial({ color: 0x57606f, flatShading: true, roughness: 0.8 });
+    const woodDeckMat = new THREE.MeshStandardMaterial({ color: 0xa0522d, flatShading: true, roughness: 0.7 });
+    const darkTimberMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true, roughness: 0.85 });
+    const ropeMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true, roughness: 0.6 });
+    const drumSkinMat = new THREE.MeshStandardMaterial({ color: 0xecf0f1, flatShading: true, roughness: 0.5 });
+    const goldStudMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.8, roughness: 0.3 });
+    const strawMat = new THREE.MeshStandardMaterial({ color: 0xf5cd79, flatShading: true, roughness: 0.95 });
+    const targetRedMat = new THREE.MeshStandardMaterial({ color: 0xe74c3c, flatShading: true });
+    const targetWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f6fa, flatShading: true });
+    const bronzeBellMat = new THREE.MeshStandardMaterial({ color: 0xcd6133, metalness: 0.75, roughness: 0.35, flatShading: true });
+    const cauldronMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.8, roughness: 0.3, flatShading: true });
+    const runePurpleMat = new THREE.MeshBasicMaterial({ color: 0xa55eea });
+
+    // A. Võ Đài Tỉ Võ Thiên Kiếm (Sparring Arena) tại x = -60, z = 24
+    const arenaPlatform = new THREE.Group();
+    arenaPlatform.position.set(-60, 0, 24);
+
+    // Bệ đá móng võ đài
+    const baseStone = new THREE.Mesh(new THREE.BoxGeometry(11.8, 0.9, 11.8), stonePlinthMat);
+    baseStone.position.y = 0.45;
+    baseStone.castShadow = true;
+    arenaPlatform.add(baseStone);
+    this.registerBuildingPart(baseStone, 180, 'wall', 'masonry', 'arena_base');
+
+    // Sàn ván gỗ lát võ đài
+    const woodFloor = new THREE.Mesh(new THREE.BoxGeometry(11.0, 0.25, 11.0), woodDeckMat);
+    woodFloor.position.y = 1.0;
+    arenaPlatform.add(woodFloor);
+    this.registerBuildingPart(woodFloor, 130, 'wall', 'wood', 'arena_deck');
+
+    // 4 Cột trụ góc gỗ lim bọc đai đồng
+    const cornerOffsets = [
+      { x: -5.1, z: -5.1 }, { x: 5.1, z: -5.1 },
+      { x: -5.1, z: 5.1 }, { x: 5.1, z: 5.1 }
+    ];
+
+    cornerOffsets.forEach((co, idx) => {
+      const cornerPost = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 2.2, 8), darkTimberMat);
+      cornerPost.position.set(co.x, 2.0, co.z);
+      cornerPost.castShadow = true;
+      arenaPlatform.add(cornerPost);
+      this.registerBuildingPart(cornerPost, 70, 'pillar', 'wood', `arena_post_${idx}`);
+
+      // Bát đồng bọc đỉnh cột
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.2, 8), goldStudMat);
+      cap.position.set(co.x, 3.15, co.z);
+      arenaPlatform.add(cap);
+    });
+
+    // 3 Tầng Dây thừng đỏ viền quanh 4 cạnh võ đài
+    for (let tier = 0; tier < 3; tier++) {
+      const ropeY = 1.45 + tier * 0.6;
+      for (const side of [-5.1, 5.1]) {
+        // Dây dọc trục Z
+        const ropeZ = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 10.2), ropeMat);
+        ropeZ.position.set(side, ropeY, 0);
+        arenaPlatform.add(ropeZ);
+
+        // Dây dọc trục X
+        const ropeX = new THREE.Mesh(new THREE.BoxGeometry(10.2, 0.08, 0.08), ropeMat);
+        ropeX.position.set(0, ropeY, side);
+        arenaPlatform.add(ropeX);
+      }
+    }
+
+    // 2 Lối cầu thang đá bước lên võ đài (Mặt Bắc & Mặt Nam)
+    for (const sz of [-5.9, 5.9]) {
+      const steps = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.9, 1.4), stonePlinthMat);
+      steps.position.set(0, 0.45, sz);
+      arenaPlatform.add(steps);
+    }
+
+    this.martialGroup.add(arenaPlatform);
+
+    // B. Đại Cổ Trận (Giant Battle Drum) tại x = -67, z = 24
+    const drumGroup = new THREE.Group();
+    drumGroup.position.set(-67, 0, 24);
+
+    // Giá đỡ gỗ chữ A
+    for (const sx of [-0.65, 0.65]) {
+      const leg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.4, 6), darkTimberMat);
+      leg1.position.set(sx, 1.1, -0.6);
+      leg1.rotation.x = -0.22;
+      drumGroup.add(leg1);
+
+      const leg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 2.4, 6), darkTimberMat);
+      leg2.position.set(sx, 1.1, 0.6);
+      leg2.rotation.x = 0.22;
+      drumGroup.add(leg2);
+    }
+
+    // Thân trống sơn đỏ son
+    const drumBody = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.1, 16), darkTimberMat);
+    drumBody.position.set(0, 1.7, 0);
+    drumBody.rotation.z = Math.PI / 2;
+    drumBody.castShadow = true;
+    drumGroup.add(drumBody);
+
+    // 2 Mặt da trống trâu già
+    for (const face of [-0.56, 0.56]) {
+      const drumFace = new THREE.Mesh(new THREE.CylinderGeometry(1.18, 1.18, 0.04, 16), drumSkinMat);
+      drumFace.position.set(face, 1.7, 0);
+      drumFace.rotation.z = Math.PI / 2;
+      drumGroup.add(drumFace);
+
+      // Đinh tán đồng viền quanh mặt trống
+      const studRing = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.04, 6, 16), goldStudMat);
+      studRing.position.set(face, 1.7, 0);
+      studRing.rotation.y = Math.PI / 2;
+      drumGroup.add(studRing);
+    }
+
+    this.martialGroup.add(drumGroup);
+    this.fences.push({
+      group: drumGroup,
+      mesh: drumBody,
+      pos: new THREE.Vector3(-67, 1.5, 24),
+      radius: 1.6,
+      hp: 60,
+      isBroken: false,
+    });
+
+    // C. Khu Bắn Cung & Bù Nhìn Rơm (Archery Range & Straw Combat Dummies) tại x = -60, z = 34
+    // 3 Bia bắn cung rơm đan
+    for (let arc = -1; arc <= 1; arc++) {
+      const targetGroup = new THREE.Group();
+      const ax = -60 + arc * 3.2;
+      targetGroup.position.set(ax, 0, 36.5);
+
+      // Giá 3 chân gỗ
+      for (let leg = 0; leg < 3; leg++) {
+        const la = (leg * Math.PI * 2) / 3;
+        const tripodLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 6), darkTimberMat);
+        tripodLeg.position.set(Math.sin(la) * 0.45, 0.75, Math.cos(la) * 0.45);
+        tripodLeg.rotation.z = Math.sin(la) * 0.25;
+        tripodLeg.rotation.x = Math.cos(la) * 0.25;
+        targetGroup.add(tripodLeg);
+      }
+
+      // Đĩa bia rơm tròn
+      const targetDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.68, 0.16, 12), strawMat);
+      targetDisc.position.set(0, 1.35, 0);
+      targetDisc.rotation.x = Math.PI / 2;
+      targetDisc.castShadow = true;
+      targetGroup.add(targetDisc);
+
+      // Vòng tròn hồng tâm đỏ trắng
+      const ringOuter = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.18, 12), targetRedMat);
+      ringOuter.position.set(0, 1.35, -0.01);
+      ringOuter.rotation.x = Math.PI / 2;
+      targetGroup.add(ringOuter);
+
+      const bullseye = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.2, 10), targetWhiteMat);
+      bullseye.position.set(0, 1.35, -0.02);
+      bullseye.rotation.x = Math.PI / 2;
+      targetGroup.add(bullseye);
+
+      // Mũi tên cắm ngập vào bia
+      const arrow = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 5), darkTimberMat);
+      arrow.position.set(0.1, 1.4, -0.32);
+      arrow.rotation.x = Math.PI / 2 + 0.1;
+      targetGroup.add(arrow);
+
+      this.martialGroup.add(targetGroup);
+      this.fences.push({
+        group: targetGroup,
+        mesh: targetDisc,
+        pos: new THREE.Vector3(ax, 1.2, 36.5),
+        radius: 0.9,
+        hp: 35,
+        isBroken: false,
+      });
+    }
+
+    // 2 Bù nhìn rơm luyện võ (Straw Combat Dummies)
+    for (const dmx of [-62, -58]) {
+      const dummyGroup = new THREE.Group();
+      dummyGroup.position.set(dmx, 0, 31);
+
+      // Cọc gỗ cắm đất
+      const centerPole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.1, 6), darkTimberMat);
+      centerPole.position.y = 1.05;
+      dummyGroup.add(centerPole);
+
+      // Thân mình bện rơm
+      const dummyBody = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.32, 1.1, 8), strawMat);
+      dummyBody.position.y = 1.3;
+      dummyBody.castShadow = true;
+      dummyGroup.add(dummyBody);
+
+      // Thanh đòn tay gỗ ngang
+      const dummyArms = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 1.3, 6), darkTimberMat);
+      dummyArms.position.set(0, 1.5, 0);
+      dummyArms.rotation.z = Math.PI / 2;
+      dummyGroup.add(dummyArms);
+
+      // Bao rơm 2 nắm đấm
+      for (const fistSide of [-0.62, 0.62]) {
+        const fist = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), strawMat);
+        fist.position.set(fistSide, 1.5, 0);
+        dummyGroup.add(fist);
+      }
+
+      // Đầu bọc rơm quấn dải lụa đỏ
+      const dummyHead = new THREE.Mesh(new THREE.SphereGeometry(0.24, 6, 6), strawMat);
+      dummyHead.position.set(0, 2.05, 0);
+      dummyGroup.add(dummyHead);
+
+      const headband = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.04, 4, 8), ropeMat);
+      headband.position.set(0, 2.08, 0);
+      headband.rotation.x = Math.PI / 2;
+      dummyGroup.add(headband);
+
+      this.martialGroup.add(dummyGroup);
+      this.fences.push({
+        group: dummyGroup,
+        mesh: dummyBody,
+        pos: new THREE.Vector3(dmx, 1.2, 31),
+        radius: 0.8,
+        hp: 40,
+        isBroken: false,
+      });
+    }
+
+    // D. Đại Hồng Chung (Giant Bronze Bell) treo tại lầu Tháp Chuông (bx = -48, bz = 40)
+    const bellGroup = new THREE.Group();
+    bellGroup.position.set(-48, 11.2, 40);
+
+    // Chuông đồng cổ ngàn năm
+    const giantBell = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 1.22, 2.3, 12), bronzeBellMat);
+    giantBell.position.y = 0;
+    giantBell.castShadow = true;
+    bellGroup.add(giantBell);
+
+    // Vành môi chuông & quai chuông chạm bồ lao
+    const bellLip = new THREE.Mesh(new THREE.TorusGeometry(1.22, 0.12, 6, 12), bronzeBellMat);
+    bellLip.position.y = -1.15;
+    bellLip.rotation.x = Math.PI / 2;
+    bellGroup.add(bellLip);
+
+    const bellCrown = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.1, 6, 8), bronzeBellMat);
+    bellCrown.position.y = 1.25;
+    bellGroup.add(bellCrown);
+
+    // Chày gỗ gióng chuông treo lơ lửng
+    const striker = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 2.1, 8), darkTimberMat);
+    striker.position.set(1.4, -0.3, 0);
+    striker.rotation.x = Math.PI / 2;
+    bellGroup.add(striker);
+
+    this.animatedBells.push({
+      mesh: giantBell,
+      striker: striker,
+      phase: Math.random() * Math.PI * 2
+    });
+
+    this.martialGroup.add(bellGroup);
+
+    // E. Lò Luyện Đan Bát Quái (Ba-Gua Alchemy Cauldron) tại x = -68, z = 85 (Linh Dược Các)
+    const cauldronGroup = new THREE.Group();
+    cauldronGroup.position.set(-68, 0, 85);
+
+    // 4 Chân vạc thú
+    for (let i = 0; i < 4; i++) {
+      const ca = (i * Math.PI) / 2 + Math.PI / 4;
+      const cLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.1, 0.8, 6), cauldronMat);
+      cLeg.position.set(Math.sin(ca) * 0.95, 0.4, Math.cos(ca) * 0.95);
+      cauldronGroup.add(cLeg);
+    }
+
+    // Thân lò bát quái 8 cạnh
+    const cBody = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.05, 1.45, 8), cauldronMat);
+    cBody.position.y = 1.35;
+    cBody.castShadow = true;
+    cauldronGroup.add(cBody);
+
+    // Nắp lò bát quái có ống thoát khói tiên
+    const cLid = new THREE.Mesh(new THREE.ConeGeometry(1.3, 0.85, 8), cauldronMat);
+    cLid.position.y = 2.45;
+    cauldronGroup.add(cLid);
+
+    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.6, 8), cauldronMat);
+    chimney.position.y = 3.0;
+    cauldronGroup.add(chimney);
+
+    // Lửa Tam Muội Chân Hỏa & Phù hiệu Bát Quái tím phát sáng
+    const runeRing = new THREE.Mesh(new THREE.TorusGeometry(1.15, 0.08, 4, 8), runePurpleMat);
+    runeRing.position.y = 1.5;
+    runeRing.rotation.x = Math.PI / 2;
+    cauldronGroup.add(runeRing);
+
+    const alchemyLight = new THREE.PointLight(0xa55eea, 1.8, 6.0);
+    alchemyLight.position.set(0, 1.8, 0);
+    cauldronGroup.add(alchemyLight);
+    this.lanternLights.push(alchemyLight);
+
+    // Giá phơi linh thảo bằng tre bên cạnh
+    const rack = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.1, 0.8), darkTimberMat);
+    rack.position.set(2.4, 0.55, 0);
+    cauldronGroup.add(rack);
+
+    this.martialGroup.add(cauldronGroup);
+
+    this.rocks.push({
+      mesh: cauldronGroup,
+      pos: new THREE.Vector3(-68, 1.5, 85),
+      scale: new THREE.Vector3(1, 1, 1),
+      radius: 1.8,
+      hp: 150,
+      isBroken: false,
+    });
+
+    this.scene.add(this.martialGroup);
+  }
+
+  // --- 13. CẢNH QUAN CỔ PHONG: RỪNG PHONG LÁ ĐỎ, GIÀN HOA TỬ ĐẰNG RỦ & GHỀNH ĐÁ THỦY THẠCH ---
+  createRedMaplesAndScenicLandscape() {
+    this.scenicGroup = new THREE.Group();
+
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, flatShading: true, roughness: 0.9 });
+    const redLeafMats = [
+      new THREE.MeshStandardMaterial({ color: 0xd63031, flatShading: true, roughness: 0.6 }),
+      new THREE.MeshStandardMaterial({ color: 0xe17055, flatShading: true, roughness: 0.6 }),
+      new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true, roughness: 0.6 })
+    ];
+    const fallenLeavesMat = new THREE.MeshBasicMaterial({ color: 0xb71540, side: THREE.DoubleSide });
+
+    const pergolaWoodMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, flatShading: true, roughness: 0.85 });
+    const vineMat = new THREE.MeshStandardMaterial({ color: 0x27ae60, flatShading: true, roughness: 0.7 });
+    const wisteriaMats = [
+      new THREE.MeshStandardMaterial({ color: 0x9b59b6, flatShading: true, roughness: 0.5 }),
+      new THREE.MeshStandardMaterial({ color: 0x8e44ad, flatShading: true, roughness: 0.5 }),
+      new THREE.MeshStandardMaterial({ color: 0xd980fa, flatShading: true, roughness: 0.5 })
+    ];
+    const stoneBenchMat = new THREE.MeshStandardMaterial({ color: 0xbdc3c7, flatShading: true, roughness: 0.65 });
+
+    const mossRockMat = new THREE.MeshStandardMaterial({ color: 0x2ecc71, flatShading: true, roughness: 0.9 });
+    const riverRockMat = new THREE.MeshStandardMaterial({ color: 0x485460, flatShading: true, roughness: 0.85 });
+
+    // A. 8 Cây Phong Lá Đỏ (Autumn Red Maples) rực rỡ khắp kinh thành
+    const mapleSpots = [
+      { x: 72, z: 76, s: 1.25 },   // Vườn Thanh Vân Thư Viện
+      { x: 84, z: 65, s: 1.05 },   // Góc Đông phủ đệ
+      { x: 44, z: -38, s: 1.2 },   // Cạnh Vọng Nguyệt Lầu & hồ sen
+      { x: 54, z: -48, s: 1.0 },   // Phố Đông Nam
+      { x: -18, z: 78, s: 1.15 },  // Bờ tây bắc kênh đào
+      { x: 18, z: -78, s: 1.15 },  // Bờ đông nam kênh đào
+      { x: -52, z: 16, s: 1.1 },   // Góc sân Thiên Kiếm Võ Quán
+      { x: 0, z: 122, s: 1.3 }     // Ngự Hoa Viên phía sau Hậu Cung
+    ];
+
+    mapleSpots.forEach((ms, idx) => {
+      const treeGroup = new THREE.Group();
+      const groundH = getTerrainHeight(ms.x, ms.z);
+      treeGroup.position.set(ms.x, groundH, ms.z);
+      treeGroup.scale.setScalar(ms.s);
+
+      // Thảm lá phong đỏ rụng trên mặt đất dưới gốc cây
+      const leafCarpet = new THREE.Mesh(new THREE.CircleGeometry(2.4, 8), fallenLeavesMat);
+      leafCarpet.rotation.x = -Math.PI / 2;
+      leafCarpet.position.y = 0.04;
+      treeGroup.add(leafCarpet);
+
+      // Thân cây phong gồ ghề uốn lượn phong trần
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.42, 3.8, 7), trunkMat);
+      trunk.position.y = 1.9;
+      trunk.rotation.z = (idx % 2 === 0 ? 0.08 : -0.08);
+      trunk.castShadow = true;
+      treeGroup.add(trunk);
+
+      // Cành nhánh chìa ngang
+      const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.18, 1.8, 6), trunkMat);
+      branch.position.set(0.6, 2.8, 0);
+      branch.rotation.z = -Math.PI / 4;
+      treeGroup.add(branch);
+
+      // 4 Tán lá phong đỏ hình nón đa giác xếp tầng
+      const canopySpecs = [
+        { y: 3.4, r: 1.8, h: 1.6, matIdx: 0, ox: 0, oz: 0 },
+        { y: 4.4, r: 1.5, h: 1.5, matIdx: 1, ox: 0.3, oz: -0.2 },
+        { y: 5.3, r: 1.1, h: 1.3, matIdx: 2, ox: -0.2, oz: 0.2 },
+        { y: 3.1, r: 1.1, h: 1.2, matIdx: 0, ox: 1.1, oz: 0.1 }
+      ];
+
+      canopySpecs.forEach((cs) => {
+        const fol = new THREE.Mesh(new THREE.ConeGeometry(cs.r, cs.h, 7), redLeafMats[cs.matIdx]);
+        fol.position.set(cs.ox, cs.y, cs.oz);
+        fol.castShadow = true;
+        treeGroup.add(fol);
+      });
+
+      this.scenicGroup.add(treeGroup);
+
+      this.trees.push({
+        group: treeGroup,
+        pos: new THREE.Vector3(ms.x, groundH, ms.z),
+        scale: ms.s,
+        hp: 55,
+        isBroken: false,
+        treeType: 'maple',
+        wobbleVel: 0,
+        wobbleAngle: 0,
+        wobbleAxis: new THREE.Vector3(1, 0, 0),
+      });
+    });
+
+    // B. 2 Giàn Hoa Tử Đằng (Purple Wisteria Pergolas)
+    const pergolaConfigs = [
+      { x: 22, z: -15, rotY: 0 },         // Trà Quán Cổ Phong bên bờ kênh
+      { x: -32, z: -55, rotY: Math.PI / 2 } // Phố Tơ Lụa Bình Khang
+    ];
+
+    pergolaConfigs.forEach((pc) => {
+      const pergolaGroup = new THREE.Group();
+      const pGroundH = getTerrainHeight(pc.x, pc.z);
+      pergolaGroup.position.set(pc.x, pGroundH, pc.z);
+      pergolaGroup.rotation.y = pc.rotY;
+
+      // 4 Cột gỗ trụ giàn hoa
+      const postCoords = [
+        { x: -1.8, z: -1.2 }, { x: 1.8, z: -1.2 },
+        { x: -1.8, z: 1.2 }, { x: 1.8, z: 1.2 }
+      ];
+      postCoords.forEach(pt => {
+        const pPost = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.8, 0.24), pergolaWoodMat);
+        pPost.position.set(pt.x, 1.4, pt.z);
+        pPost.castShadow = true;
+        pergolaGroup.add(pPost);
+      });
+
+      // Hệ xà ngang mái mắt cáo giàn gỗ
+      for (const bz of [-1.2, 1.2]) {
+        const beamL = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.2, 0.2), pergolaWoodMat);
+        beamL.position.set(0, 2.8, bz);
+        pergolaGroup.add(beamL);
+      }
+      for (let rx = -1.8; rx <= 1.8; rx += 0.72) {
+        const rafter = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 3.0), pergolaWoodMat);
+        rafter.position.set(rx, 2.95, 0);
+        pergolaGroup.add(rafter);
+      }
+
+      // Tán lá leo xanh mướt phủ đỉnh
+      const vineCanopy = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.35, 3.1), vineMat);
+      vineCanopy.position.set(0, 3.15, 0);
+      pergolaGroup.add(vineCanopy);
+
+      // 12 Chùm hoa tử đằng rủ buông dài duyên dáng
+      for (let w = 0; w < 12; w++) {
+        const wx = -1.6 + (w % 4) * 1.05 + (Math.random() - 0.5) * 0.2;
+        const wz = -1.0 + Math.floor(w / 4) * 0.95 + (Math.random() - 0.5) * 0.2;
+        const wMat = wisteriaMats[w % wisteriaMats.length];
+
+        const wFlower = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.75 + (w % 3) * 0.18, 6), wMat);
+        wFlower.position.set(wx, 2.4 - (w % 3) * 0.1, wz);
+        wFlower.rotation.x = Math.PI; // chúc đỉnh nón xuống dưới tạo thành chùm hoa rủ
+        pergolaGroup.add(wFlower);
+      }
+
+      // Bàn ghế đá ngồi ngắm cảnh dưới giàn hoa
+      const bench = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.45, 0.7), stoneBenchMat);
+      bench.position.set(0, 0.22, 0);
+      pergolaGroup.add(bench);
+
+      this.scenicGroup.add(pergolaGroup);
+
+      this.fences.push({
+        group: pergolaGroup,
+        mesh: bench,
+        pos: new THREE.Vector3(pc.x, pGroundH + 1.2, pc.z),
+        radius: 2.2,
+        hp: 75,
+        isBroken: false,
+      });
+    });
+
+    // C. 14 Thủy Thạch & Ghềnh Đá Cuội Rêu Phong (Mossy Canal Boulders)
+    const rockLocations = [
+      { x: -13.5, z: -100, s: 1.4 }, { x: 13.5, z: -85, s: 1.2 },
+      { x: -14.0, z: -60, s: 1.3 },  { x: 14.0, z: -35, s: 1.5 },
+      { x: -13.2, z: -10, s: 1.1 },  { x: 13.5, z: 12, s: 1.35 },
+      { x: -13.8, z: 45, s: 1.6 },   { x: 13.2, z: 68, s: 1.25 },
+      { x: -14.2, z: 92, s: 1.4 },   { x: 13.8, z: 105, s: 1.3 },
+      { x: -4.5, z: -45, s: 0.9 },   { x: 4.8, z: 25, s: 0.85 },
+      { x: -5.0, z: 75, s: 0.95 },   { x: 5.2, z: -90, s: 0.9 }
+    ];
+
+    rockLocations.forEach((rl) => {
+      const rockGroup = new THREE.Group();
+      const rY = (Math.abs(rl.x) < 8 ? -0.8 : 0.0); // ghềnh trong nước hoặc trên bờ cỏ
+      rockGroup.position.set(rl.x, rY, rl.z);
+      rockGroup.scale.set(rl.s, rl.s * 0.75, rl.s);
+
+      // Thân tảng đá cuội đa giác
+      const baseRock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85, 0), riverRockMat);
+      baseRock.castShadow = true;
+      rockGroup.add(baseRock);
+
+      // Mảng rêu phong xanh mướt trên đỉnh đá
+      const mossCap = new THREE.Mesh(new THREE.DodecahedronGeometry(0.65, 0), mossRockMat);
+      mossCap.position.y = 0.38;
+      mossCap.scale.set(0.9, 0.45, 0.9);
+      rockGroup.add(mossCap);
+
+      this.scenicGroup.add(rockGroup);
+
+      this.rocks.push({
+        mesh: rockGroup,
+        pos: new THREE.Vector3(rl.x, rY + 0.4, rl.z),
+        scale: new THREE.Vector3(rl.s, rl.s, rl.s),
+        radius: rl.s * 0.85,
+        hp: 75,
+        isBroken: false,
+      });
+    });
+
+    this.scene.add(this.scenicGroup);
+  }
+
+  // --- 14. ĐÈN HOA ĐĂNG KÊNH ĐÀO, TƯỢNG THỊ VỆ GIÁP TRỤ HOÀNG CUNG & CHIẾN LŨY CHÔNG GỖ ---
+  createFloatingLanternsAndPalaceGuards() {
+    this.waterAndGuardsGroup = new THREE.Group();
+
+    const lotusPinkMat = new THREE.MeshStandardMaterial({ color: 0xfd79a8, flatShading: true, roughness: 0.5 });
+    const lotusYellowMat = new THREE.MeshStandardMaterial({ color: 0xfffa65, flatShading: true, roughness: 0.4 });
+    const woodFloatMat = new THREE.MeshStandardMaterial({ color: 0x5d4037, flatShading: true, roughness: 0.8 });
+    const candleGlowMat = new THREE.MeshBasicMaterial({ color: 0xffa502 });
+
+    const stoneBaseMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, flatShading: true, roughness: 0.7 });
+    const sentinelArmorMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, metalness: 0.82, roughness: 0.32, flatShading: true });
+    const sentinelClothMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, flatShading: true, roughness: 0.65 });
+    const sentinelGoldMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.88, roughness: 0.22 });
+    const spearShaftMat = new THREE.MeshStandardMaterial({ color: 0x3d2714, flatShading: true });
+    const spearBladeMat = new THREE.MeshStandardMaterial({ color: 0xdcdde1, metalness: 0.9, roughness: 0.2 });
+
+    const palisadeWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true, roughness: 0.9 });
+    const ironBandMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, metalness: 0.75, roughness: 0.4 });
+
+    // A. 20 Đèn Hoa Đăng Cầu Nguyện thả trôi bồng bềnh dọc theo kênh đào
+    for (let i = 0; i < 20; i++) {
+      const flGroup = new THREE.Group();
+      const fz = -105 + i * 11.0 + (Math.sin(i * 3.7) * 2.5);
+      const fx = (Math.cos(i * 2.3) * 3.2);
+      const fBaseY = -0.92; // Mặt nước kênh đào tại y = -0.95
+      flGroup.position.set(fx, fBaseY, fz);
+
+      // Đế gỗ vuông nổi trên mặt nước
+      const floatPlate = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.05, 0.48), woodFloatMat);
+      flGroup.add(floatPlate);
+
+      // Cánh hoa đăng gấp giấy màu sen hồng & vàng kem
+      const petalMat = (i % 2 === 0 ? lotusPinkMat : lotusYellowMat);
+      for (let p = 0; p < 6; p++) {
+        const pa = (p * Math.PI * 2) / 6;
+        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.32, 4), petalMat);
+        petal.position.set(Math.sin(pa) * 0.18, 0.14, Math.cos(pa) * 0.18);
+        petal.rotation.y = pa;
+        petal.rotation.z = Math.sin(pa) * 0.35;
+        petal.rotation.x = Math.cos(pa) * 0.35;
+        flGroup.add(petal);
+      }
+
+      // Ngọn nến lung linh ở giữa hoa đăng
+      const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 6), candleGlowMat);
+      candle.position.y = 0.12;
+      flGroup.add(candle);
+
+      const flame = new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), candleGlowMat);
+      flame.position.y = 0.22;
+      flGroup.add(flame);
+
+      let pLight = null;
+      if (i % 4 === 0) {
+        pLight = new THREE.PointLight(0xffa502, 1.2, 4.5);
+        pLight.position.y = 0.3;
+        flGroup.add(pLight);
+        this.lanternLights.push(pLight);
+      }
+
+      this.waterAndGuardsGroup.add(flGroup);
+
+      this.floatingLanterns.push({
+        mesh: flGroup,
+        baseY: fBaseY,
+        baseZ: fz,
+        phase: Math.random() * Math.PI * 2,
+        light: pLight
+      });
+    }
+
+    // B. 8 Tượng Thị Vệ Giáp Trụ Hoàng Cung (Palace Sentinel Statues)
+    const guardCoords = [
+      // 4 Thị vệ tại Quảng trường Nam Môn (Chu Tước)
+      { x: -6.5, z: -86, rotY: 0 },
+      { x: 6.5, z: -86, rotY: 0 },
+      { x: -6.5, z: -102, rotY: 0 },
+      { x: 6.5, z: -102, rotY: 0 },
+      // 4 Thị vệ tại Thềm Rồng Đại Điện Hoàng Cung
+      { x: -9.0, z: 62, rotY: Math.PI / 2 },
+      { x: 9.0, z: 62, rotY: -Math.PI / 2 },
+      { x: -9.0, z: 78, rotY: Math.PI / 2 },
+      { x: 9.0, z: 78, rotY: -Math.PI / 2 }
+    ];
+
+    guardCoords.forEach((gc) => {
+      const guardGroup = new THREE.Group();
+      const gGroundH = getTerrainHeight(gc.x, gc.z);
+      guardGroup.position.set(gc.x, gGroundH, gc.z);
+      guardGroup.rotation.y = gc.rotY;
+
+      // Bệ đá hoa cương chạm khắc
+      const gBase = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.75, 1.15), stoneBaseMat);
+      gBase.position.y = 0.38;
+      gBase.castShadow = true;
+      guardGroup.add(gBase);
+
+      // Thân thị vệ: Chiến giáp & chiến bào son đỏ
+      const legs = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.9, 0.5), sentinelClothMat);
+      legs.position.y = 1.2;
+      guardGroup.add(legs);
+
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.78, 1.1, 0.58), sentinelArmorMat);
+      torso.position.y = 2.15;
+      torso.castShadow = true;
+      guardGroup.add(torso);
+
+      // Gương tâm hộ tâm kính bằng vàng giữa ngực
+      const heartMirror = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.08, 8), sentinelGoldMat);
+      heartMirror.position.set(0, 2.25, 0.31);
+      heartMirror.rotation.x = Math.PI / 2;
+      guardGroup.add(heartMirror);
+
+      // Giáp vai hộ kiên (Pauldrons)
+      for (const side of [-1, 1]) {
+        const shoulder = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.35, 0.45), sentinelArmorMat);
+        shoulder.position.set(side * 0.52, 2.55, 0);
+        guardGroup.add(shoulder);
+      }
+
+      // Mũ chiến khôi & chỏm lông vũ đỏ
+      const helmet = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.34, 0.6, 8), sentinelArmorMat);
+      helmet.position.y = 3.0;
+      guardGroup.add(helmet);
+
+      const plume = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 6), sentinelClothMat);
+      plume.position.y = 3.5;
+      guardGroup.add(plume);
+
+      // Trường thương / Kích 3.4m cầm thẳng đứng oai phong
+      const spearShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 3.4, 6), spearShaftMat);
+      spearShaft.position.set(0.48, 2.2, 0.3);
+      guardGroup.add(spearShaft);
+
+      const spearHead = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.55, 4), spearBladeMat);
+      spearHead.position.set(0.48, 3.95, 0.3);
+      guardGroup.add(spearHead);
+
+      const crescentAxe = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.35, 0.28), spearBladeMat);
+      crescentAxe.position.set(0.48, 3.65, 0.42);
+      guardGroup.add(crescentAxe);
+
+      this.waterAndGuardsGroup.add(guardGroup);
+
+      this.rocks.push({
+        mesh: guardGroup,
+        pos: new THREE.Vector3(gc.x, gGroundH + 1.8, gc.z),
+        scale: new THREE.Vector3(1, 1, 1),
+        radius: 1.4,
+        hp: 120,
+        isBroken: false,
+      });
+    });
+
+    // C. Chông Gỗ Phòng Thủ & Chiến Lũy (Sharpened Wooden Palisades)
+    const palisadeSpots = [
+      { x: -132, z: -3 }, { x: -132, z: 3 },
+      { x: 132, z: -3 }, { x: 132, z: 3 },
+      { x: -92, z: -75 }, { x: 92, z: -75 }
+    ];
+
+    palisadeSpots.forEach((ps) => {
+      const palGroup = new THREE.Group();
+      const pGroundH = getTerrainHeight(ps.x, ps.z);
+      palGroup.position.set(ps.x, pGroundH, ps.z);
+
+      // Chữ X bằng 2 khúc gỗ lớn bắt chéo
+      for (const rotZ of [-0.65, 0.65]) {
+        const xLog = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 2.4, 6), palisadeWoodMat);
+        xLog.position.y = 0.95;
+        xLog.rotation.z = rotZ;
+        xLog.castShadow = true;
+        palGroup.add(xLog);
+      }
+
+      // 3 Cọc chông vót nhọn đâm chéo ra phía trước
+      for (let s = -1; s <= 1; s++) {
+        const stake = new THREE.Mesh(new THREE.ConeGeometry(0.11, 2.2, 5), palisadeWoodMat);
+        stake.position.set(s * 0.7, 0.9, 0);
+        stake.rotation.x = Math.PI / 4;
+        palGroup.add(stake);
+      }
+
+      // Đai sắt gia cố trung tâm chông
+      const ironHoop = new THREE.Mesh(new THREE.TorusGeometry(0.35, 0.05, 4, 8), ironBandMat);
+      ironHoop.position.y = 0.95;
+      palGroup.add(ironHoop);
+
+      this.waterAndGuardsGroup.add(palGroup);
+
+      this.fences.push({
+        group: palGroup,
+        mesh: palGroup,
+        pos: new THREE.Vector3(ps.x, pGroundH + 0.9, ps.z),
+        radius: 1.6,
+        hp: 55,
+        isBroken: false,
+      });
+    });
+
+    this.scene.add(this.waterAndGuardsGroup);
+  }
+
   // --- TÀN PHÁ & LÀM NỨT GẠCH ĐÁ KINH THÀNH KHI DÙNG KỸ NĂNG ---
   deformTerrain(centerX, centerZ, radius, depth, type = 'fire') {
     activeCraters.push({
@@ -3324,6 +4321,28 @@ export class World {
     for (const br of this.braziers) {
       if (br.light) {
         br.light.intensity = 1.4 + Math.sin(time * 7.5 + br.phase) * 0.35 + (Math.random() - 0.5) * 0.08;
+      }
+    }
+
+    // Đèn hoa đăng cầu nguyện bồng bềnh và trôi nhẹ nhàng trên dòng kênh đào
+    for (let i = 0; i < this.floatingLanterns.length; i++) {
+      const fl = this.floatingLanterns[i];
+      fl.mesh.position.y = fl.baseY + Math.sin(time * 2.0 + fl.phase) * 0.04;
+      fl.mesh.rotation.y += delta * 0.18;
+      fl.mesh.rotation.z = Math.sin(time * 1.5 + fl.phase) * 0.05;
+      if (fl.light) {
+        fl.light.intensity = 1.2 + Math.sin(time * 5.8 + fl.phase) * 0.3;
+      }
+    }
+
+    // Đại hồng chung đung đưa thanh gõ chày chuông theo gió
+    for (let i = 0; i < this.animatedBells.length; i++) {
+      const bell = this.animatedBells[i];
+      if (bell.striker) {
+        bell.striker.rotation.z = Math.sin(time * 1.4 + bell.phase) * 0.09;
+      }
+      if (bell.mesh) {
+        bell.mesh.rotation.z = Math.sin(time * 1.4 + bell.phase) * 0.018;
       }
     }
 
