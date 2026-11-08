@@ -6,6 +6,7 @@ import { getRoleCounterMultiplier } from './character.js';
 // Ánh xạ chủng loại quái PvE sang Vai Trò Chiến Đấu để hệ thống Khắc Chế hoạt động cả PvP lẫn PvE
 export function getMonsterRoleIndex(monster) {
   if (!monster) return -1;
+  if (monster.config && monster.config.roleIndex !== undefined) return monster.config.roleIndex;
   switch (monster.type) {
     case 'golem':
     case 'jade_guardian':

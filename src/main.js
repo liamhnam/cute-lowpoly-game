@@ -4,7 +4,8 @@ import { Character, SECT_STATS } from './character.js';
 import { ParticleSystem } from './particles.js';
 import { ThirdPersonController } from './controller.js';
 import { ProjectileSystem } from './projectiles.js';
-import { Monster } from './monsters.js';
+import { Monster, MONSTER_CONFIGS } from './monsters.js';
+import { BOSS_ORDER } from './bosses.js';
 import { PixelFXManager } from './pixelfx.js';
 import { sound } from './audio.js';
 import { MobileControlsManager } from './mobileControls.js';
@@ -135,11 +136,16 @@ class Game {
 
     // Đại Boss giáng thế sau khi trảm đủ số yêu; khi đấu Boss chỉ còn người chơi & Boss
     this.bossKillsNeeded = 20;
+    this.bossCycle = 0;      // Boss thứ mấy sẽ giáng thế tiếp theo (luân phiên 10 Boss)
+    this.currentBoss = null;
     try {
       // Tham số thử nghiệm: ?bossKills=3 để gọi Boss nhanh khi kiểm tra
       const q = parseInt(new URLSearchParams(window.location.search).get('bossKills'), 10);
       if (q > 0 && q <= 100) this.bossKillsNeeded = q;
       if (new URLSearchParams(window.location.search).has('debug')) window.__game = this;
+      // Tham số thử nghiệm: ?boss=3 để Boss đầu tiên là Boss số 3 (1-10)
+      const b = parseInt(new URLSearchParams(window.location.search).get('boss'), 10);
+      if (b >= 1 && b <= 10) this.bossCycle = b - 1;
     } catch (err) {}
     this.bossProgress = 0;
     this.bossActive = false;
@@ -292,8 +298,7 @@ class Game {
     if (this.monsters.length > 0) return;
 
     this.monsters = [
-      // 🐉 1. ĐẠI BOSS TRẤN THÀNH: Hắc Long Ma Đế (Quảng Trường Trước Đại Điện Cung Đình)
-      new Monster(this.scene, this.particles, 'boss_dragon_emperor', new THREE.Vector3(0, 0, 28), this.world),
+      // (10 Đại Boss không đứng sẵn trên bản đồ: lần lượt giáng thế khi trảm đủ yêu — xem summonBoss)
 
       // =====================================================================
       // 🗿🦁🦂 NHÓM QUÁI LỚN HẠNG NẶNG (CỰ YÊU):
@@ -342,11 +347,11 @@ class Game {
       new Monster(this.scene, this.particles, 'sword_wraith', new THREE.Vector3(72, 0, 10), this.world),
     ];
 
-    for (const monster of this.monsters) {
+    const attach = (monster) => {
       monster.onBossEnrage = (boss) => {
         this.triggerScreenFlash('fire');
         this.controller.addTrauma(0.45);
-        this.showNotification(`🔥 ĐẠI BOSS [${boss.name}] BƯỚC VÀO GIAI ĐOẠN 2: CUỒNG NỘ HUYẾT LONG!`);
+        this.showNotification(`ĐẠI BOSS [${boss.name}] — ${boss.config.enrageText || 'CUỒNG NỘ (PHASE 2)!'}`);
       };
 
       monster.onDefeated = (m) => {
@@ -379,60 +384,87 @@ class Game {
 
         this.checkRealmBreakthrough();
       };
-    }
+    };
+    this.attachMonsterHandlers = attach;
+    for (const monster of this.monsters) attach(monster);
 
-    // Đại Boss ngủ chờ, chỉ giáng thế khi trảm đủ yêu
     this.bossActive = false;
     this.bossProgress = 0;
-    for (const m of this.monsters) {
-      if (m.isBoss) m.setDormant();
-    }
     this.updateKillBadge();
+  }
+
+  nextBossIcon() {
+    const type = BOSS_ORDER[(this.bossCycle || 0) % BOSS_ORDER.length];
+    return MONSTER_CONFIGS[type]?.icon || '🐉';
   }
 
   updateKillBadge() {
     if (!this.killBadge) return;
     const boss = this.bossActive
       ? ' · 🐉 ĐẤU BOSS!'
-      : (this.gameMode === 'pve' ? ` · 🐉 ${this.bossProgress}/${this.bossKillsNeeded}` : '');
+      : (this.gameMode === 'pve' ? ` · ${this.nextBossIcon()} ${this.bossProgress}/${this.bossKillsNeeded}` : '');
     this.killBadge.textContent = `🎯 Trảm Yêu: ${this.monstersDefeated}${boss}`;
   }
 
-  // Đại Boss giáng thế ngay trước mặt người chơi: mọi yêu ma khác tan biến & ngừng hồi sinh
+  // Đại Boss giáng thế ngay trước mặt người chơi: mọi yêu ma khác tan biến & ngừng hồi sinh.
+  // 10 Boss luân phiên theo BOSS_ORDER; hết một vòng thì vòng sau mạnh hơn (máu +40%, sát thương +25% mỗi vòng).
   summonBoss() {
     if (this.gameMode !== 'pve' || this.bossActive) return;
-    const boss = this.monsters.find((m) => m.isBoss);
-    if (!boss) return;
     this.bossActive = true;
 
-    for (const m of this.monsters) {
-      if (!m.isBoss) m.vanish();
-    }
+    for (const m of this.monsters) m.vanish();
+
+    const type = BOSS_ORDER[this.bossCycle % BOSS_ORDER.length];
+    const tier = Math.floor(this.bossCycle / BOSS_ORDER.length);
 
     // Xuất hiện cách người chơi ~16m theo hướng camera, trong giới hạn bản đồ
     const fwd = this.controller.getAttackForward();
     const p = this.character.position;
-    boss.spawnOrigin.set(
+    const spawn = new THREE.Vector3(
       THREE.MathUtils.clamp(p.x + fwd.x * 16, -105, 105),
       0,
       THREE.MathUtils.clamp(p.z + fwd.z * 16, -105, 105)
     );
-    boss.respawn();
+    const boss = new Monster(this.scene, this.particles, type, spawn, this.world);
+    if (tier > 0) {
+      boss.maxHp = Math.round(boss.maxHp * (1 + 0.4 * tier));
+      boss.hp = boss.maxHp;
+      boss.damageMult = 1 + 0.25 * tier;
+      boss.name = `${boss.name} ★${tier + 1}`;
+    }
+    boss.rotationY = Math.atan2(p.x - spawn.x, p.z - spawn.z);
+    boss.model.rotation.y = boss.rotationY;
     boss.specialCooldown = 3.0;
     boss.attackCooldown = 2.0;
+    this.attachMonsterHandlers(boss);
+    this.monsters.push(boss);
+    this.currentBoss = boss;
 
+    sound.playMonsterRoar?.();
+    this.particles.emitShockwave(spawn.clone().add(new THREE.Vector3(0, 0.5, 0)), boss.config.barColor || 0xff3838, 18, 0.8);
+    this.particles.emitElementalParticles(spawn.clone().add(new THREE.Vector3(0, 4, 0)), 50, [boss.config.barColor || 0xff3838, 0xffffff], [3, 10], 1.2, 6, 1.2);
     this.triggerScreenFlash('fire');
     this.controller.addTrauma(0.5);
-    this.showNotification(`🐉 ĐẠI BOSS [${boss.name}] GIÁNG THẾ! Yêu ma tan biến — chỉ còn ngươi và hắn!`);
+
+    const idx = (this.bossCycle % BOSS_ORDER.length) + 1;
+    this.showNotification(`${boss.config.icon} ĐẠI BOSS ${idx}/10 [${boss.name}] GIÁNG THẾ! ${boss.config.hint || ''}`);
+    // Thông báo gợi ý cơ chế giữ lâu hơn bình thường
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => document.getElementById('toast')?.classList.remove('show'), 7000);
     this.updateKillBadge();
   }
 
   onBossDefeated(boss) {
     this.bossActive = false;
     this.bossProgress = 0;
-    boss.respawnTimer = Infinity; // không tự hồi sinh, chờ lần giáng thế sau
+    this.bossCycle++;
+    this.currentBoss = null;
+    boss.respawnTimer = Infinity; // không tự hồi sinh
+    // Dọn xác Boss sau hiệu ứng ngã xuống
     setTimeout(() => {
-      if (boss.isDead) boss.setDormant();
+      const i = this.monsters.indexOf(boss);
+      if (i >= 0) this.monsters.splice(i, 1);
+      boss.destroy();
     }, 2500);
 
     // Yêu ma trở lại sau vài giây (lần lượt cho tự nhiên)

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { getTerrainHeight } from './world.js';
 import { sound } from './audio.js';
+import { BOSS_CONFIGS, BOSS_KITS } from './bosses.js';
 
 // Cấu hình chi tiết 2 nhóm Yêu Ma (QUÁI NHỎ nhanh khó chịu vs QUÁI LỚN chậm nặng nề, sát thương khủng dễ né) & Đại Boss
 export const MONSTER_CONFIGS = {
@@ -126,8 +127,14 @@ export const MONSTER_CONFIGS = {
     respawnTime: 25.0,
     xpMpReward: 100,
     healReward: 600,
+    roleIndex: 3,
+    enrageText: '🔥 CUỒNG NỘ HUYẾT LONG (PHASE 2)!',
+    hint: 'Toàn năng: vừa cận chiến vừa có Thuấn Bộ, Khiên Phản Chấn, Phân Thân & Tia Long Tức. Né theo vòng/vệt cảnh báo!',
   },
 };
+
+// Gộp cấu hình 9 Đại Boss mới
+Object.assign(MONSTER_CONFIGS, BOSS_CONFIGS);
 
 export class Monster {
   constructor(scene, particles, type = 'golem', spawnPos = new THREE.Vector3(), world = null) {
@@ -212,6 +219,10 @@ export class Monster {
     this.hitRadius = this.config.hitRadius;
     this.hitHeight = this.config.hitHeight;
     this.damageableMaterials = [];
+
+    // Bộ kỹ năng & tạo hình riêng của 9 Đại Boss mới (xem bosses.js)
+    this.kit = BOSS_KITS[this.type] ? new BOSS_KITS[this.type](this) : null;
+    this.damageMult = 1;
 
     this.buildMesh();
     this.buildHealthBar();
@@ -324,6 +335,8 @@ export class Monster {
       this.buildJadeGuardianMesh();
     } else if (this.type === 'boss_dragon_emperor') {
       this.buildBossDragonEmperorMesh();
+    } else if (this.kit) {
+      this.kit.buildMesh();
     }
 
     // Áp dụng tỉ lệ kích thước phân hóa rõ rệt giữa Quái Nhỏ (0.62x) và Quái Lớn (1.42x)
@@ -1000,6 +1013,12 @@ export class Monster {
     if (this.aiState === 'blinking') return;
 
     let finalAmount = amount;
+    // Cơ chế riêng của từng Boss (giáp trước/lõi sau, bay lượn bất khả xâm phạm, khiên băng...)
+    if (this.kit) {
+      if (!this.model.visible) return; // đang độn thổ / thuấn bộ
+      finalAmount = this.kit.modifyDamage(amount, hitPos);
+      if (!(finalAmount > 0)) return;
+    }
 
     if (this.type === 'jade_guardian' && hitPos) {
       const toHit = new THREE.Vector3().subVectors(hitPos, this.position).normalize();
@@ -1028,7 +1047,8 @@ export class Monster {
     if (this.isBoss && !this.isEnraged && this.hp > 0 && this.hp <= this.maxHp * 0.5) {
       this.isEnraged = true;
       this.speed = this.config.speed * 1.35;
-      this.currentSkillName = '🔥 CUỒNG NỘ HUYẾT LONG (PHASE 2)!';
+      this.currentSkillName = this.config.enrageText || '🔥 CUỒNG NỘ HUYẾT LONG (PHASE 2)!';
+      if (this.kit?.onEnrage) this.kit.onEnrage();
       this.model.scale.setScalar(this.baseModelScale * 1.12);
       if (this.particles) {
         this.particles.emitShockwave(this.position.clone().add(new THREE.Vector3(0, 1.0, 0)), 0xff1e1e, 16.0, 0.7);
@@ -1058,6 +1078,8 @@ export class Monster {
     }
 
     if (this.hp <= 0) {
+      // Boss có thể có cơ chế không chết lần đầu (vd. U Minh Quỷ Vương hồi sinh)
+      if (this.kit?.onLethal && this.kit.onLethal()) return;
       this.die();
     }
   }
@@ -1302,7 +1324,8 @@ export class Monster {
     });
   }
 
-  spawnMonsterProjectile(origin, dir, speed, radius, damage, colorHex, maxLifetime = 3.2, status = null, isWave = false) {
+  // opts: { homing (rad/s), label, textColor, onHit(player), knockback }
+  spawnMonsterProjectile(origin, dir, speed, radius, damage, colorHex, maxLifetime = 3.2, status = null, isWave = false, opts = {}) {
     const meshGroup = new THREE.Group();
     meshGroup.position.copy(origin);
 
@@ -1327,6 +1350,11 @@ export class Monster {
       damage,
       colorHex,
       status,
+      homing: opts.homing || 0,
+      label: opts.label || null,
+      textColor: opts.textColor || '#ff6b81',
+      onHit: opts.onHit || null,
+      knockback: opts.knockback || 0,
       elapsed: 0,
       duration: maxLifetime,
     });
@@ -1359,9 +1387,10 @@ export class Monster {
     });
   }
 
-  spawnPoisonPool(centerPos, radius, duration, tickDamage) {
+  // opts: { color, label, status ('slow' | null), interval, particleColors } — dùng chung cho vùng độc / lửa / bão tuyết
+  spawnPoisonPool(centerPos, radius, duration, tickDamage, opts = {}) {
     const poolMat = new THREE.MeshBasicMaterial({
-      color: 0x2ed573,
+      color: opts.color ?? 0x2ed573,
       side: THREE.DoubleSide,
       transparent: true,
       opacity: 0.45,
@@ -1381,13 +1410,38 @@ export class Monster {
       radius,
       tickDamage,
       tickTimer: 0,
+      interval: opts.interval ?? 0.65,
+      label: opts.label ?? '☣️ ĐỘC DỊCH',
+      textColor: opts.textColor ?? '#2ed573',
+      status: opts.status === undefined ? 'slow' : opts.status,
+      particleColors: opts.particleColors ?? [0x2ed573, 0xbadc58],
       elapsed: 0,
       duration,
     });
   }
 
+  // Hiệu ứng tuỳ biến: update(ef, delta, player, t) mỗi khung hình, onEnd() khi hết giờ (không gọi nếu quái chết giữa chừng)
+  spawnCustomEffect(duration, update = null, onEnd = null, mesh = null) {
+    if (mesh) this.scene.add(mesh);
+    const ef = { kind: 'custom', mesh, elapsed: 0, duration, update, onEnd };
+    this.activeEffects.push(ef);
+    return ef;
+  }
+
+  // Hẹn giờ an toàn: tự huỷ khi Boss chết / biến mất
+  schedule(delay, fn) {
+    return this.spawnCustomEffect(delay, null, fn, null);
+  }
+
   inflictDamageToPlayer(player, amount, label, color = '#ff4757', status = null, knockbackForce = 0) {
     if (!player || player.isDead) return;
+    // Boss lượt sau mạnh hơn: nhân sát thương & sửa lại con số trên chữ bay
+    const mult = this.damageMult || 1;
+    if (mult !== 1) {
+      amount = Math.max(1, Math.round(amount * mult));
+      if (label) label = label.replace(/^-\d+/, `-${amount}`);
+    }
+    if (this.kit?.onDealDamage) this.kit.onDealDamage(amount, player);
     const dist = Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z);
     player.takeDamage(amount, this.name, player.position.clone());
 
@@ -1693,6 +1747,15 @@ export class Monster {
       ef.elapsed += delta;
       const t = Math.min(1.0, ef.elapsed / ef.duration);
 
+      if (ef.kind === 'custom') {
+        if (ef.update) ef.update(ef, delta, player, t);
+        if (ef.elapsed >= ef.duration) {
+          if (ef.mesh) this.scene.remove(ef.mesh);
+          this.activeEffects.splice(i, 1);
+          if (ef.onEnd) ef.onEnd();
+        }
+        continue;
+      }
       if (ef.kind === 'telegraph_line') {
         ef.fill.scale.y = Math.max(0.02, t);
         if (ef.elapsed >= ef.duration) {
@@ -1746,6 +1809,15 @@ export class Monster {
           this.activeEffects.splice(i, 1);
         }
       } else if (ef.kind === 'projectile') {
+        // Đạn truy đuổi: bẻ lái dần về phía người chơi
+        if (ef.homing && player && !player.isDead) {
+          const speed = ef.velocity.length();
+          const want = new THREE.Vector3(player.position.x - ef.mesh.position.x, 0, player.position.z - ef.mesh.position.z);
+          if (want.lengthSq() > 0.01) {
+            want.normalize().multiplyScalar(speed);
+            ef.velocity.lerp(want, Math.min(1, ef.homing * delta)).setLength(speed);
+          }
+        }
         ef.mesh.position.addScaledVector(ef.velocity, delta);
         ef.mesh.rotation.y += delta * 5;
         if (this.particles && Math.random() < 0.35) {
@@ -1757,7 +1829,8 @@ export class Monster {
           const dz = player.position.z - ef.mesh.position.z;
           const dy = (player.position.y + 0.9) - ef.mesh.position.y;
           if (dx * dx + dz * dz <= (ef.radius + 0.75) * (ef.radius + 0.75) && Math.abs(dy) < 2.0) {
-            this.inflictDamageToPlayer(player, ef.damage, `-${ef.damage} 🔥 ${this.name}`, '#ff6b81', ef.status);
+            this.inflictDamageToPlayer(player, ef.damage, ef.label ? `-${ef.damage} ${ef.label}` : `-${ef.damage} 🔥 ${this.name}`, ef.textColor, ef.status, ef.knockback);
+            if (ef.onHit) ef.onHit(player);
             this.scene.remove(ef.mesh);
             this.activeEffects.splice(i, 1);
             continue;
@@ -1790,13 +1863,13 @@ export class Monster {
       } else if (ef.kind === 'poison_pool') {
         ef.mat.opacity = 0.42 * (1.0 - t * 0.5);
         ef.tickTimer += delta;
-        if (ef.tickTimer >= 0.65) {
+        if (ef.tickTimer >= ef.interval) {
           ef.tickTimer = 0;
           if (this.particles) {
             this.particles.emitElementalParticles(
               ef.center.clone().add(new THREE.Vector3((Math.random() - 0.5) * ef.radius, 0.2, (Math.random() - 0.5) * ef.radius)),
               2,
-              [0x2ed573, 0xbadc58],
+              ef.particleColors,
               [1, 2.5],
               0.4,
               1.0,
@@ -1806,7 +1879,7 @@ export class Monster {
           if (player && !player.isDead) {
             const dist = Math.hypot(player.position.x - ef.center.x, player.position.z - ef.center.z);
             if (dist <= ef.radius) {
-              this.inflictDamageToPlayer(player, ef.tickDamage, `-${ef.tickDamage} ☣️ ĐỘC DỊCH`, '#2ed573', 'slow');
+              this.inflictDamageToPlayer(player, ef.tickDamage, `-${ef.tickDamage} ${ef.label}`, ef.textColor, ef.status);
             }
           }
         }
@@ -2978,7 +3051,9 @@ export class Monster {
 
     // 7. CẬP NHẬT AI CHIẾN ĐẤU & DI CHUYỂN
     const distToPlayer = playerPos ? this.position.distanceTo(playerPos) : 999;
-    if (this.isBoss) {
+    if (this.kit) {
+      this.kit.update(delta, player, distToPlayer);
+    } else if (this.isBoss) {
       this.updateBossAI(delta, player, distToPlayer);
     } else {
       this.updateMonsterAI(delta, player, distToPlayer);
@@ -3001,6 +3076,13 @@ export class Monster {
       this.shadowMat.opacity = this.isDead ? 0 : Math.max(0.06, (this.isBoss ? 0.62 : (this.isLarge ? 0.52 : 0.34)) - heightAbove * 0.04);
       const s = Math.max(0.35, 1.0 - heightAbove * 0.05);
       this.contactShadow.scale.set(s, s, s);
+    }
+
+    // Boss có bộ kỹ năng riêng tự điều khiển animation của mình
+    if (this.kit) {
+      this.walkAnimTime += delta * 3.6;
+      this.kit.animate(delta);
+      return;
     }
 
     // 8. PROCEDURAL ANIMATION: TƯƠNG PHẢN NHỊP BƯỚC GIỮA QUÁI NHỎ (THOĂN THOẮT 11.5x) & QUÁI LỚN (NẶNG NỀ 2.35x)
