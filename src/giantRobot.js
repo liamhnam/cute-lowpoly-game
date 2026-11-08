@@ -39,6 +39,7 @@ export class GiantRobot {
     this.state = 'assembling';
     this.isActive = false;
     this.isAssembling = false;
+    this.isCloneRobot = false; // Đánh dấu robot của phân thân
     this.caster = null;
     this.monsters = [];
     this.onCompleteCallback = null;
@@ -800,7 +801,7 @@ export class GiantRobot {
     this.monsters = monsters || [];
     this.onCompleteCallback = onComplete;
     this.assemblyElapsed = 0;
-    this.totalAssemblyTime = 1.55;
+    this.totalAssemblyTime = this.isCloneRobot ? 0.95 : 1.55;
 
     // Tọa độ mục tiêu hạ cánh của Robot
     const groundY = getTerrainHeight(targetPos.x, targetPos.z);
@@ -865,9 +866,11 @@ export class GiantRobot {
     this.tractorBeam.position.set(this.deployPos.x, this.deployPos.y + 14, this.deployPos.z);
     this.scene.add(this.tractorBeam);
 
-    // Thông báo toàn server
-    this.damageTexts.spawn('⚠️ KHỞI ĐỘNG HỢP THỂ: CHIẾN THẦN CƠ GIÁP X20!', this.deployPos.clone().add(new THREE.Vector3(0, 8.0, 0)), '#00f2fe');
-    if (sound.playThunder) sound.playThunder();
+    // Thông báo toàn server (chỉ khi là robot chính của người chơi)
+    if (!this.isCloneRobot) {
+      this.damageTexts.spawn('⚠️ KHỞI ĐỘNG HỢP THỂ: CHIẾN THẦN CƠ GIÁP X20!', this.deployPos.clone().add(new THREE.Vector3(0, 8.0, 0)), '#00f2fe');
+      if (sound.playThunder) sound.playThunder();
+    }
 
     // 2. TẠO 7 BỘ PHẬN BAY TỪ KHÔNG GIAN LAO XUỐNG
     const partsData = [
@@ -1014,16 +1017,23 @@ export class GiantRobot {
     }
 
     // Nổ sóng xung kích đại địa khi toàn bộ hệ thống kích hoạt
-    if (sound.playThunder) sound.playThunder();
-    if (sound.playRockShatter) sound.playRockShatter();
-    if (this.controller) this.controller.addTrauma(0.9);
+    if (!this.isCloneRobot) {
+      if (sound.playThunder) sound.playThunder();
+      if (sound.playRockShatter) sound.playRockShatter();
+      if (this.controller) this.controller.addTrauma(0.9);
+
+      this.damageTexts.spawn('🤖 CHIẾN THẦN CƠ GIÁP HỢP THỂ HOÀN TẤT!', this.deployPos.clone().add(new THREE.Vector3(0, 18.0, 0)), '#ffd700');
+      this.damageTexts.spawn('💥 ĐÃ VÀO BUỒNG LÁI! [Chuột Trái/F]: Đạp Đất & Nện Sấm Sét | [V]: Buồng Lái', this.deployPos.clone().add(new THREE.Vector3(0, 14.5, 0)), '#ff4757');
+    } else {
+      if (this.controller) this.controller.addTrauma(0.12);
+    }
 
     if (this.particles) {
-      this.particles.emitShockwave(this.deployPos, 0xffd700, 36.0, 0.9);
-      this.particles.emitShockwave(this.deployPos, 0x00f2fe, 24.0, 0.65);
+      this.particles.emitShockwave(this.deployPos, 0xffd700, this.isCloneRobot ? 18.0 : 36.0, 0.7);
+      this.particles.emitShockwave(this.deployPos, 0x00f2fe, this.isCloneRobot ? 14.0 : 24.0, 0.5);
       this.particles.emitElementalParticles(
         this.deployPos.clone().add(new THREE.Vector3(0, 2, 0)),
-        50,
+        this.isCloneRobot ? 20 : 50,
         [0xffd700, 0x00f2fe, 0xffffff],
         [3, 8],
         0.8,
@@ -1031,9 +1041,6 @@ export class GiantRobot {
         1.2
       );
     }
-
-    this.damageTexts.spawn('🤖 CHIẾN THẦN CƠ GIÁP HỢP THỂ HOÀN TẤT!', this.deployPos.clone().add(new THREE.Vector3(0, 18.0, 0)), '#ffd700');
-    this.damageTexts.spawn('💥 ĐÃ VÀO BUỒNG LÁI! [Chuột Trái/F]: Đạp Đất & Nện Sấm Sét | [V]: Buồng Lái', this.deployPos.clone().add(new THREE.Vector3(0, 14.5, 0)), '#ff4757');
 
     if (this.onCompleteCallback) {
       this.onCompleteCallback();
@@ -1072,29 +1079,35 @@ export class GiantRobot {
     impactPoint.y = getTerrainHeight(impactPoint.x, impactPoint.z);
 
     const isStomp = this.attackType === 'stomp';
-    const damage = isStomp ? 580 : 680;
+    const damage = this.isCloneRobot ? (isStomp ? 320 : 380) : (isStomp ? 580 : 680);
     const radius = isStomp ? 14.0 : 17.5;
-    const damageText = isStomp ? '💥 -580 ĐẠP NÁT ĐẠI ĐỊA!' : '⚡ -680 NỆN THIẾT QUYỀN!';
+    const damageText = isStomp
+      ? (this.isCloneRobot ? '💥 -320 ĐẠP ĐẤT!' : '💥 -580 ĐẠP NÁT ĐẠI ĐỊA!')
+      : (this.isCloneRobot ? '⚡ -380 NỆN THIẾT QUYỀN!' : '⚡ -680 NỆN THIẾT QUYỀN!');
     const textColor = isStomp ? '#f59e0b' : '#ff4757';
 
-    // 1. TÀN PHÁ & BIẾN DẠNG ĐỊA HÌNH THẬT (TẠO HỐ LÕM SÂU 1.8m - 2.5m)
+    // 1. TÀN PHÁ & BIẾN DẠNG ĐỊA HÌNH THẬT
     if (this.world && this.world.deformTerrain) {
       this.world.deformTerrain(
         impactPoint.x,
         impactPoint.z,
         radius * 0.95,
-        isStomp ? 1.8 : 2.5,
+        this.isCloneRobot ? (isStomp ? 1.0 : 1.4) : (isStomp ? 1.8 : 2.5),
         isStomp ? 'earth' : 'fire'
       );
     }
 
     // 2. Âm thanh rung trời chuyển đất
-    if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
-    if (sound.playRockShatter) sound.playRockShatter();
-    if (!isStomp && sound.playThunder) sound.playThunder();
+    if (!this.isCloneRobot || Math.random() < 0.25) {
+      if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
+      if (sound.playRockShatter) sound.playRockShatter();
+      if (!isStomp && sound.playThunder) sound.playThunder();
+    }
 
     // 3. Rung lắc camera cực mạnh
-    if (this.controller) this.controller.addTrauma(isStomp ? 0.65 : 0.85);
+    if (this.controller) {
+      this.controller.addTrauma(this.isCloneRobot ? (isStomp ? 0.08 : 0.12) : (isStomp ? 0.65 : 0.85));
+    }
 
     // 4. Bùng nổ hạt & sóng xung kích
     if (this.particles) {
@@ -1404,8 +1417,10 @@ export class GiantRobot {
     this.headGroup.rotation.set(0, 0, 0);
     if (this.seismicPistonRod) this.seismicPistonRod.position.y = -3.8;
 
-    this.damageTexts.spawn('🚀 CHIẾN THẦN CƠ GIÁP VỀ CĂN CỨ!', this.group.position.clone().add(new THREE.Vector3(0, 16.0, 0)), '#00f2fe');
-    if (sound.playThunder) sound.playThunder();
+    if (!this.isCloneRobot) {
+      this.damageTexts.spawn('🚀 CHIẾN THẦN CƠ GIÁP VỀ CĂN CỨ!', this.group.position.clone().add(new THREE.Vector3(0, 16.0, 0)), '#00f2fe');
+      if (sound.playThunder) sound.playThunder();
+    }
 
     this.disengageElapsed = 0;
     this.disengageDuration = 1.4;

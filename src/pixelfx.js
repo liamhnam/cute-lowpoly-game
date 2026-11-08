@@ -5,6 +5,7 @@ import { createSword, SWORD_LENGTH } from './sword.js';
 import { getRoleCounterMultiplier } from './character.js';
 import { getMonsterRoleIndex } from './projectiles.js';
 import { GiantRobot } from './giantRobot.js';
+import { NamcamSquad } from './namcamSquad.js';
 
 // --- PIXEL ART PROCEDURAL TEXTURE GENERATOR (Theo cảm hứng từ patch-gg/pixelfx) ---
 // Vẽ các frame hiệu ứng pixel art trực tiếp lên canvas 2D nhỏ (nearest-neighbor)
@@ -586,7 +587,7 @@ export const SECTS = [
     icon: '🇻🇳',
     countersText: 'Khắc chế: Mọi thế lực thù địch',
     weakToText: 'Bị khắc chế: Không có',
-    desc: 'Vai Trò Ẩn Huyền Thoại: Quân nhân Việt Nam sử dụng súng trường tác chiến, Thả Rắm 31.5m, Kiosk DVC tê liệt 5s, Hồi Chiều Trời Mưa và Triệu Hồi Chiến Thần Robot Khổng Lồ x20.',
+    desc: 'Vai Trò Ẩn Huyền Thoại: Quân nhân Việt Nam sử dụng súng trường tác chiến, Thả Rắm 31.5m, Kiosk DVC tê liệt 5s, Binh Đoàn 10 Phân Thân Tự Động và Triệu Hồi Binh Đoàn Robot Khổng Lồ x20.',
     skills: [
       {
         id: 1,
@@ -608,12 +609,12 @@ export const SECTS = [
       },
       {
         id: 3,
-        name: 'Hồi Chiều Trời Mưa',
-        tag: 'MƯA BÃO NGẬP LỤT',
-        icon: '🌧️',
-        cd: 8.0,
-        mana: 25,
-        desc: 'Gọi mây đen mưa rào xối xả tại mục tiêu gây 28 ST/nhịp và làm chậm kẻ địch trong vùng ngập nước.'
+        name: 'Binh Đoàn Phân Thân',
+        tag: '10 CHIẾN SĨ TỰ ĐỘNG',
+        icon: '👥',
+        cd: 20.0,
+        mana: 35,
+        desc: 'Triệu hồi 10 Phân Thân Chiến Sĩ NAMCAM tự động tác chiến, rượt đuổi và nã súng trường diệt quái! ĐẶC BIỆT: Nếu kích hoạt [4] Chiến Thần Robot, toàn bộ 10 phân thân sẽ ĐỒNG LOẠT BIẾN THÀNH 10 ROBOT KHỔNG LỒ cùng xung kích!'
       },
       {
         id: 4,
@@ -936,7 +937,7 @@ export class PixelFXManager {
       case 5: // 🇻🇳 Chiến Sĩ NAMCAM (Vai trò ẩn)
         if (slotNum === 1) this.castToxicFart(targetPos, character, monsters);
         else if (slotNum === 2) this.castKioskStrike(targetPos, character, monsters);
-        else if (slotNum === 3) this.castRainSpeech(targetPos, character, monsters);
+        else if (slotNum === 3) this.castNamcamSquad(targetPos, character, monsters);
         else if (slotNum === 4) this.castGiantRobotSummon(targetPos, character, monsters);
         break;
     }
@@ -4753,6 +4754,11 @@ export class PixelFXManager {
     const target = targetPos ? targetPos.clone() : character.position.clone();
     target.y = getTerrainHeight(target.x, target.z);
 
+    // ĐẶC BIỆT: Nếu đang có Binh Đoàn Phân Thân NAMCAM, biến TOÀN BỘ 10 phân thân thành 10 Robot Khổng Lồ!
+    if (this.namcamSquad && this.namcamSquad.hasActiveClones()) {
+      this.namcamSquad.transformAllToRobots(monsters);
+    }
+
     // Không triệu hồi thêm nếu robot của nhân vật vẫn đang hoạt động hoặc đang hợp thể
     if (character?.giantRobot && character.giantRobot.state !== 'dead') {
       return false;
@@ -4782,6 +4788,29 @@ export class PixelFXManager {
       }
     });
 
+    return true;
+  }
+
+  // [NAMCAM 3] BINH ĐOÀN 10 PHÂN THÂN TỰ ĐỘNG CHIẾN ĐẤU & BIẾN HÌNH ROBOT
+  castNamcamSquad(targetPos, character, monsters) {
+    if (character?.triggerSkillCast) character.triggerSkillCast(3);
+
+    if (!this.namcamSquad) {
+      this.namcamSquad = new NamcamSquad(
+        this.scene,
+        this.world,
+        this.particles,
+        this.projectiles,
+        this.damageTexts,
+        this.controller,
+        this
+      );
+    } else {
+      this.namcamSquad.projectiles = this.projectiles;
+      this.namcamSquad.controller = this.controller;
+    }
+
+    this.namcamSquad.spawnSquad(character, monsters);
     return true;
   }
 
@@ -4862,7 +4891,14 @@ export class PixelFXManager {
       }
     }
 
-    // 3. Cập nhật số sát thương nhảy lên
+    // 3. Cập nhật Binh Đoàn Phân Thân NAMCAM (10 Chiến Sĩ / 10 Robot Khổng Lồ)
+    if (this.namcamSquad) {
+      if (this.projectiles && !this.namcamSquad.projectiles) this.namcamSquad.projectiles = this.projectiles;
+      if (this.controller && !this.namcamSquad.controller) this.namcamSquad.controller = this.controller;
+      this.namcamSquad.update(delta, this.localCharacter, this.monsters);
+    }
+
+    // 4. Cập nhật số sát thương nhảy lên
     this.damageTexts.update(delta);
   }
 }

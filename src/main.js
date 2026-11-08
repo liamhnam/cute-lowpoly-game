@@ -154,6 +154,8 @@ class Game {
     // 6. Hệ thống Kỹ Năng Đạo Pháp PixelFX
     this.pixelFX = new PixelFXManager(this.scene, this.world, this.particles);
     this.pixelFX.remotePlayers = [];
+    this.pixelFX.projectiles = this.projectiles;
+    this.pixelFX.monsters = this.monsters;
     this.pixelFX.onHitPlayer = (targetId, dmg, hitPos, source, isCounter, isBackstab) => this.handleHitPlayer(targetId, dmg, hitPos, source, isCounter, isBackstab);
     this.pixelFX.localCharacter = this.character;
 
@@ -1528,6 +1530,8 @@ class Game {
     // Mục tiêu PvP: người chơi khác và đạo ảnh phân thân của họ
     const pvpTargets = rpList.concat(this.clones.getRemoteTargets());
     this.pixelFX.remotePlayers = pvpTargets;
+    this.pixelFX.monsters = this.monsters;
+    this.pixelFX.projectiles = this.projectiles;
 
     // Đạo ảnh phân thân: AI của mình + bản sao đạo ảnh của người khác
     this.clones.update(delta, this.character, this.monsters, pvpTargets, this.controller.yaw);

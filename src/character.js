@@ -167,7 +167,7 @@ export const ROLE_STATS = [
     counteredBy: [],
     counterNames: 'Mọi mục tiêu',
     weaknessNames: 'Không có',
-    pro: 'Súng trường liên thanh, Khói độc 31.5m, Kiosk DVC tê liệt 5s, Triệu Hồi Robot Khổng Lồ x20',
+    pro: 'Súng trường liên thanh, Khói độc 31.5m, Kiosk DVC tê liệt 5s, Binh Đoàn 10 Phân Thân Tự Động, Triệu Hồi Binh Đoàn Robot Khổng Lồ x20',
     con: 'Vai trò ẩn huyền thoại (chỉ mở khóa khi nhập danh hiệu NAMCAM)',
   },
 ];
