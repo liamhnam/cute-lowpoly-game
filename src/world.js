@@ -1,5 +1,19 @@
 import * as THREE from 'three';
 import { sound } from './audio.js';
+import {
+  getGroundPavingTexture,
+  getFortressStoneTexture,
+  getRoofTileTexture,
+  getWoodGrainTexture,
+  getWaterFlowTexture,
+  getCalligraphySignTexture,
+  getDragonScreenTexture,
+  getBattleDrumSkinTexture,
+  getArcheryTargetTexture,
+  getWineFlagTexture,
+  getWineUrnTexture,
+  getBixiSteleTexture
+} from './textures.js';
 
 // Mảng lưu các hố va chạm / tàn phá địa hình
 export const activeCraters = [];
@@ -183,10 +197,11 @@ export class World {
     this.terrainGeometry.computeVertexNormals();
 
     const material = new THREE.MeshStandardMaterial({
+      map: getGroundPavingTexture(),
       vertexColors: true,
       flatShading: true,
-      roughness: 0.76,
-      metalness: 0.14,
+      roughness: 0.72,
+      metalness: 0.12,
     });
 
     this.terrainMesh = new THREE.Mesh(this.terrainGeometry, material);
@@ -199,7 +214,9 @@ export class World {
     this.waterGeometry = new THREE.PlaneGeometry(270, 8.4, 32, 4); // Tối ưu vertex nước xuống 32x4
     this.waterGeometry.rotateX(-Math.PI / 2);
 
+    this.waterTexture = getWaterFlowTexture();
     const waterMat = new THREE.MeshStandardMaterial({
+      map: this.waterTexture,
       color: 0x0abde3,
       roughness: 0.08,
       metalness: 0.65,
@@ -302,9 +319,10 @@ export class World {
   createPerimeterGreatWall() {
     this.perimeterWallGroup = new THREE.Group();
 
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x57606f, flatShading: true, roughness: 0.88 });
-    const woodGateMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, flatShading: true, roughness: 0.6 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, flatShading: true, roughness: 0.45 });
+    const wallTex = getFortressStoneTexture();
+    const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, color: 0xffffff, flatShading: true, roughness: 0.88 });
+    const woodGateMat = new THREE.MeshStandardMaterial({ map: getWoodGrainTexture(false), color: 0x962d22, flatShading: true, roughness: 0.6 });
+    const roofMat = new THREE.MeshStandardMaterial({ map: getRoofTileTexture('dark'), color: 0xffffff, flatShading: true, roughness: 0.45 });
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.85, roughness: 0.25 });
 
     const wallH = 9.5;
@@ -373,7 +391,11 @@ export class World {
     this.perimeterWallGroup.add(sRoof2);
     this.registerBuildingPart(sRoof2, 140, 'eave', 'tile', 'south_gate_tower');
 
-    const sSign = new THREE.Mesh(new THREE.BoxGeometry(7.0, 1.8, 0.2), goldMat);
+    const sSignMat = new THREE.MeshStandardMaterial({
+      map: getCalligraphySignTexture('朱雀門', 'CHU TƯỚC ĐẠI MÔN', 'vermilion'),
+      roughness: 0.35,
+    });
+    const sSign = new THREE.Mesh(new THREE.BoxGeometry(7.0, 1.8, 0.2), sSignMat);
     sSign.position.set(0, wallH + 3.8, -W + wallThick / 2 + 1.2);
     this.perimeterWallGroup.add(sSign);
 
@@ -406,7 +428,11 @@ export class World {
     this.perimeterWallGroup.add(nRoof);
     this.registerBuildingPart(nRoof, 140, 'eave', 'tile', 'north_gate_tower');
 
-    const nSign = new THREE.Mesh(new THREE.BoxGeometry(7.0, 1.8, 0.2), goldMat);
+    const nSignMat = new THREE.MeshStandardMaterial({
+      map: getCalligraphySignTexture('玄武門', 'HUYỀN VŨ ĐẠI MÔN', 'gold'),
+      roughness: 0.35,
+    });
+    const nSign = new THREE.Mesh(new THREE.BoxGeometry(7.0, 1.8, 0.2), nSignMat);
     nSign.position.set(0, wallH + 3.8, W - wallThick / 2 - 1.2);
     this.perimeterWallGroup.add(nSign);
 
@@ -613,12 +639,18 @@ export class World {
     this.palaceGroup.position.set(0, 0, pz);
 
     const stoneMat = new THREE.MeshStandardMaterial({ color: 0xdcdde1, flatShading: true, roughness: 0.7 });
-    const redColMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true, roughness: 0.5 });
+    const redColMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(false),
+      color: 0xc0392b,
+      flatShading: true,
+      roughness: 0.5
+    });
     const goldRoofMat = new THREE.MeshStandardMaterial({
-      color: 0xf39c12,
+      map: getRoofTileTexture('gold'),
+      color: 0xffffff,
       flatShading: true,
       roughness: 0.35,
-      metalness: 0.3,
+      metalness: 0.25,
     });
 
     // Bệ đá 3 tầng
@@ -668,6 +700,17 @@ export class World {
     eaveUpper.castShadow = true;
     this.palaceGroup.add(eaveUpper);
     this.registerBuildingPart(eaveUpper, 140, 'eave', 'tile', 'palace_main');
+
+    // Biển Đại Điện Thái Hòa Điện thếp vàng
+    const palaceSign = new THREE.Mesh(
+      new THREE.BoxGeometry(6.4, 1.6, 0.18),
+      new THREE.MeshStandardMaterial({
+        map: getCalligraphySignTexture('太和殿', 'THÁI HÒA ĐIỆN', 'gold'),
+        roughness: 0.3
+      })
+    );
+    palaceSign.position.set(0, 9.8, -8.1);
+    this.palaceGroup.add(palaceSign);
 
     // Cặp Sư Tử Đá Hộ Vệ (Stone Lions) trước thềm
     const lionMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6, flatShading: true });
@@ -762,9 +805,19 @@ export class World {
     const tz = 8;
     this.tavernGroup.position.set(tx, 0, tz);
 
-    const woodDarkMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true, roughness: 0.8 });
+    const woodDarkMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x4a2e18,
+      flatShading: true,
+      roughness: 0.8
+    });
     const redMat = new THREE.MeshStandardMaterial({ color: 0x962d22, flatShading: true, roughness: 0.6 });
-    const darkTileRoof = new THREE.MeshStandardMaterial({ color: 0x2c3e50, flatShading: true, roughness: 0.4 });
+    const darkTileRoof = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture('dark'),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.4
+    });
     const whiteWallMat = new THREE.MeshStandardMaterial({ color: 0xf5f6fa, flatShading: true, roughness: 0.85 });
 
     // Tầng 1: 4 Cột gỗ chịu lực (Phá cột sẽ làm sập mái phía trên!)
@@ -839,19 +892,33 @@ export class World {
     this.tavernGroup.add(roofUpper);
     this.registerBuildingPart(roofUpper, 85, 'eave', 'tile', 'tavern');
 
-    // Cờ Rượu "TỬU" (酒)
+    // Cờ Rượu "TỬU" (酒) thêu chỉ vàng
     const flagPole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3.8, 5), woodDarkMat);
     flagPole.position.set(4.5, 3.5, 5.2);
     flagPole.rotation.z = -0.3;
 
     this.wineFlag = new THREE.Mesh(
       new THREE.PlaneGeometry(1.4, 0.9),
-      new THREE.MeshStandardMaterial({ color: 0xee5253, side: THREE.DoubleSide })
+      new THREE.MeshStandardMaterial({
+        map: getWineFlagTexture(),
+        side: THREE.DoubleSide
+      })
     );
     this.wineFlag.position.set(0.8, 0.9, 0);
     flagPole.add(this.wineFlag);
     this.tavernGroup.add(flagPole);
     this.registerBuildingPart(flagPole, 35, 'pillar', 'wood', 'tavern_flag');
+
+    // Biển hiệu sơn mài "Nguyệt Lai Tửu Lầu" dát vàng
+    const tavernSign = new THREE.Mesh(
+      new THREE.BoxGeometry(4.2, 1.1, 0.15),
+      new THREE.MeshStandardMaterial({
+        map: getCalligraphySignTexture('月來酒樓', 'NGUYỆT LAI TỬU LẦU', 'vermilion'),
+        roughness: 0.35
+      })
+    );
+    tavernSign.position.set(0, 4.2, 5.8);
+    this.tavernGroup.add(tavernSign);
 
     const tavernLight = new THREE.PointLight(0xff7722, 1.8, 14, 1.8);
     tavernLight.position.set(2.5, 3.2, 5.0);
@@ -868,8 +935,17 @@ export class World {
     const hz = 8;
     this.teaHouseGroup.position.set(hx, 0, hz);
 
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x6d4c41, flatShading: true });
-    const greenTileRoof = new THREE.MeshStandardMaterial({ color: 0x16a085, flatShading: true, roughness: 0.4 });
+    const woodMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x6d4c41,
+      flatShading: true
+    });
+    const greenTileRoof = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture('jade'),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.4
+    });
     const plasterMat = new THREE.MeshStandardMaterial({ color: 0xecf0f1, flatShading: true });
 
     // Khối vách tường chính
@@ -892,15 +968,39 @@ export class World {
     this.teaHouseGroup.add(teaRoof);
     this.registerBuildingPart(teaRoof, 75, 'eave', 'tile', 'tea_house');
 
+    // Biển hiệu thư pháp "Cổ Phong Trà Quán"
+    const teaSign = new THREE.Mesh(
+      new THREE.BoxGeometry(3.8, 1.0, 0.15),
+      new THREE.MeshStandardMaterial({
+        map: getCalligraphySignTexture('古風茶館', 'CỔ PHONG TRÀ QUÁN', 'gold'),
+        roughness: 0.35
+      })
+    );
+    teaSign.position.set(0, 3.8, 6.3);
+    this.teaHouseGroup.add(teaSign);
+
     this.scene.add(this.teaHouseGroup);
   }
 
   // --- 7. DÃY 3 NHÀ PHỐ CỔ BUÔN BÁN (MODULAR ROW SHOPS - PHÁ ĐƯỢC TỪNG CĂN) ---
   createModularMarketShops() {
     this.shopsGroup = new THREE.Group();
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, flatShading: true });
-    const brickMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, flatShading: true });
-    const tileColors = [0x2c3e50, 0x962d22, 0x16a085];
+    const woodMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x8b5a2b,
+      flatShading: true
+    });
+    const brickMat = new THREE.MeshStandardMaterial({
+      map: getFortressStoneTexture(),
+      color: 0xdcdde1,
+      flatShading: true
+    });
+    const tileTexTypes = ['dark', 'red', 'jade'];
+    const shopNames = [
+      { zh: '神兵坊', vi: 'THẦN BINH PHƯỜNG' },
+      { zh: '妙手堂', vi: 'DIỆU THỦ ĐƯỜNG' },
+      { zh: '錦繡莊', vi: 'CẨM TÚ TRANG' }
+    ];
 
     // 3 Căn nhà phố cổ liền kề phía Tây (x: -24, z: -36 đến -48)
     for (let s = 0; s < 3; s++) {
@@ -925,12 +1025,29 @@ export class World {
       shop.add(postR);
       this.registerBuildingPart(postR, 50, 'pillar', 'wood', `shop_${s}`);
 
-      // Mái ngói cong cổ phong
-      const sRoofMat = new THREE.MeshStandardMaterial({ color: tileColors[s], flatShading: true, roughness: 0.4 });
+      // Mái ngói cong cổ phong có texture ngói ống
+      const sRoofMat = new THREE.MeshStandardMaterial({
+        map: getRoofTileTexture(tileTexTypes[s]),
+        color: 0xffffff,
+        flatShading: true,
+        roughness: 0.4
+      });
       const roof = new THREE.Mesh(new THREE.BoxGeometry(10.6, 0.85, 7.2), sRoofMat);
       roof.position.y = 3.8;
       shop.add(roof);
       this.registerBuildingPart(roof, 70, 'eave', 'tile', `shop_${s}`);
+
+      // Biển hiệu thư pháp từng tiệm
+      const sSign = new THREE.Mesh(
+        new THREE.BoxGeometry(3.2, 0.85, 0.12),
+        new THREE.MeshStandardMaterial({
+          map: getCalligraphySignTexture(shopNames[s].zh, shopNames[s].vi, 'gold'),
+          roughness: 0.35
+        })
+      );
+      sSign.position.set(4.45, 3.2, 0);
+      sSign.rotation.y = Math.PI / 2;
+      shop.add(sSign);
 
       this.shopsGroup.add(shop);
     }
@@ -1081,10 +1198,35 @@ export class World {
     group.position.set(x, 0, z);
     group.rotation.y = rot;
 
-    const woodMat = new THREE.MeshStandardMaterial({ color: pillarColor, flatShading: true, roughness: 0.8 });
-    const wallMat = new THREE.MeshStandardMaterial({ color: wallColor, flatShading: true, roughness: 0.85 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: roofColor, flatShading: true, roughness: 0.45 });
-    const plinthMat = new THREE.MeshStandardMaterial({ color: 0xb2bec3, flatShading: true, roughness: 0.75 });
+    let roofTexType = 'dark';
+    if (roofColor === 0xf39c12 || roofColor === 0xf1c40f) roofTexType = 'gold';
+    else if (roofColor === 0x16a085 || roofColor === 0x1abc9c) roofTexType = 'jade';
+    else if (roofColor === 0x962d22 || roofColor === 0xc0392b || roofColor === 0xe74c3c) roofTexType = 'red';
+
+    const woodMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: pillarColor,
+      flatShading: true,
+      roughness: 0.8
+    });
+    const wallMat = new THREE.MeshStandardMaterial({
+      map: getFortressStoneTexture(),
+      color: wallColor,
+      flatShading: true,
+      roughness: 0.85
+    });
+    const roofMat = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture(roofTexType),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.45
+    });
+    const plinthMat = new THREE.MeshStandardMaterial({
+      map: getFortressStoneTexture(),
+      color: 0xb2bec3,
+      flatShading: true,
+      roughness: 0.75
+    });
     const winMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, flatShading: true });
     const winGlow = new THREE.MeshStandardMaterial({ color: 0xffeaa7, emissive: 0xfdcb6e, emissiveIntensity: 0.28, flatShading: true });
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.8, roughness: 0.3 });
@@ -1144,8 +1286,20 @@ export class World {
       group.add(winPaper);
     }
 
-    // Biển hiệu tiệm dát vàng
-    const signBoard = new THREE.Mesh(new THREE.BoxGeometry(width * 0.42, 0.72, 0.1), woodMat);
+    // Biển hiệu tiệm dát vàng thư pháp
+    let shopNameZh = '靈草堂';
+    let shopNameVi = 'HIỆU THUỐC';
+    if (id.includes('forge')) { shopNameZh = '神兵坊'; shopNameVi = 'TIỆM RÈN'; }
+    else if (id.includes('silk')) { shopNameZh = '錦繡莊'; shopNameVi = 'TƠ LỤA'; }
+    else if (id.includes('culinary')) { shopNameZh = '百味樓'; shopNameVi = 'ẨM THỰC'; }
+    else if (id.includes('antique') || id.includes('vault')) { shopNameZh = '聚寶齋'; shopNameVi = 'CỔ NGOẠN'; }
+    else if (id.includes('res') || id.includes('manor')) { shopNameZh = '永安舍'; shopNameVi = 'CƯ XÁ'; }
+
+    const signBoardMat = new THREE.MeshStandardMaterial({
+      map: getCalligraphySignTexture(shopNameZh, shopNameVi, 'gold'),
+      roughness: 0.35
+    });
+    const signBoard = new THREE.Mesh(new THREE.BoxGeometry(width * 0.42, 0.72, 0.1), signBoardMat);
     signBoard.position.set(0, height * 0.86, pZ + 0.22);
     group.add(signBoard);
 
@@ -1273,9 +1427,22 @@ export class World {
     const academy = new THREE.Group();
     academy.position.set(cx, 0, cz);
 
-    const redMat = new THREE.MeshStandardMaterial({ color: 0x962d22, flatShading: true });
-    const tealRoof = new THREE.MeshStandardMaterial({ color: 0x16a085, flatShading: true });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5a381e, flatShading: true });
+    const redMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x962d22,
+      flatShading: true
+    });
+    const tealRoof = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture('red'),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.4
+    });
+    const woodMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x5a381e,
+      flatShading: true
+    });
     const goldMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.8 });
 
     const mainHall = new THREE.Mesh(new THREE.BoxGeometry(18, 5.5, 12), redMat);
@@ -1308,7 +1475,12 @@ export class World {
     academy.add(upperRoof);
     this.registerBuildingPart(upperRoof, 100, 'eave', 'tile', id);
 
-    const sign = new THREE.Mesh(new THREE.BoxGeometry(6.5, 1.5, 0.2), goldMat);
+    // Biển hiệu thư pháp Thiên Kiếm Võ Quán
+    const signMat = new THREE.MeshStandardMaterial({
+      map: getCalligraphySignTexture('天劍武館', 'THIÊN KIẾM VÕ QUÁN', 'gold'),
+      roughness: 0.35
+    });
+    const sign = new THREE.Mesh(new THREE.BoxGeometry(6.5, 1.5, 0.2), signMat);
     sign.position.set(0, 4.6, -1.8);
     academy.add(sign);
     this.registerBuildingPart(sign, 50, 'wall', 'wood', id);
@@ -1351,9 +1523,22 @@ export class World {
     const library = new THREE.Group();
     library.position.set(cx, 0, cz);
 
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0xecf0f1, flatShading: true });
-    const blueRoofMat = new THREE.MeshStandardMaterial({ color: 0x2980b9, flatShading: true, roughness: 0.4 });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true });
+    const stoneMat = new THREE.MeshStandardMaterial({
+      map: getFortressStoneTexture(),
+      color: 0xecf0f1,
+      flatShading: true
+    });
+    const blueRoofMat = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture('jade'),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.4
+    });
+    const woodMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x4a2e18,
+      flatShading: true
+    });
 
     const body = new THREE.Mesh(new THREE.BoxGeometry(17, 6.0, 10.5), stoneMat);
     body.position.set(0, 3.0, 0);
@@ -1385,6 +1570,15 @@ export class World {
     library.add(topRoof);
     this.registerBuildingPart(topRoof, 85, 'eave', 'tile', id);
 
+    // Biển hiệu thư pháp Thanh Vân Thư Viện
+    const libSignMat = new THREE.MeshStandardMaterial({
+      map: getCalligraphySignTexture('青雲書院', 'THANH VÂN THƯ VIỆN', 'gold'),
+      roughness: 0.35
+    });
+    const libSign = new THREE.Mesh(new THREE.BoxGeometry(6.4, 1.4, 0.15), libSignMat);
+    libSign.position.set(0, 5.0, 5.9);
+    library.add(libSign);
+
     this.scene.add(library);
   }
 
@@ -1393,14 +1587,40 @@ export class World {
     const tower = new THREE.Group();
     tower.position.set(x, 0, z);
 
-    const stoneBaseMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, flatShading: true });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, flatShading: true });
-    const roofMat = new THREE.MeshStandardMaterial({ color: roofColor, flatShading: true, roughness: 0.4 });
+    const stoneBaseMat = new THREE.MeshStandardMaterial({
+      map: getFortressStoneTexture(),
+      color: 0x7f8c8d,
+      flatShading: true
+    });
+    const woodMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x8b0000,
+      flatShading: true
+    });
+    const roofMat = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture(id.includes('alchemy') ? 'jade' : 'gold'),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.4
+    });
 
     const base = new THREE.Mesh(new THREE.CylinderGeometry(5.0, 5.5, 1.5, 8), stoneBaseMat);
     base.position.y = 0.75;
     tower.add(base);
     this.registerBuildingPart(base, 140, 'wall', 'masonry', `${id}_base`);
+
+    // Biển hiệu tháp lầu
+    const towerTitle = id.includes('alchemy') ? '靈藥閣' : '望月樓';
+    const towerSubtitle = id.includes('alchemy') ? 'LINH DƯỢC CÁC' : 'VỌNG NGUYỆT LẦU';
+    const towerSign = new THREE.Mesh(
+      new THREE.BoxGeometry(3.6, 0.9, 0.12),
+      new THREE.MeshStandardMaterial({
+        map: getCalligraphySignTexture(towerTitle, towerSubtitle, 'gold'),
+        roughness: 0.35
+      })
+    );
+    towerSign.position.set(0, 5.0, 4.3);
+    tower.add(towerSign);
 
     for (let l = 0; l < tiers; l++) {
       const radius = 4.2 - l * 0.75;
@@ -1809,9 +2029,10 @@ export class World {
   createWineUrns() {
     this.urnGroup = new THREE.Group();
     const ceramicMat = new THREE.MeshStandardMaterial({
-      color: 0x8b3a1a,
-      roughness: 0.5,
-      metalness: 0.1,
+      map: getWineUrnTexture(),
+      color: 0xffffff,
+      roughness: 0.45,
+      metalness: 0.15,
       flatShading: true,
     });
     const redClothMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true });
@@ -2666,7 +2887,12 @@ export class World {
     turtleHead.position.set(0, 0.55, 1.4);
     steleGroup.add(turtleHead);
 
-    const steleTablet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.4, 0.38), stoneMarbleMat);
+    const steleMat = new THREE.MeshStandardMaterial({
+      map: getBixiSteleTexture(),
+      roughness: 0.4,
+      metalness: 0.2
+    });
+    const steleTablet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.4, 0.38), steleMat);
     steleTablet.position.set(0, 2.1, 0);
     steleTablet.castShadow = true;
     steleGroup.add(steleTablet);
@@ -2762,9 +2988,26 @@ export class World {
 
     const stoneBaseMat = new THREE.MeshStandardMaterial({ color: 0xdcdde1, flatShading: true, roughness: 0.7 });
     const whiteMarbleMat = new THREE.MeshStandardMaterial({ color: 0xf5f6fa, flatShading: true, roughness: 0.5 });
-    const redLacquerMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true, roughness: 0.45 });
-    const goldRoofMat = new THREE.MeshStandardMaterial({ color: 0xf39c12, flatShading: true, roughness: 0.35, metalness: 0.35 });
-    const jadeRoofMat = new THREE.MeshStandardMaterial({ color: 0x16a085, flatShading: true, roughness: 0.4, metalness: 0.2 });
+    const redLacquerMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(false),
+      color: 0xc0392b,
+      flatShading: true,
+      roughness: 0.45
+    });
+    const goldRoofMat = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture('gold'),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.35,
+      metalness: 0.35
+    });
+    const jadeRoofMat = new THREE.MeshStandardMaterial({
+      map: getRoofTileTexture('jade'),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.4,
+      metalness: 0.2
+    });
     const goldPlateMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.85, roughness: 0.2 });
     const bronzeDingMat = new THREE.MeshStandardMaterial({ color: 0x795548, metalness: 0.7, roughness: 0.35 });
     const emberGlowMat = new THREE.MeshBasicMaterial({ color: 0xff3838 });
@@ -2820,7 +3063,12 @@ export class World {
       signBoard.position.set(0, 7.6, 0);
       pailouGroup.add(signBoard);
 
-      const signInner = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.95, 0.26), goldPlateMat);
+      const signTex = (nameId === 'chutuoc_pailou'
+        ? getCalligraphySignTexture('朱雀門', 'CHU TƯỚC BÀI PHƯỜNG', 'vermilion')
+        : getCalligraphySignTexture('禦道門', 'NGỰ ĐẠO BÀI PHƯỜNG', 'gold')
+      );
+      const signInnerMat = new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.35 });
+      const signInner = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.95, 0.26), signInnerMat);
       signInner.position.set(0, 7.6, 0);
       pailouGroup.add(signInner);
 
@@ -2877,6 +3125,21 @@ export class World {
     wallBody.castShadow = true;
     screenWallGroup.add(wallBody);
     this.registerBuildingPart(wallBody, 220, 'wall', 'masonry', 'nine_dragon_wall');
+
+    // Tranh bích họa Cửu Long Châu ngọc 2 mặt trước sau
+    const dragonMuralMat = new THREE.MeshStandardMaterial({
+      map: getDragonScreenTexture(),
+      roughness: 0.35,
+      metalness: 0.2
+    });
+    const muralFront = new THREE.Mesh(new THREE.PlaneGeometry(15.0, 3.0), dragonMuralMat);
+    muralFront.position.set(0, 2.55, -0.56);
+    screenWallGroup.add(muralFront);
+
+    const muralBack = new THREE.Mesh(new THREE.PlaneGeometry(15.0, 3.0), dragonMuralMat);
+    muralBack.position.set(0, 2.55, 0.56);
+    muralBack.rotation.y = Math.PI;
+    screenWallGroup.add(muralBack);
 
     // 9 Khối phù điêu rồng ngọc 9 màu rực rỡ
     const dragonColors = [
@@ -3017,13 +3280,34 @@ export class World {
   createMartialArenaAndCultivation() {
     this.martialGroup = new THREE.Group();
 
-    const stonePlinthMat = new THREE.MeshStandardMaterial({ color: 0x57606f, flatShading: true, roughness: 0.8 });
-    const woodDeckMat = new THREE.MeshStandardMaterial({ color: 0xa0522d, flatShading: true, roughness: 0.7 });
-    const darkTimberMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true, roughness: 0.85 });
+    const stonePlinthMat = new THREE.MeshStandardMaterial({
+      map: getFortressStoneTexture(),
+      color: 0x57606f,
+      flatShading: true,
+      roughness: 0.8
+    });
+    const woodDeckMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(false),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.65
+    });
+    const darkTimberMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.85
+    });
     const ropeMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true, roughness: 0.6 });
-    const drumSkinMat = new THREE.MeshStandardMaterial({ color: 0xecf0f1, flatShading: true, roughness: 0.5 });
+    const drumSkinMat = new THREE.MeshStandardMaterial({
+      map: getBattleDrumSkinTexture(),
+      roughness: 0.5
+    });
     const goldStudMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.8, roughness: 0.3 });
-    const strawMat = new THREE.MeshStandardMaterial({ color: 0xf5cd79, flatShading: true, roughness: 0.95 });
+    const strawMat = new THREE.MeshStandardMaterial({
+      map: getArcheryTargetTexture(),
+      roughness: 0.95
+    });
     const targetRedMat = new THREE.MeshStandardMaterial({ color: 0xe74c3c, flatShading: true });
     const targetWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f6fa, flatShading: true });
     const bronzeBellMat = new THREE.MeshStandardMaterial({ color: 0xcd6133, metalness: 0.75, roughness: 0.35, flatShading: true });
@@ -4277,7 +4561,7 @@ export class World {
       if (cloud.position.x > 140) cloud.position.x = -140;
     }
 
-    // 2. Gợn sóng nước kênh đào động (tối ưu hóa GPU flatShading không tính lại normals trên CPU)
+    // 2. Gợn sóng nước kênh đào động & Dòng nước trôi lấp lánh sóng
     if (this.waterGeometry) {
       const wpos = this.waterGeometry.attributes.position;
       for (let i = 0; i < wpos.count; i++) {
@@ -4287,6 +4571,10 @@ export class World {
         wpos.setZ(i, wave1);
       }
       wpos.needsUpdate = true;
+    }
+    if (this.waterTexture) {
+      this.waterTexture.offset.x += delta * 0.035;
+      this.waterTexture.offset.y = Math.sin(time * 0.5) * 0.012;
     }
 
     // 3. Đèn lồng đỏ đung đưa trong gió
