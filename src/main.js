@@ -283,6 +283,14 @@ class Game {
     };
     this.pixelFX.onScreenFlash = (type) => this.triggerScreenFlash(type);
 
+    this.controller.onCockpitViewToggle = (isCockpit) => {
+      this.showNotification(
+        isCockpit
+          ? '👁️ ĐÃ VÀO GÓC NHÌN BUỒNG LÁI (1ST-PERSON)! Bấm [V] để ra toàn cảnh!'
+          : '🌐 ĐÃ VÀO GÓC NHÌN TOÀN CẢNH (3RD-PERSON)! Bấm [V] để vào buồng lái!'
+      );
+    };
+
     this.controller.onOutfitChange = (outfitName) => {
       this.pixelFX.setSect(this.character.outfitIndex);
       this.showNotification(`Đã hoán đổi môn phái: ${outfitName}`);

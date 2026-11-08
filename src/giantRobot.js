@@ -286,24 +286,107 @@ export class GiantRobot {
     starMesh.position.set(0, 2.3, 4.1);
     chestGroup.add(starMesh);
 
-    // BUỒNG LÁI CƠ GIÁP (COCKPIT & PILOT HOUSING)
-    // Nằm ở phần trên ngực, vòm kính quan sát phát sáng
-    const cockpitCanopy = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(4.2, 2.0, 3.2)),
-      this.cockpitGlassMat
+    // BUỒNG LÁI CƠ GIÁP NỘI THẤT HOÀN CHỈNH (COCKPIT & PILOT CABIN INTERIOR)
+    // Sàn buồng lái bằng kim loại chống trượt
+    const cockpitFloor = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.4, 0.4, 3.6)),
+      this.darkSteelMat
     );
-    cockpitCanopy.position.set(0, 3.2, 2.2);
-    cockpitCanopy.rotation.x = -0.35;
+    cockpitFloor.position.set(0, 2.1, 2.0);
+    chestGroup.add(cockpitFloor);
+
+    // Ghế cơ trưởng điều khiển (Pilot Throne / Seat)
+    const pilotChair = new THREE.Group();
+    pilotChair.position.set(0, 2.3, 1.8);
+
+    const seatBase = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(1.6, 0.4, 1.6)),
+      this.darkSteelMat
+    );
+    pilotChair.add(seatBase);
+
+    const seatBack = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(1.6, 2.2, 0.35)),
+      this.armorPrimaryMat
+    );
+    seatBack.position.set(0, 1.1, -0.7);
+    pilotChair.add(seatBack);
+
+    for (const side of [-1, 1]) {
+      const armRest = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.25, 0.6, 1.2)),
+        this.hazardYellowMat
+      );
+      armRest.position.set(side * 0.9, 0.6, 0);
+      pilotChair.add(armRest);
+    }
+    chestGroup.add(pilotChair);
+
+    // Bảng điều khiển tác chiến chữ U (Control Console)
+    const consolePanel = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.6, 0.8, 1.0)),
+      this.darkSteelMat
+    );
+    consolePanel.position.set(0, 2.8, 2.9);
+    consolePanel.rotation.x = -0.4;
+    chestGroup.add(consolePanel);
+
+    // Màn hình Radar Hologram phát sáng Neon
+    const hudScreen = new THREE.Mesh(
+      this.registerGeo(new THREE.PlaneGeometry(1.8, 0.6)),
+      this.reactorCoreMat
+    );
+    hudScreen.position.set(0, 3.2, 2.75);
+    hudScreen.rotation.x = -0.4;
+    chestGroup.add(hudScreen);
+
+    // Cặp cần gạt lái chiến đấu (Twin Flight Joysticks)
+    for (const side of [-1, 1]) {
+      const stick = new THREE.Mesh(
+        this.registerGeo(new THREE.CylinderGeometry(0.06, 0.08, 0.6, 6)),
+        this.chromePistonMat
+      );
+      stick.position.set(side * 0.65, 3.1, 2.65);
+      stick.rotation.x = 0.2;
+      chestGroup.add(stick);
+
+      const stickKnob = new THREE.Mesh(
+        this.registerGeo(new THREE.SphereGeometry(0.12, 8, 8)),
+        this.hazardYellowMat
+      );
+      stickKnob.position.set(side * 0.65, 3.4, 2.7);
+      chestGroup.add(stickKnob);
+    }
+
+    // Kính vòm cường lực trong suốt (Translucent Canopy Glass, opacity 0.35)
+    // Nhìn xuyên thấu thấy rõ nhân vật Namcam ngồi điều khiển bên trong!
+    const glassMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0x22d3ee,
+      emissive: 0x0891b2,
+      emissiveIntensity: 0.35,
+      roughness: 0.08,
+      metalness: 0.15,
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+    }));
+
+    const cockpitCanopy = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.4, 2.4, 3.4)),
+      glassMat
+    );
+    cockpitCanopy.position.set(0, 3.3, 2.1);
+    cockpitCanopy.rotation.x = -0.32;
     chestGroup.add(cockpitCanopy);
 
-    // Khung kim loại bảo vệ kính buồng lái
+    // Khung kim loại bảo vệ kính buồng lái (Roll Cage Bars)
     for (const side of [-1, 1]) {
       const rollBar = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(0.35, 2.2, 0.35)),
+        this.registerGeo(new THREE.BoxGeometry(0.35, 2.5, 0.35)),
         this.darkSteelMat
       );
-      rollBar.position.set(side * 1.5, 3.2, 2.25);
-      rollBar.rotation.x = -0.35;
+      rollBar.position.set(side * 1.8, 3.3, 2.15);
+      rollBar.rotation.x = -0.32;
       chestGroup.add(rollBar);
     }
 
@@ -802,6 +885,20 @@ export class GiantRobot {
 
     let elapsed = 0;
     const totalAssemblyTime = 2.95;
+    let notifiedLift = false;
+
+    // Thang máy ánh sáng phản trọng lực nâng Namcam vào buồng lái (Tractor Lift Beam)
+    const tractorGeo = this.registerGeo(new THREE.CylinderGeometry(2.2, 3.2, 28, 16, 1, true));
+    const tractorMat = this.registerMat(new THREE.MeshBasicMaterial({
+      color: 0x00f2fe,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    }));
+    const tractorBeam = new THREE.Mesh(tractorGeo, tractorMat);
+    tractorBeam.position.set(this.deployPos.x, this.deployPos.y + 14, this.deployPos.z);
+    this.scene.add(tractorBeam);
 
     // Vòng lặp cập nhật quá trình bay & lắp ráp
     const assemblyEffect = {
@@ -811,6 +908,40 @@ export class GiantRobot {
         // Xoay vòng trận địa định vị
         beaconRing.rotation.z += delta * 3.5;
         beamMat.opacity = Math.sin(elapsed * 12) * 0.2 + 0.35;
+
+        // Quá trình hút người chơi Namcam bay lên buồng lái ở giây 0.8s -> 2.4s
+        if (elapsed >= 0.8 && this.caster) {
+          if (!notifiedLift) {
+            notifiedLift = true;
+            this.damageTexts.spawn('✨ ĐANG THĂNG TIÊN VÀO BUỒNG LÁI!', this.deployPos.clone().add(new THREE.Vector3(0, 12.0, 0)), '#00f2fe');
+            if (sound.playSwordSummon) sound.playSwordSummon();
+          }
+
+          // Cột sáng nâng buồng lái phát sáng
+          const liftProgress = Math.min(1.0, (elapsed - 0.8) / 1.6);
+          tractorMat.opacity = Math.sin(liftProgress * Math.PI) * 0.65;
+          tractorBeam.rotation.y += delta * 4;
+
+          // Hút nhân vật bay dần từ mặt đất lên độ cao buồng lái (26.7m)
+          const curY = THREE.MathUtils.lerp(groundY, groundY + 26.7, liftProgress);
+          this.caster.position.x = THREE.MathUtils.lerp(this.caster.position.x, this.deployPos.x, delta * 5);
+          this.caster.position.z = THREE.MathUtils.lerp(this.caster.position.z, this.deployPos.z, delta * 5);
+          this.caster.group.position.set(this.caster.position.x, curY, this.caster.position.z);
+          this.caster.isGrounded = false;
+
+          // Hạt hào quang bao quanh Namcam khi bay lên
+          if (this.particles && Math.random() < 0.5) {
+            this.particles.emitElementalParticles(
+              this.caster.group.position,
+              3,
+              [0x00f2fe, 0xffd700, 0xffffff],
+              [1, 3],
+              0.2,
+              2,
+              0.4
+            );
+          }
+        }
 
         // Cập nhật từng bộ phận đang lao tới
         for (const item of flyingMeshes) {
@@ -851,12 +982,16 @@ export class GiantRobot {
 
         // HỢP THỂ HOÀN TẤT
         if (elapsed >= totalAssemblyTime) {
-          // Xóa hiệu ứng định vị
+          // Xóa hiệu ứng định vị & thang máy
           this.scene.remove(beaconGroup);
           beaconRingGeo.dispose();
           beaconRingMat.dispose();
           beamGeo.dispose();
           beamMat.dispose();
+
+          this.scene.remove(tractorBeam);
+          tractorGeo.dispose();
+          tractorMat.dispose();
 
           for (const item of flyingMeshes) {
             if (item.mesh.parent) this.scene.remove(item.mesh);
@@ -885,7 +1020,11 @@ export class GiantRobot {
 
     // Gán cờ cho nhân vật
     if (this.caster) {
-      this.caster.isMechaActive = true;
+      if (this.caster.setMechaActive) {
+        this.caster.setMechaActive(true);
+      } else {
+        this.caster.isMechaActive = true;
+      }
       this.caster.giantRobot = this;
       this.caster.isInvulnerable = true; // Cơ giáp khổng lồ siêu bền
       // Đưa nhân vật vào vị trí buồng lái trên cao
@@ -1149,9 +1288,16 @@ export class GiantRobot {
 
     // Trả lại trạng thái cho nhân vật
     if (this.caster) {
-      this.caster.isMechaActive = false;
+      if (this.caster.setMechaActive) {
+        this.caster.setMechaActive(false);
+      } else {
+        this.caster.isMechaActive = false;
+      }
       this.caster.giantRobot = null;
       this.caster.isInvulnerable = false;
+      const gY = getTerrainHeight(this.caster.position.x, this.caster.position.z);
+      this.caster.position.y = gY;
+      this.caster.group.position.set(this.caster.position.x, gY, this.caster.position.z);
     }
 
     this.damageTexts.spawn('🚀 CHIẾN THẦN CƠ GIÁP VỀ CĂN CỨ!', this.group.position.clone().add(new THREE.Vector3(0, 16.0, 0)), '#00f2fe');

@@ -76,6 +76,11 @@ export class ThirdPersonController {
     this.autoSprint = false;
     this.onAutoToggle = null;
 
+    // Chế độ góc nhìn Buồng Lái khi lái Chiến Thần Cơ Giáp
+    this.isCockpitView = false;
+    this.mechaCamDist = 36.0;
+    this.onCockpitViewToggle = null;
+
     this.initListeners();
   }
 
@@ -91,6 +96,17 @@ export class ThirdPersonController {
   }
 
   zoomCamera(deltaDist) {
+    if (this.character.isMechaActive || this.character.giantRobot?.isActive) {
+      if (deltaDist < 0 && (this.mechaCamDist || 36.0) <= 14.0) {
+        this.isCockpitView = true;
+      } else if (deltaDist > 0 && this.isCockpitView) {
+        this.isCockpitView = false;
+        this.mechaCamDist = 18.0;
+      } else {
+        this.mechaCamDist = THREE.MathUtils.clamp((this.mechaCamDist || 36.0) + deltaDist, 10.0, 52.0);
+      }
+      return;
+    }
     this.cameraDistance += deltaDist;
     this.cameraDistance = THREE.MathUtils.clamp(this.cameraDistance, this.minDistance, this.maxDistance);
   }
@@ -382,6 +398,14 @@ export class ThirdPersonController {
           this.onOutfitChange(name);
         }
         break;
+      case 'KeyV':
+        if (isDown && (this.character.isMechaActive || this.character.giantRobot?.isActive)) {
+          this.isCockpitView = !this.isCockpitView;
+          if (this.onCockpitViewToggle) {
+            this.onCockpitViewToggle(this.isCockpitView);
+          }
+        }
+        break;
       case 'Escape':
         if (isDown) {
           this.exitLock();
@@ -493,27 +517,53 @@ export class ThirdPersonController {
     this.character.update(delta, worldMoveVector, isSprinting);
 
     const isMecha = Boolean(this.character.isMechaActive || this.character.giantRobot?.isActive);
-    const targetLookAt = this.character.position.clone();
-    targetLookAt.y += isMecha ? 14.5 : 1.45;
+    let targetLookAt = this.character.position.clone();
+    let targetCamPos;
 
-    const actualCamDist = isMecha ? 38.0 : this.cameraDistance;
+    if (isMecha) {
+      if (this.isCockpitView) {
+        // Góc nhìn 1st-person ngay trong buồng lái (vị trí mắt Namcam tại độ cao ~27.2m)
+        const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw)).normalize();
+        const cockpitEye = this.character.position.clone().addScaledVector(forward, 2.0);
+        cockpitEye.y += 27.2;
 
-    const offsetX = Math.sin(this.yaw) * Math.cos(this.pitch) * actualCamDist;
-    const offsetY = Math.sin(this.pitch) * actualCamDist;
-    const offsetZ = Math.cos(this.yaw) * Math.cos(this.pitch) * actualCamDist;
+        targetCamPos = cockpitEye;
+        targetLookAt = cockpitEye.clone().addScaledVector(forward, 40.0);
+        targetLookAt.y -= Math.tan(this.pitch) * 40.0;
+      } else {
+        // Góc nhìn 3rd-person toàn cảnh bao quát Robot khổng lồ x20
+        targetLookAt.y += 18.0;
+        const actualCamDist = this.mechaCamDist || 36.0;
+        const offsetX = Math.sin(this.yaw) * Math.cos(this.pitch) * actualCamDist;
+        const offsetY = Math.sin(this.pitch) * actualCamDist;
+        const offsetZ = Math.cos(this.yaw) * Math.cos(this.pitch) * actualCamDist;
 
-    const targetCamPos = new THREE.Vector3(
-      this.character.position.x + offsetX,
-      this.character.position.y + offsetY + (isMecha ? 8.0 : 1.2),
-      this.character.position.z + offsetZ
-    );
+        targetCamPos = new THREE.Vector3(
+          this.character.position.x + offsetX,
+          this.character.position.y + offsetY + 10.0,
+          this.character.position.z + offsetZ
+        );
+      }
+    } else {
+      targetLookAt.y += 1.45;
+      const offsetX = Math.sin(this.yaw) * Math.cos(this.pitch) * this.cameraDistance;
+      const offsetY = Math.sin(this.pitch) * this.cameraDistance;
+      const offsetZ = Math.cos(this.yaw) * Math.cos(this.pitch) * this.cameraDistance;
+
+      targetCamPos = new THREE.Vector3(
+        this.character.position.x + offsetX,
+        this.character.position.y + offsetY + 1.2,
+        this.character.position.z + offsetZ
+      );
+    }
 
     if (this.currentCameraPosition.lengthSq() === 0) {
       this.currentCameraPosition.copy(targetCamPos);
       this.currentCameraTarget.copy(targetLookAt);
     } else {
-      this.currentCameraPosition.lerp(targetCamPos, Math.min(1.0, delta * 9.5));
-      this.currentCameraTarget.lerp(targetLookAt, Math.min(1.0, delta * 12.5));
+      const lerpSpeed = (isMecha && this.isCockpitView) ? 18.0 : 9.5;
+      this.currentCameraPosition.lerp(targetCamPos, Math.min(1.0, delta * lerpSpeed));
+      this.currentCameraTarget.lerp(targetLookAt, Math.min(1.0, delta * 14.0));
     }
 
     this.camera.position.copy(this.currentCameraPosition);

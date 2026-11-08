@@ -441,6 +441,19 @@ export class Character {
     return this.applyOutfit(index);
   }
 
+  setMechaActive(active) {
+    this.isMechaActive = Boolean(active);
+    if (!active) {
+      this.group.scale.set(1.0, 1.0, 1.0);
+      if (this.contactShadow) this.contactShadow.visible = true;
+      this.rightArm.rotation.set(0, 0, 0);
+      this.leftArm.rotation.set(0, 0, 0);
+      this.rightLeg.rotation.set(0, 0, 0);
+      this.leftLeg.rotation.set(0, 0, 0);
+      this.head.rotation.set(0, 0, 0);
+    }
+  }
+
   heal(amount) {
     if (this.isDead || amount <= 0) return;
     this.hp = Math.min(this.maxHp, this.hp + amount);
@@ -1545,6 +1558,33 @@ export class Character {
     this.position.z = THREE.MathUtils.clamp(this.position.z, -121, 121);
 
     const groundY = getTerrainHeight(this.position.x, this.position.z);
+
+    if (this.isMechaActive) {
+      this.isGrounded = true;
+      this.freezeTimer = 0;
+      this.slowTimer = 0;
+
+      // Đưa nhân vật lên ngồi trực tiếp trong buồng lái Robot ở độ cao ~26.7m!
+      const forward = new THREE.Vector3(-Math.sin(this.rotationY), 0, -Math.cos(this.rotationY));
+      const cockpitPos = this.position.clone().addScaledVector(forward, 2.0);
+      cockpitPos.y = groundY + 26.7;
+
+      this.group.position.copy(cockpitPos);
+      this.group.rotation.y = this.rotationY;
+      this.group.scale.set(1.35, 1.35, 1.35); // Namcam to hơn 1 chút để nhìn rõ từ bên ngoài kính
+
+      // Dáng ngồi lái oai phong: 2 tay cầm cần lái, chân gác bàn đạp
+      this.rightArm.rotation.set(-1.15, 0, -0.2);
+      this.leftArm.rotation.set(-1.15, 0, 0.2);
+      this.rightLeg.rotation.set(1.4, 0, 0.2);
+      this.leftLeg.rotation.set(1.4, 0, -0.2);
+      this.head.rotation.set(0.1, 0, 0);
+
+      if (this.contactShadow) {
+        this.contactShadow.visible = false;
+      }
+      return;
+    }
 
     if (this.isFloatingUlt) {
       this.isGrounded = false;
