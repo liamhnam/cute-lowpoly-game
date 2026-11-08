@@ -37,11 +37,11 @@ export class NamcamSquad {
   // ==========================================================================
   // THU THẬP MỌI MỤC TIÊU CÓ THỂ ĐÁNH (QUÁI, BOSS, BIA ĐÁNH, NGƯỜI CHƠI)
   // ==========================================================================
-  collectEnemies(pos, maxRange = 70.0) {
+  collectEnemies(pos, maxRange = 70.0, monstersList = null) {
     const list = [];
 
     // 1. Quái vật & Boss (PvE)
-    const monsters = this.pixelFX?.monsters || [];
+    const monsters = monstersList || this.pixelFX?.monsters || [];
     for (const m of monsters) {
       if (!m || m.isDead) continue;
       const d = pos.distanceTo(m.position);
@@ -202,6 +202,10 @@ export class NamcamSquad {
   update(delta, owner, monsters) {
     if (!this.hasActiveClones() || !owner) return;
 
+    if (!this.projectiles && this.pixelFX?.projectiles) {
+      this.projectiles = this.pixelFX.projectiles;
+    }
+
     const deadClones = [];
 
     for (let i = 0; i < this.clones.length; i++) {
@@ -238,11 +242,17 @@ export class NamcamSquad {
   updateSoldierAI(clone, delta, owner, monsters) {
     const body = clone.body;
 
+    if (body.gunGroup && !body.gunGroup.visible) {
+      body.gunGroup.visible = true;
+    }
+
     // 1. Quét tìm mọi mục tiêu khả dụng (Quái, Boss, Bia tập đánh, Người chơi khác)
+    const targetEntity = clone.target?.entity;
+    const isTargetDead = !targetEntity || targetEntity.isDead || targetEntity.isBroken || (targetEntity.hp !== undefined && targetEntity.hp <= 0);
     clone.retargetTimer -= delta;
-    if (clone.retargetTimer <= 0 || !clone.target || clone.target.isDead || (clone.target.isBroken)) {
+    if (clone.retargetTimer <= 0 || !clone.target || isTargetDead) {
       clone.retargetTimer = 0.35 + Math.random() * 0.2;
-      const enemies = this.collectEnemies(body.position, 65.0);
+      const enemies = this.collectEnemies(body.position, 65.0, monsters);
       clone.target = enemies.length > 0 ? enemies[0] : null;
     }
 
@@ -256,6 +266,8 @@ export class NamcamSquad {
 
       body.rotationY = facing;
       body.model.rotation.y = facing;
+      body.slashFacing = facing;
+      body.targetRotationY = facing;
 
       // --- KỸ NĂNG 1: THẢ RẮM DIỆT THẾ (Khi địch áp sát <= 8m) ---
       clone.skill1Cooldown -= delta;
@@ -301,41 +313,52 @@ export class NamcamSquad {
         }
       }
 
-      // --- TẤN CÔNG BẰNG SÚNG TRƯỜNG (BẮN LIÊN TỤC TRONG PHẠM VI 32M) ---
-      if (d <= 32.0) {
-        clone.shootCooldown -= delta;
-        if (clone.shootCooldown <= 0) {
-          clone.shootCooldown = 0.32 + Math.random() * 0.18; // Bắn liên thanh dồn dập
-          clone.comboStep = ((clone.comboStep || 0) + 1) % 3;
+      // --- ĐÒN ĐÁNH THƯỜNG: NÃ ĐẠN SÚNG TRƯỜNG LIÊN THANH (TẦM BẮN 36M) ---
+      clone.shootCooldown -= delta;
+      if (d <= 36.0 && clone.shootCooldown <= 0) {
+        clone.shootCooldown = 0.28 + Math.random() * 0.16; // Nhịp bắn dồn dập
+        clone.comboStep = ((clone.comboStep || 0) + 1) % 3;
 
-          body.triggerSlash(facing, clone.comboStep);
+        // Kích hoạt hoạt ảnh bắn súng & giật nòng của nhân vật
+        body.triggerSlashAnimation(facing, clone.comboStep);
 
-          const origin = body.position.clone().add(new THREE.Vector3(0, 1.1, 0));
-          const shootDir = targetPos.clone().add(new THREE.Vector3(0, 0.8, 0)).sub(origin).normalize();
+        const origin = body.position.clone().add(new THREE.Vector3(0, 1.1, 0));
+        const shootDir = targetPos.clone().add(new THREE.Vector3(0, 0.8, 0)).sub(origin).normalize();
 
-          if (this.projectiles) {
-            this.projectiles.spawnBullet(origin, shootDir, clone.comboStep, true, ROLE_STATS[5], body);
-          }
+        // Muzzle flash particle effect ngay họng súng
+        if (this.particles) {
+          const muzzlePos = origin.clone().addScaledVector(shootDir, 0.7);
+          this.particles.emitElementalParticles(muzzlePos, 4, [0xffd32a, 0xff9f1a, 0xffffff], [0.3, 0.8], 0.15, 0, 0.2);
+        }
 
-          // Xử lý sát thương bia tập đánh nếu là Dummy ở học viện
-          if (clone.target.isDummy && clone.target.entity.hp > 0) {
-            clone.target.entity.hp -= 25;
-            this.damageTexts.spawn('🎯 -25 BẮN BIA', targetPos.clone().add(new THREE.Vector3(0, 1.5, 0)), '#ffd32a');
-            if (this.particles) this.particles.emitHitSparkles(targetPos, 8);
-            if (clone.target.entity.hp <= 0) {
-              clone.target.entity.isBroken = true;
-            }
+        // Âm thanh bắn súng quân đội (có tỉ lệ phân bổ để âm thanh dày dặn mà không gắt)
+        if (sound.playGunshot && Math.random() < 0.5) {
+          sound.playGunshot();
+        }
+
+        const proj = this.projectiles || this.pixelFX?.projectiles;
+        if (proj) {
+          proj.spawnBullet(origin, shootDir, clone.comboStep, true, ROLE_STATS[5], body);
+        }
+
+        // Xử lý sát thương bia tập đánh nếu là Dummy ở học viện
+        if (clone.target.isDummy && clone.target.entity.hp > 0) {
+          clone.target.entity.hp -= 30;
+          this.damageTexts.spawn('🎯 -30 BẮN BIA', targetPos.clone().add(new THREE.Vector3(0, 1.5, 0)), '#ffd32a');
+          if (this.particles) this.particles.emitHitSparkles(targetPos, 8);
+          if (clone.target.entity.hp <= 0) {
+            clone.target.entity.isBroken = true;
           }
         }
       }
 
       // --- ĐIỀU KHIỂN DI CHUYỂN CHIẾN THUẬT ---
-      // Nếu quái ở xa (> 10m): Vừa chạy áp sát vừa xả súng
+      // Nếu địch ở xa (> 10m): Vừa chạy áp sát vừa xả đạn
       if (d > 10.0) {
         const dir = new THREE.Vector3(dx, 0, dz).normalize();
         body.update(delta, dir, true);
       }
-      // Nếu quái quá gần (< 3.5m): Vừa lùi vừa nã đạn
+      // Nếu địch quá gần (< 3.5m): Vừa lùi vừa nã đạn
       else if (d < 3.5) {
         const backDir = new THREE.Vector3(-dx, 0, -dz).normalize();
         body.update(delta, backDir, false);
@@ -343,9 +366,9 @@ export class NamcamSquad {
       // Cự ly lý tưởng (3.5m - 10m): Dừng chân ngắm bắn tập trung
       else {
         body.update(delta, new THREE.Vector3(0, 0, 0), false);
-        body.rotationY = facing;
-        body.model.rotation.y = facing;
       }
+      body.rotationY = facing;
+      body.model.rotation.y = facing;
     }
     // Không có mục tiêu: Bám theo chủ nhân trong cự ly đội hình
     else {
@@ -373,10 +396,12 @@ export class NamcamSquad {
     if (!robot.isActive) return;
 
     // 1. Quét tìm mọi mục tiêu khả dụng trong phạm vi 85m
+    const targetEntity = clone.target?.entity;
+    const isTargetDead = !targetEntity || targetEntity.isDead || targetEntity.isBroken || (targetEntity.hp !== undefined && targetEntity.hp <= 0);
     clone.retargetTimer -= delta;
-    if (clone.retargetTimer <= 0 || !clone.target || clone.target.isDead || clone.target.isBroken) {
+    if (clone.retargetTimer <= 0 || !clone.target || isTargetDead) {
       clone.retargetTimer = 0.4 + Math.random() * 0.25;
-      const enemies = this.collectEnemies(body.position, 85.0);
+      const enemies = this.collectEnemies(body.position, 85.0, monsters);
       clone.target = enemies.length > 0 ? enemies[0] : null;
     }
 

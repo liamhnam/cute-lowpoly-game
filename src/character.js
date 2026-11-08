@@ -1345,7 +1345,7 @@ export class Character {
 
     const flashColor = this.sectStats?.slashColor || (step === 2 ? 0xffffff : 0xfff3b0);
     this.flashBlade(flashColor, step === 2 ? 1.0 : 0.7);
-    if (this.sectStats?.isGun) {
+    if (this.sectStats?.isGun || this.outfitIndex === 5) {
       this.rightArm.rotation.x = -Math.PI / 2 + 0.15;
       this.rightArm.rotation.y = -0.15;
       if (sound.playGunshot) sound.playGunshot();
@@ -1354,6 +1354,11 @@ export class Character {
     } else {
       sound.playSwordSlash();
     }
+  }
+
+  // Bí danh đồng bộ cho triggerSlash
+  triggerSlash(facing, step = 0) {
+    this.triggerSlashAnimation(facing, step);
   }
 
   setChargeLevel(level, charging, facing = this.slashFacing) {
@@ -1875,11 +1880,20 @@ export class Character {
           this.leftLeg.rotation.x = legSwing;
           this.rightLeg.rotation.x = -legSwing;
 
-          this.leftArm.rotation.x = this.outfitIndex === 0 ? -0.65 : -legSwing * 0.85;
-          this.rightArm.rotation.x = -0.45 + Math.sin(this.animTime) * 0.18;
-          this.rightArm.rotation.y = 0;
-          this.rightArm.rotation.z = 0;
-          this.leftArm.rotation.z = 0;
+          if (this.outfitIndex === 5) {
+            this.leftLeg.rotation.x = legSwing;
+            this.rightLeg.rotation.x = -legSwing;
+            if (this.slashTimer <= 0) {
+              this.rightArm.rotation.set(-0.85, -0.15, 0.08);
+              this.leftArm.rotation.set(-0.65, 0.22, 0.12);
+            }
+          } else {
+            this.leftArm.rotation.x = this.outfitIndex === 0 ? -0.65 : -legSwing * 0.85;
+            this.rightArm.rotation.x = -0.45 + Math.sin(this.animTime) * 0.18;
+            this.rightArm.rotation.y = 0;
+            this.rightArm.rotation.z = 0;
+            this.leftArm.rotation.z = 0;
+          }
 
           this.body.rotation.x = this.isSprinting ? 0.24 : 0.09;
           this.head.rotation.x = 0;
@@ -1918,6 +1932,10 @@ export class Character {
             // Xạ Thủ: Tay trái nâng cung nhẹ
             this.leftArm.rotation.set(-0.45, 0.1, 0);
             this.rightArm.rotation.set(-0.35 + breath * 0.04, 0, 0);
+          } else if (this.outfitIndex === 5) {
+            // 🇻🇳 Chiến Sĩ NAMCAM: Tay bồng súng trường sẵn sàng chiến đấu
+            this.rightArm.rotation.set(-0.95 + breath * 0.03, -0.15, 0.08);
+            this.leftArm.rotation.set(-0.75 + breath * 0.03, 0.22, 0.12);
           } else {
             this.leftArm.rotation.set(0, 0, Math.sin(this.animTime * 0.8) * 0.06);
             this.rightArm.rotation.set(-0.55 + breath * 0.04, 0.1, 0);
@@ -1992,6 +2010,13 @@ export class Character {
         this.rightArm.rotation.x = THREE.MathUtils.lerp(-1.55, -0.95, ease);
         this.rightArm.rotation.z = THREE.MathUtils.lerp(0.35, -0.1, ease);
         this.body.rotation.y = -0.32;
+      } else if (this.outfitIndex === 5) {
+        // 🇻🇳 CHIẾN SĨ NAMCAM: Giương súng trường nhắm bắn & giật nòng (Recoil)
+        const recoil = Math.sin(p * Math.PI) * 0.22;
+        this.rightArm.rotation.set(-Math.PI / 2 + 0.15 + recoil, -0.15, 0.05);
+        this.leftArm.rotation.set(-1.42 + recoil * 0.5, 0.22, 0.25);
+        this.body.rotation.x = -recoil * 0.4;
+        this.body.rotation.y = -0.08;
       } else {
         // 🛡️ HỘ VỆ (hoặc mặc định): Đòn 1 chém ngang, Đòn 2 thúc khiên trái, Đòn 3 giậm khiên + kiếm
         if (this.slashStep === 1 && this.outfitIndex === 0) {
