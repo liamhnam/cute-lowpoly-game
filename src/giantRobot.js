@@ -1073,17 +1073,17 @@ export class GiantRobot {
 
     const isStomp = this.attackType === 'stomp';
     const damage = isStomp ? 580 : 680;
-    const radius = isStomp ? 14.0 : 16.5;
+    const radius = isStomp ? 14.0 : 17.5;
     const damageText = isStomp ? '💥 -580 ĐẠP NÁT ĐẠI ĐỊA!' : '⚡ -680 NỆN THIẾT QUYỀN!';
     const textColor = isStomp ? '#f59e0b' : '#ff4757';
 
-    // 1. TÀN PHÁ & BIẾN DẠNG ĐỊA HÌNH THẬT (TẠO HỐ LÕM SÂU 1.8m - 2.2m)
+    // 1. TÀN PHÁ & BIẾN DẠNG ĐỊA HÌNH THẬT (TẠO HỐ LÕM SÂU 1.8m - 2.5m)
     if (this.world && this.world.deformTerrain) {
       this.world.deformTerrain(
         impactPoint.x,
         impactPoint.z,
         radius * 0.95,
-        isStomp ? 1.8 : 2.2,
+        isStomp ? 1.8 : 2.5,
         isStomp ? 'earth' : 'fire'
       );
     }
@@ -1206,36 +1206,129 @@ export class GiantRobot {
           this.torsoGroup.rotation.x = 0;
         }
       } else {
-        if (progress < 0.42) {
-          const up = progress / 0.42;
-          this.rightArmGroup.rotation.x = -up * 1.9;
-          this.torsoGroup.rotation.y = up * 0.35;
-          if (this.seismicPistonRod) this.seismicPistonRod.position.y = -3.8 - up * 1.2;
-        } else if (progress < 0.58) {
-          const slam = (progress - 0.42) / 0.16;
-          this.rightArmGroup.rotation.x = -1.9 + slam * 2.8;
-          this.torsoGroup.rotation.x = slam * 0.35;
+        // ĐÒN NỆN THIẾT QUYỀN ĐỊA CHẤN: CÚI GẬP NGƯỜI, KHUỴU GỐI NỆN SÁT MẶT ĐẤT
+        if (progress < 0.40) {
+          // Giai đoạn 1: Khuỵu gối, hạ thấp trọng tâm, vặn người giương nắm đấm lên cao
+          const up = progress / 0.40;
+          const easeUp = up * up * (3 - 2 * up);
+
+          // Xương chậu hạ thấp 7.5m (từ 16.5m xuống 9.0m)
+          this.pelvisGroup.position.y = 16.5 - easeUp * 7.5;
+
+          // Hai chân khuỵu gối choãi rộng tạo thế tấn vững chắc
+          this.leftLegGroup.rotation.x = -easeUp * 0.75;
+          this.leftLegGroup.rotation.z = -easeUp * 0.25;
+          this.rightLegGroup.rotation.x = easeUp * 0.50;
+          this.rightLegGroup.rotation.z = easeUp * 0.25;
+
+          // Thân trên cúi gập về phía trước và vặn người lấy đà
+          this.torsoGroup.rotation.x = easeUp * 0.70;
+          this.torsoGroup.rotation.y = easeUp * 0.45;
+
+          // Cánh tay phải giương cao tột độ ra sau vai nén lực thủy lực
+          this.rightArmGroup.rotation.x = -easeUp * 2.35;
+          this.rightArmGroup.rotation.z = easeUp * 0.35;
+          if (this.seismicPistonRod) this.seismicPistonRod.position.y = -3.8 - easeUp * 1.5;
+
+          // Tay trái dang rộng giữ thăng bằng
+          this.leftArmGroup.rotation.x = easeUp * 0.50;
+          this.leftArmGroup.rotation.z = -easeUp * 0.45;
+
+          // Đầu cúi xuống khóa chặt mục tiêu dưới đất
+          this.headGroup.rotation.x = easeUp * 0.45;
+          this.headGroup.rotation.y = -easeUp * 0.25;
+
+        } else if (progress < 0.56) {
+          // Giai đoạn 2: CÚI RẠP NGƯỜI XUỐNG VÀ NỆN CẮM THẲNG THIẾT QUYỀN VÀO LÒNG ĐẤT
+          const slam = (progress - 0.40) / 0.16;
+          const easeSlam = slam * slam;
+
+          // Trọng tâm hạ thấp kịch sàn (8.0m)
+          this.pelvisGroup.position.y = 9.0 - easeSlam * 1.0;
+
+          // Hai chân gập sâu
+          this.leftLegGroup.rotation.x = -0.75 - easeSlam * 0.20;
+          this.leftLegGroup.rotation.z = -0.25;
+          this.rightLegGroup.rotation.x = 0.50 + easeSlam * 0.25;
+          this.rightLegGroup.rotation.z = 0.25;
+
+          // THÂN TRÊN CÚI GẬP SÂU HẲN XUỐNG ĐẤT (~77 ĐỘ)
+          this.torsoGroup.rotation.x = 0.70 + easeSlam * 0.65; // Đạt 1.35 rad
+          this.torsoGroup.rotation.y = 0.45 - easeSlam * 0.65;
+
+          // NẮM ĐẤM THỦY LỰC LAO VÚT XUỐNG CẮM THẲNG VÀO MẶT ĐẤT
+          this.rightArmGroup.rotation.x = -2.35 + easeSlam * 3.75; // Đạt +1.40 rad
+          this.rightArmGroup.rotation.z = 0.35 - easeSlam * 0.45;
+
+          // Tay trái giật mạnh ra sau giữ thăng bằng
+          this.leftArmGroup.rotation.x = 0.50 - easeSlam * 1.35;
+          this.leftArmGroup.rotation.z = -0.45 + easeSlam * 0.20;
+
+          // Đầu nhìn cắm thẳng vào điểm nện
+          this.headGroup.rotation.x = 0.45 + easeSlam * 0.35;
+          this.headGroup.rotation.y = 0;
+
+          // Ngọn lửa phản lực sau lưng phụt cực đại ép quả đấm xuống đất
+          for (const f of this.thrusterFlames) {
+            f.scale.set(2.4, 2.8, 2.4);
+          }
+
           if (progress >= 0.52 && !this.hasImpacted) {
             this.hasImpacted = true;
+            if (this.seismicPistonRod) this.seismicPistonRod.position.y = -5.4;
             this.executeImpact();
           }
+
+        } else if (progress < 0.68) {
+          // Giai đoạn 3: GIỮ THẾ NỆN ĐẤT (IMPACT HOLD) - Nắm đấm găm sâu vào lòng đất
+          this.pelvisGroup.position.y = 8.0;
+          this.torsoGroup.rotation.x = 1.35;
+          this.torsoGroup.rotation.y = -0.20;
+          this.rightArmGroup.rotation.x = 1.40;
+          this.rightArmGroup.rotation.z = -0.10;
+          this.leftArmGroup.rotation.x = -0.85;
+          this.leftLegGroup.rotation.x = -0.95;
+          this.leftLegGroup.rotation.z = -0.25;
+          this.rightLegGroup.rotation.x = 0.75;
+          this.rightLegGroup.rotation.z = 0.25;
+          this.headGroup.rotation.x = 0.80;
+          if (this.seismicPistonRod) this.seismicPistonRod.position.y = -5.4;
+
         } else {
-          const recover = (progress - 0.58) / 0.42;
-          this.rightArmGroup.rotation.x = 0.9 - recover * 0.9;
-          this.torsoGroup.rotation.x = 0.35 - recover * 0.35;
-          this.torsoGroup.rotation.y = 0.35 - recover * 0.35;
-          if (this.seismicPistonRod) this.seismicPistonRod.position.y = -5.0 + recover * 1.2;
+          // Giai đoạn 4: ĐỨNG DẬY VÀ KHÔI PHỤC THẾ THỦ
+          const recover = (progress - 0.68) / 0.32;
+          const easeRec = Math.sin(recover * Math.PI * 0.5);
+
+          this.pelvisGroup.position.y = 8.0 + easeRec * 8.5;
+          this.torsoGroup.rotation.x = 1.35 * (1.0 - easeRec);
+          this.torsoGroup.rotation.y = -0.20 * (1.0 - easeRec);
+          this.rightArmGroup.rotation.x = 1.40 * (1.0 - easeRec);
+          this.rightArmGroup.rotation.z = -0.10 * (1.0 - easeRec);
+          this.leftArmGroup.rotation.x = -0.85 * (1.0 - easeRec);
+          this.leftArmGroup.rotation.z = -0.25 * (1.0 - easeRec);
+          this.leftLegGroup.rotation.x = -0.95 * (1.0 - easeRec);
+          this.leftLegGroup.rotation.z = -0.25 * (1.0 - easeRec);
+          this.rightLegGroup.rotation.x = 0.75 * (1.0 - easeRec);
+          this.rightLegGroup.rotation.z = 0.25 * (1.0 - easeRec);
+          this.headGroup.rotation.x = 0.80 * (1.0 - easeRec);
+
+          if (this.seismicPistonRod) this.seismicPistonRod.position.y = -5.4 + easeRec * 1.6;
         }
       }
 
       if (progress >= 1.0) {
         this.isAttacking = false;
         this.hasImpacted = false;
-        this.leftLegGroup.position.y = -1.4;
-        this.leftLegGroup.rotation.x = 0;
-        this.rightArmGroup.rotation.x = 0;
-        this.torsoGroup.rotation.x = 0;
-        this.torsoGroup.rotation.y = 0;
+        this.pelvisGroup.position.y = 16.5;
+        this.leftLegGroup.position.set(-3.2, -1.4, 0);
+        this.leftLegGroup.rotation.set(0, 0, 0);
+        this.rightLegGroup.position.set(3.2, -1.4, 0);
+        this.rightLegGroup.rotation.set(0, 0, 0);
+        this.rightArmGroup.rotation.set(0, 0, 0);
+        this.leftArmGroup.rotation.set(0, 0, 0);
+        this.torsoGroup.rotation.set(0, 0, 0);
+        this.headGroup.rotation.set(0, 0, 0);
+        if (this.seismicPistonRod) this.seismicPistonRod.position.y = -3.8;
       }
       return;
     }
@@ -1297,6 +1390,19 @@ export class GiantRobot {
     if (this.controller) {
       this.controller.isCockpitView = false;
     }
+
+    // Khôi phục các khớp về tư thế thẳng đứng khi phóng lên trời
+    this.isAttacking = false;
+    this.pelvisGroup.position.y = 16.5;
+    this.leftLegGroup.position.set(-3.2, -1.4, 0);
+    this.leftLegGroup.rotation.set(0, 0, 0);
+    this.rightLegGroup.position.set(3.2, -1.4, 0);
+    this.rightLegGroup.rotation.set(0, 0, 0);
+    this.rightArmGroup.rotation.set(0, 0, 0);
+    this.leftArmGroup.rotation.set(0, 0, 0);
+    this.torsoGroup.rotation.set(0, 0, 0);
+    this.headGroup.rotation.set(0, 0, 0);
+    if (this.seismicPistonRod) this.seismicPistonRod.position.y = -3.8;
 
     this.damageTexts.spawn('🚀 CHIẾN THẦN CƠ GIÁP VỀ CĂN CỨ!', this.group.position.clone().add(new THREE.Vector3(0, 16.0, 0)), '#00f2fe');
     if (sound.playThunder) sound.playThunder();
