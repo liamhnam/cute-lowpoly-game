@@ -248,7 +248,6 @@ export class World {
       for (const side of [-bWidth / 2, bWidth / 2]) {
         const railMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.75, 9.0), railingMat);
         railMesh.position.set(side, 0.7, 0);
-        railMesh.castShadow = true;
         bridgeGroup.add(railMesh);
         this.registerBuildingPart(railMesh, 70, 'wall', 'masonry', `bridge_${bx}_rail_${side > 0 ? 'r' : 'l'}`);
 
@@ -257,7 +256,6 @@ export class World {
           postGroup.position.set(side, 0.75, zOffset);
 
           const post = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.1, 0.42), stoneMat);
-          post.castShadow = true;
           postGroup.add(post);
 
           const sphereCap = new THREE.Mesh(new THREE.DodecahedronGeometry(0.16, 0), stoneMat);
@@ -305,7 +303,6 @@ export class World {
       for (const mxOffset of [-segLen * 0.25, segLen * 0.25]) {
         const merlon = new THREE.Mesh(new THREE.BoxGeometry(segLen * 0.38, 1.2, 0.8), wallMat);
         merlon.position.set(mxOffset, wallH / 2 + 0.6, wallThick / 2 - 0.4);
-        merlon.castShadow = true;
         segMesh.add(merlon);
       }
 
@@ -1492,7 +1489,6 @@ export class World {
 
       const post = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.2, 6), woodMat);
       post.position.y = 1.1;
-      post.castShadow = true;
       dummyGroup.add(post);
 
       const armL = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.12), woodMat);
@@ -1887,14 +1883,6 @@ export class World {
         poleGroup.add(lanternPivot);
         this.hangingLanterns.push({ pivot: lanternPivot, phase: (i + side) * 0.8 });
 
-        // Chỉ tạo 2 nguồn sáng điểm đại diện ở trung tâm cầu kênh đào để giữ mượt tuyệt đối 60 FPS
-        if (i === 7 && side > 0) {
-          const pLight = new THREE.PointLight(0xff7722, 1.8, 18, 1.8);
-          pLight.position.set(armDir * 0.75, 2.9, 0);
-          poleGroup.add(pLight);
-          this.lanternLights.push(pLight);
-        }
-
         this.lanternGroup.add(poleGroup);
 
         this.fences.push({
@@ -2166,7 +2154,6 @@ export class World {
       for (let l = 0; l < 3; l++) {
         const blossom = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4 - l * 0.3, 1), peachBlossomMat);
         blossom.position.set((l - 1) * 0.5, 2.6 + l * 0.6, (l % 2) * 0.4);
-        blossom.castShadow = true;
         peachTree.add(blossom);
         canopies.push(blossom);
       }
@@ -2290,24 +2277,23 @@ export class World {
       const isSouth = bankZ < -16;
       const railingZOffset = isSouth ? 0.35 : -0.35;
 
-      for (let x = -122; x <= 122; x += 8) {
-        const nearBridge = bridgeX.some(bx => Math.abs(x - bx) < 5.0);
-        const nearStairs = waterStairX.some(sx => Math.abs(x - sx) < 4.0);
+      for (let x = -120; x <= 120; x += 16) {
+        const nearBridge = bridgeX.some(bx => Math.abs(x - bx) < 7.0);
+        const nearStairs = waterStairX.some(sx => Math.abs(x - sx) < 5.0);
 
-        const curb = new THREE.Mesh(new THREE.BoxGeometry(7.8, 0.75, 0.85), graniteMat);
+        const curb = new THREE.Mesh(new THREE.BoxGeometry(15.8, 0.75, 0.85), graniteMat);
         curb.position.set(x, 0.15, bankZ);
         curb.receiveShadow = true;
         this.canalLifeGroup.add(curb);
-        this.registerBuildingPart(curb, 90, 'wall', 'masonry', `canal_curb_${x}_${bankZ}`);
+        this.registerBuildingPart(curb, 120, 'wall', 'masonry', `canal_curb_${x}_${bankZ}`);
 
         if (!nearBridge && !nearStairs) {
-          const rail = new THREE.Mesh(new THREE.BoxGeometry(7.6, 0.65, 0.22), darkStoneMat);
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(15.6, 0.65, 0.22), darkStoneMat);
           rail.position.set(x, 0.65, bankZ + railingZOffset);
-          rail.castShadow = true;
           this.canalLifeGroup.add(rail);
-          this.registerBuildingPart(rail, 65, 'wall', 'masonry', `canal_rail_${x}_${bankZ}`);
+          this.registerBuildingPart(rail, 80, 'wall', 'masonry', `canal_rail_${x}_${bankZ}`);
 
-          for (const rx of [-3.4, 0, 3.4]) {
+          for (const rx of [-6.8, 0, 6.8]) {
             const post = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.85, 6), graniteMat);
             post.position.set(x + rx, 0.75, bankZ + railingZOffset);
             this.canalLifeGroup.add(post);
@@ -2537,12 +2523,7 @@ export class World {
       coal.position.y = 1.05;
       brazier.add(coal);
 
-      const fireLight = new THREE.PointLight(0xff5722, 1.4, 14, 1.8);
-      fireLight.position.set(0, 1.5, 0);
-      brazier.add(fireLight);
-
       this.braziers.push({
-        light: fireLight,
         phase: i * 1.1,
       });
 
@@ -2616,7 +2597,6 @@ export class World {
         const cloud = new THREE.Mesh(new THREE.DodecahedronGeometry(1.0, 1), cl.mat);
         cloud.scale.set(cl.rx, 0.42, cl.rz);
         cloud.position.set(cl.x, cl.y, cl.z);
-        cloud.castShadow = true;
         pineTree.add(cloud);
         canopies.push(cloud);
       }
@@ -2668,7 +2648,6 @@ export class World {
       for (const fc of foliageClusters) {
         const fol = new THREE.Mesh(new THREE.DodecahedronGeometry(fc.r, 1), fc.mat);
         fol.position.set(fc.x, fc.y, fc.z);
-        fol.castShadow = true;
         gTree.add(fol);
         canopies.push(fol);
       }
@@ -2771,7 +2750,6 @@ export class World {
 
     const hearth = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 2.0), brickMat);
     hearth.position.y = 0.45;
-    hearth.castShadow = true;
     forgeGroup.add(hearth);
 
     const chimney = new THREE.Mesh(new THREE.BoxGeometry(0.9, 3.8, 0.9), brickMat);
@@ -2782,10 +2760,6 @@ export class World {
     coals.position.set(-0.2, 0.95, 0.1);
     forgeGroup.add(coals);
 
-    const forgeLight = new THREE.PointLight(0xff6b4a, 2.0, 10, 1.8);
-    forgeLight.position.set(-0.2, 1.3, 0.1);
-    forgeGroup.add(forgeLight);
-    this.lanternLights.push(forgeLight);
 
     const anvil = new THREE.Group();
     anvil.position.set(-1.8, 0, 0.4);
@@ -2894,7 +2868,6 @@ export class World {
     });
     const steleTablet = new THREE.Mesh(new THREE.BoxGeometry(1.6, 3.4, 0.38), steleMat);
     steleTablet.position.set(0, 2.1, 0);
-    steleTablet.castShadow = true;
     steleGroup.add(steleTablet);
 
     const steleCrown = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.45, 6), goldMat);
@@ -3029,13 +3002,11 @@ export class World {
         // Chân tảng đá hoa cương chạm cánh sen
         const plinth = new THREE.Mesh(new THREE.CylinderGeometry(p.r + 0.22, p.r + 0.32, 0.9, 8), stoneBaseMat);
         plinth.position.set(p.x, 0.45, 0);
-        plinth.castShadow = true;
         pailouGroup.add(plinth);
 
         // Thân cột gỗ sơn son
         const col = new THREE.Mesh(new THREE.CylinderGeometry(p.r * 0.92, p.r, p.h, 8), redLacquerMat);
         col.position.set(p.x, 0.9 + p.h / 2, 0);
-        col.castShadow = true;
         pailouGroup.add(col);
         this.registerBuildingPart(col, 95, 'pillar', 'wood', `${nameId}_col_${idx}`);
 
@@ -3083,7 +3054,6 @@ export class World {
       for (const side of [-1, 1]) {
         const sideRoof = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.75, 2.2), roofMat);
         sideRoof.position.set(side * 4.6, 7.1, 0);
-        sideRoof.castShadow = true;
         pailouGroup.add(sideRoof);
         this.registerBuildingPart(sideRoof, 85, 'eave', 'tile', `${nameId}_roof_s_${side}`);
 
@@ -3170,7 +3140,6 @@ export class World {
     // Mái ngói lưu ly vàng che đỉnh Cửu Long Bích
     const wallRoof = new THREE.Mesh(new THREE.BoxGeometry(16.4, 0.75, 2.2), goldRoofMat);
     wallRoof.position.y = 4.45;
-    wallRoof.castShadow = true;
     screenWallGroup.add(wallRoof);
     this.registerBuildingPart(wallRoof, 110, 'eave', 'tile', 'nine_dragon_roof');
 
@@ -3193,7 +3162,6 @@ export class World {
     // Thân đỉnh vạc tròn chạm khắc
     const dingBody = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.1, 1.35, 12), bronzeDingMat);
     dingBody.position.y = 1.35;
-    dingBody.castShadow = true;
     dingGroup.add(dingBody);
 
     // Vành quai đỉnh vạc vươn cao
@@ -3221,10 +3189,6 @@ export class World {
       dingGroup.add(ember);
     }
 
-    const dingLight = new THREE.PointLight(0xff7675, 1.4, 5.5);
-    dingLight.position.set(0, 2.5, 0);
-    dingGroup.add(dingLight);
-    this.lanternLights.push(dingLight);
 
     this.imperialPlazaGroup.add(dingGroup);
 
@@ -3245,13 +3209,11 @@ export class World {
       // Bệ bát giác chạm cánh sen
       const hBase = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 1.05, 0.9, 8), whiteMarbleMat);
       hBase.position.y = 0.45;
-      hBase.castShadow = true;
       huabiaoGroup.add(hBase);
 
       // Thân cột trụ đá cẩm thạch trắng
       const hCol = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.46, 8.2, 10), whiteMarbleMat);
       hCol.position.y = 4.95;
-      hCol.castShadow = true;
       huabiaoGroup.add(hCol);
       this.registerBuildingPart(hCol, 150, 'pillar', 'masonry', `huabiao_${side > 0 ? 'r' : 'l'}`);
 
@@ -3321,7 +3283,6 @@ export class World {
     // Bệ đá móng võ đài
     const baseStone = new THREE.Mesh(new THREE.BoxGeometry(11.8, 0.9, 11.8), stonePlinthMat);
     baseStone.position.y = 0.45;
-    baseStone.castShadow = true;
     arenaPlatform.add(baseStone);
     this.registerBuildingPart(baseStone, 180, 'wall', 'masonry', 'arena_base');
 
@@ -3340,7 +3301,6 @@ export class World {
     cornerOffsets.forEach((co, idx) => {
       const cornerPost = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 2.2, 8), darkTimberMat);
       cornerPost.position.set(co.x, 2.0, co.z);
-      cornerPost.castShadow = true;
       arenaPlatform.add(cornerPost);
       this.registerBuildingPart(cornerPost, 70, 'pillar', 'wood', `arena_post_${idx}`);
 
@@ -3396,7 +3356,6 @@ export class World {
     const drumBody = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.1, 16), darkTimberMat);
     drumBody.position.set(0, 1.7, 0);
     drumBody.rotation.z = Math.PI / 2;
-    drumBody.castShadow = true;
     drumGroup.add(drumBody);
 
     // 2 Mặt da trống trâu già
@@ -3444,7 +3403,6 @@ export class World {
       const targetDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 0.68, 0.16, 12), strawMat);
       targetDisc.position.set(0, 1.35, 0);
       targetDisc.rotation.x = Math.PI / 2;
-      targetDisc.castShadow = true;
       targetGroup.add(targetDisc);
 
       // Vòng tròn hồng tâm đỏ trắng
@@ -3488,7 +3446,6 @@ export class World {
       // Thân mình bện rơm
       const dummyBody = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.32, 1.1, 8), strawMat);
       dummyBody.position.y = 1.3;
-      dummyBody.castShadow = true;
       dummyGroup.add(dummyBody);
 
       // Thanh đòn tay gỗ ngang
@@ -3532,7 +3489,6 @@ export class World {
     // Chuông đồng cổ ngàn năm
     const giantBell = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 1.22, 2.3, 12), bronzeBellMat);
     giantBell.position.y = 0;
-    giantBell.castShadow = true;
     bellGroup.add(giantBell);
 
     // Vành môi chuông & quai chuông chạm bồ lao
@@ -3574,7 +3530,6 @@ export class World {
     // Thân lò bát quái 8 cạnh
     const cBody = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.05, 1.45, 8), cauldronMat);
     cBody.position.y = 1.35;
-    cBody.castShadow = true;
     cauldronGroup.add(cBody);
 
     // Nắp lò bát quái có ống thoát khói tiên
@@ -3592,10 +3547,6 @@ export class World {
     runeRing.rotation.x = Math.PI / 2;
     cauldronGroup.add(runeRing);
 
-    const alchemyLight = new THREE.PointLight(0xa55eea, 1.8, 6.0);
-    alchemyLight.position.set(0, 1.8, 0);
-    cauldronGroup.add(alchemyLight);
-    this.lanternLights.push(alchemyLight);
 
     // Giá phơi linh thảo bằng tre bên cạnh
     const rack = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.1, 0.8), darkTimberMat);
@@ -3688,7 +3639,6 @@ export class World {
       canopySpecs.forEach((cs) => {
         const fol = new THREE.Mesh(new THREE.ConeGeometry(cs.r, cs.h, 7), redLeafMats[cs.matIdx]);
         fol.position.set(cs.ox, cs.y, cs.oz);
-        fol.castShadow = true;
         treeGroup.add(fol);
       });
 
@@ -3727,7 +3677,6 @@ export class World {
       postCoords.forEach(pt => {
         const pPost = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.8, 0.24), pergolaWoodMat);
         pPost.position.set(pt.x, 1.4, pt.z);
-        pPost.castShadow = true;
         pergolaGroup.add(pPost);
       });
 
@@ -3796,7 +3745,6 @@ export class World {
 
       // Thân tảng đá cuội đa giác
       const baseRock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85, 0), riverRockMat);
-      baseRock.castShadow = true;
       rockGroup.add(baseRock);
 
       // Mảng rêu phong xanh mướt trên đỉnh đá
@@ -3839,12 +3787,13 @@ export class World {
     const palisadeWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true, roughness: 0.9 });
     const ironBandMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, metalness: 0.75, roughness: 0.4 });
 
-    // A. 20 Đèn Hoa Đăng Cầu Nguyện thả trôi bồng bềnh dọc theo kênh đào
-    for (let i = 0; i < 20; i++) {
+    // A. 8 Đèn Hoa Đăng Cầu Nguyện thả trôi bồng bềnh dọc theo kênh đào (z = -16, y = -0.34)
+    const lanternX = [-96, -68, -40, -14, 14, 40, 68, 96];
+    for (let i = 0; i < lanternX.length; i++) {
       const flGroup = new THREE.Group();
-      const fz = -105 + i * 11.0 + (Math.sin(i * 3.7) * 2.5);
-      const fx = (Math.cos(i * 2.3) * 3.2);
-      const fBaseY = -0.92; // Mặt nước kênh đào tại y = -0.95
+      const fx = lanternX[i] + (Math.sin(i * 2.3) * 3.5);
+      const fz = -16 + (i % 2 === 0 ? 1.4 : -1.4);
+      const fBaseY = -0.34; // Mặt nước kênh đào tại y = -0.38
       flGroup.position.set(fx, fBaseY, fz);
 
       // Đế gỗ vuông nổi trên mặt nước
@@ -3853,18 +3802,16 @@ export class World {
 
       // Cánh hoa đăng gấp giấy màu sen hồng & vàng kem
       const petalMat = (i % 2 === 0 ? lotusPinkMat : lotusYellowMat);
-      for (let p = 0; p < 6; p++) {
-        const pa = (p * Math.PI * 2) / 6;
-        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.32, 4), petalMat);
-        petal.position.set(Math.sin(pa) * 0.18, 0.14, Math.cos(pa) * 0.18);
+      for (let p = 0; p < 4; p++) {
+        const pa = (p * Math.PI * 2) / 4;
+        const petal = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.28, 4), petalMat);
+        petal.position.set(Math.sin(pa) * 0.16, 0.12, Math.cos(pa) * 0.16);
         petal.rotation.y = pa;
-        petal.rotation.z = Math.sin(pa) * 0.35;
-        petal.rotation.x = Math.cos(pa) * 0.35;
         flGroup.add(petal);
       }
 
       // Ngọn nến lung linh ở giữa hoa đăng
-      const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 6), candleGlowMat);
+      const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.14, 5), candleGlowMat);
       candle.position.y = 0.12;
       flGroup.add(candle);
 
@@ -3872,22 +3819,14 @@ export class World {
       flame.position.y = 0.22;
       flGroup.add(flame);
 
-      let pLight = null;
-      if (i % 4 === 0) {
-        pLight = new THREE.PointLight(0xffa502, 1.2, 4.5);
-        pLight.position.y = 0.3;
-        flGroup.add(pLight);
-        this.lanternLights.push(pLight);
-      }
-
       this.waterAndGuardsGroup.add(flGroup);
 
       this.floatingLanterns.push({
         mesh: flGroup,
         baseY: fBaseY,
         baseZ: fz,
-        phase: Math.random() * Math.PI * 2,
-        light: pLight
+        phase: i * 0.85,
+        light: null
       });
     }
 
@@ -3914,7 +3853,6 @@ export class World {
       // Bệ đá hoa cương chạm khắc
       const gBase = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.75, 1.15), stoneBaseMat);
       gBase.position.y = 0.38;
-      gBase.castShadow = true;
       guardGroup.add(gBase);
 
       // Thân thị vệ: Chiến giáp & chiến bào son đỏ
@@ -3924,7 +3862,6 @@ export class World {
 
       const torso = new THREE.Mesh(new THREE.BoxGeometry(0.78, 1.1, 0.58), sentinelArmorMat);
       torso.position.y = 2.15;
-      torso.castShadow = true;
       guardGroup.add(torso);
 
       // Gương tâm hộ tâm kính bằng vàng giữa ngực
@@ -3991,7 +3928,6 @@ export class World {
         const xLog = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 2.4, 6), palisadeWoodMat);
         xLog.position.y = 0.95;
         xLog.rotation.z = rotZ;
-        xLog.castShadow = true;
         palGroup.add(xLog);
       }
 
@@ -4092,7 +4028,7 @@ export class World {
     mesh.castShadow = false; // Tắt shadow cho mảnh vỡ để bảo vệ FPS tối đa
 
     // Giới hạn mảnh vỡ tối đa 160 mảnh
-    while (this.debris.length >= 160) {
+    while (this.debris.length >= 60) {
       const old = this.debris.shift();
       this.scene.remove(old.mesh);
     }
@@ -4261,13 +4197,11 @@ export class World {
     const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.42, 0.6, 5), stumpMat);
     stump.position.copy(tree.pos);
     stump.position.y += 0.3;
-    stump.castShadow = true;
     this.scene.add(stump);
 
     const trunkLog = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.3, 1.8 * tree.scale, 5), stumpMat);
     trunkLog.position.copy(tree.pos);
     trunkLog.position.y += 1.3;
-    trunkLog.castShadow = true;
     this.addDebris(trunkLog, impulseDir, force * 0.95 + 4, 18, 3.8, 0.48, force >= 35);
 
     for (const canopy of tree.canopies) {
@@ -4277,7 +4211,6 @@ export class World {
       const canMat = new THREE.MeshStandardMaterial({ color: tree.folColor, flatShading: true });
       const chunk = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85 * tree.scale, 0), canMat);
       chunk.position.copy(worldPos);
-      chunk.castShadow = true;
 
       const scatterDir = impulseDir.clone().add(
         new THREE.Vector3((Math.random() - 0.5) * 1.2, Math.random() * 0.8, (Math.random() - 0.5) * 1.2)
@@ -4317,7 +4250,6 @@ export class World {
       const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), shardMat);
       shard.position.copy(rock.pos);
       shard.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.6));
-      shard.castShadow = true;
 
       const sDir = impulseDir.clone().add(
         new THREE.Vector3((Math.random() - 0.5) * 1.8, Math.random() * 1.2, (Math.random() - 0.5) * 1.8)
@@ -4359,7 +4291,6 @@ export class World {
       const chunk = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.25), fMat);
       chunk.position.copy(fence.pos);
       chunk.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.6));
-      chunk.castShadow = true;
       const cDir = impulseDir.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.6, 0.85, (Math.random() - 0.5) * 1.6)).normalize();
       this.addDebris(chunk, cDir, force * 0.95 + 5, 20, 3.2, 0.45, force >= 35);
     }
@@ -4561,17 +4492,7 @@ export class World {
       if (cloud.position.x > 140) cloud.position.x = -140;
     }
 
-    // 2. Gợn sóng nước kênh đào động & Dòng nước trôi lấp lánh sóng
-    if (this.waterGeometry) {
-      const wpos = this.waterGeometry.attributes.position;
-      for (let i = 0; i < wpos.count; i++) {
-        const vx = wpos.getX(i);
-        const vy = wpos.getY(i);
-        const wave1 = Math.sin(time * 2.4 + vx * 0.35 + vy * 0.5) * 0.07;
-        wpos.setZ(i, wave1);
-      }
-      wpos.needsUpdate = true;
-    }
+    // 2. Dòng nước kênh đào trôi lấp lánh sóng bằng GPU texture offset (0 CPU vertex re-upload)
     if (this.waterTexture) {
       this.waterTexture.offset.x += delta * 0.035;
       this.waterTexture.offset.y = Math.sin(time * 0.5) * 0.012;
@@ -4634,7 +4555,7 @@ export class World {
       }
     }
 
-    // 6. Cập nhật cây cối đung đưa hồi phục
+    // 6. Cập nhật cây cối rung rinh khi bị tác động (chỉ tính matrix khi đang rung)
     for (const tree of this.trees) {
       if (!tree.isBroken) {
         if (Math.abs(tree.wobbleVel) > 0.001) {
@@ -4642,8 +4563,9 @@ export class World {
           tree.wobbleVel *= 0.88;
           tree.wobbleAngle *= 0.88;
           tree.group.setRotationFromAxisAngle(tree.wobbleAxis, tree.wobbleAngle);
-        } else {
-          tree.group.rotation.z = Math.sin(time * 1.6 + tree.pos.x * 0.2) * 0.035;
+        } else if (tree.wobbleAngle !== 0) {
+          tree.wobbleAngle = 0;
+          tree.group.rotation.set(0, 0, 0);
         }
       }
     }
