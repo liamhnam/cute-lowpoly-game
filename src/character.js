@@ -1764,7 +1764,7 @@ export class Character {
           this.rightArm.rotation.set(-1.45, 0, slashLerp);
           this.leftArm.rotation.set(-1.45, 0, -slashLerp);
         } else if (this.castSkill === 2) {
-          // Chiêu 2 (Màn Sương Ẩn Thân): Nhào lộn xoay tròn trên không ném bom khói
+          // Chiêu 2 (Ảnh Độn Thoái Bộ): Nhào lộn xoay tròn khi lướt lùi
           this.body.position.y = Math.sin(castProgress * Math.PI) * 0.95;
           this.body.rotation.y = castProgress * Math.PI * 2;
           this.body.rotation.x = 0.22;

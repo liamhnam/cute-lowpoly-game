@@ -407,18 +407,18 @@ export const SECTS = [
         name: 'Ám Ảnh Đột Kích',
         tag: 'TỐC BIẾN TRẢM',
         icon: '💨',
-        cd: 5.0,
+        cd: 2.17, // x cdMult 0.92 của Sát Thủ = 2.0s
         mana: 20,
-        desc: 'Tốc biến 10m chém xuyên mục tiêu 95 ST, gắn Ấn Ký Chữ X sau 0.35s phát nổ 65 ST. Chém trúng địch GIẢM NGAY 50% HỒI CHIÊU!'
+        desc: 'Tốc biến 10m chém xuyên mục tiêu 95 ST, gắn Ấn Ký Chữ X sau 0.35s phát nổ 65 ST. Hồi chiêu 2 giây.'
       },
       {
         id: 2,
         name: 'Ảnh Độn Thoái Bộ',
         tag: 'LƯỚT LÙI & TÀNG HÌNH',
         icon: '🌑',
-        cd: 7.5,
+        cd: 2.17, // x cdMult 0.92 của Sát Thủ = 2.0s
         mana: 20,
-        desc: 'Ném bom khói giải mọi khống chế rồi LƯỚT LÙI 10m (ngang tầm Ám Ảnh Đột Kích), TÀNG HÌNH 1 giây: quái mất dấu, đối thủ không nhìn thấy & đạn không trúng.'
+        desc: 'Giải mọi khống chế rồi LƯỚT LÙI 10m (ngang tầm Ám Ảnh Đột Kích), TÀNG HÌNH 1 giây: quái mất dấu, đối thủ không nhìn thấy & đạn không trúng. Hồi chiêu 2 giây.'
       },
       {
         id: 3,
@@ -1278,7 +1278,7 @@ export class PixelFXManager {
   }
 
   // --- [Sát Thủ 2] ẢNH ĐỘN THOÁI BỘ ---
-  // Lướt LÙI ra sau 10m (ngang tầm chiêu 1) để lại bom khói tím, giải khống chế & TÀNG HÌNH 1 giây:
+  // Lướt LÙI ra sau 10m (ngang tầm chiêu 1), giải khống chế & TÀNG HÌNH 1 giây:
   // quái mất dấu, đối thủ PvP không nhìn thấy (trên máy mình nhân vật mờ như bóng ma).
   castShadowVeil(character, monsters, targetPos = null) {
     if (character?.triggerSkillCast) character.triggerSkillCast(2);
@@ -1302,29 +1302,11 @@ export class PixelFXManager {
       character.stealthTimer = STEALTH;
       // Lướt lùi nhưng vẫn quay mặt về phía địch
       character.targetRotationY = Math.atan2(forward.x, forward.z);
-      this.damageTexts.spawn('🌑 ẢNH ĐỘN · TÀNG HÌNH 1s', center.clone().add(new THREE.Vector3(0, 2.3, 0)), '#c084fc');
     }
-
-    // Bom khói tím phồng to tại chỗ cũ (che dấu vết)
-    const smokeGroup = new THREE.Group();
-    smokeGroup.position.copy(center);
-    const puffGeo = new THREE.DodecahedronGeometry(0.85, 1);
-    const puffMat = new THREE.MeshBasicMaterial({ color: 0x3b1e54, transparent: true, opacity: 0.75, depthWrite: false });
-    const puffs = [];
-    for (let i = 0; i < 12; i++) {
-      const a = (i / 12) * Math.PI * 2;
-      const m = new THREE.Mesh(puffGeo, puffMat);
-      m.position.set(Math.cos(a) * 0.4, 0.5 + (i % 2) * 0.4, Math.sin(a) * 0.4);
-      smokeGroup.add(m);
-      puffs.push({ mesh: m, vx: Math.cos(a) * (2.2 + (i % 3)), vy: 0.8 + Math.random() * 1.2, vz: Math.sin(a) * (2.2 + (i % 3)) });
-    }
-    this.scene.add(smokeGroup);
 
     // Vệt tàn ảnh dọc đường lướt lùi
     const trailMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.7, depthWrite: false, blending: THREE.AdditiveBlending });
     const trail = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, DASH_DISTANCE), trailMat);
-    trail.position.copy(center).addScaledVector(back, DASH_DISTANCE / 2);
-    trail.position.y += 0.15;
     trail.rotation.y = Math.atan2(back.x, back.z);
     trail.scale.z = 0.01;
     this.scene.add(trail);
@@ -1333,39 +1315,18 @@ export class PixelFXManager {
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
-        for (const p of puffs) {
-          p.mesh.position.x += p.vx * delta;
-          p.mesh.position.y += p.vy * delta;
-          p.mesh.position.z += p.vz * delta;
-          p.mesh.scale.multiplyScalar(1 + delta * 1.4);
-        }
-        puffMat.opacity = Math.max(0, 0.75 * (1 - elapsed / 1.2));
         const k = Math.min(1, elapsed / DASH_DURATION);
         trail.scale.z = Math.max(0.01, k);
         trail.position.copy(center).addScaledVector(back, (DASH_DISTANCE * k) / 2);
         trail.position.y += 0.15;
-        trailMat.opacity = elapsed < DASH_DURATION ? 0.7 : Math.max(0, 0.7 * (1 - (elapsed - DASH_DURATION) / 0.5));
-
-        // Khói mỏng bám theo bóng ma suốt thời gian tàng hình
-        if (character && !character.isDead && character.stealthTimer > 0 && this.particles && Math.random() < 0.3) {
-          this.particles.emitElementalParticles(character.position.clone().add(new THREE.Vector3(0, 0.8, 0)), 1, [0xa55eea, 0x1e272e], [0.5, 1.5], 0.35, 0, 0.4);
-        }
-
-        if (elapsed < 1.25) return true;
-        this.scene.remove(smokeGroup);
+        trailMat.opacity = elapsed < DASH_DURATION ? 0.7 : Math.max(0, 0.7 * (1 - (elapsed - DASH_DURATION) / 0.4));
+        if (elapsed < DASH_DURATION + 0.4) return true;
         this.scene.remove(trail);
-        puffGeo.dispose();
-        puffMat.dispose();
         trail.geometry.dispose();
         trailMat.dispose();
         return false;
       },
     });
-
-    if (this.particles) {
-      this.particles.emitShockwave(center, 0xa55eea, 5.5, 0.3);
-      this.particles.emitElementalParticles(center, 28, [0xa55eea, 0xc084fc, 0x1e272e], [2, 6], 0.5, 2, 0.9);
-    }
   }
 
   // --- [Sát Thủ 4 - Ult] TUYỆT MỆNH LIÊN TRẢM (OMNISLASH) ---
@@ -2141,11 +2102,6 @@ export class PixelFXManager {
             sound.playSwordSlash();
             if (this.controller) this.controller.addTrauma(0.25);
 
-            // Thưởng kỹ năng: Chém trúng mục tiêu -> Giảm ngay 50% hồi chiêu Ám Ảnh Đột Kích!
-            if (character === this.localCharacter && this.cooldowns[1]) {
-              this.cooldowns[1].current *= 0.5;
-              this.damageTexts.spawn('⚡ HỒI CHIÊU -50%!', character.position.clone().add(new THREE.Vector3(0, 2.2, 0)), '#7efff5');
-            }
           }
           const attackerRole = character?.outfitIndex ?? this.currentSectIndex;
           for (const rp of hitPlayers) {
