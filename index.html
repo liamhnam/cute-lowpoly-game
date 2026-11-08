@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
   <title>Trường An Cổ Đô - Đấu Trường Nhập Vai Low-Poly (Pixel Edition)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -963,6 +963,8 @@
     #login-modal {
       position: fixed;
       inset: 0;
+      overflow: hidden;
+      touch-action: manipulation;
       background: rgba(8, 7, 14, 0.94);
       background-image: 
         linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
@@ -974,6 +976,18 @@
       justify-content: center;
       padding: 16px;
       image-rendering: pixelated;
+    }
+
+    /* Chặn tràn ngang & cho phép chạm/cuộn dọc trên iOS (không bị zoom lệch điểm chạm) */
+    .modal-box {
+      overflow-x: hidden;
+      touch-action: pan-y;
+    }
+
+    #login-modal button,
+    #login-modal input,
+    .settings-btn {
+      touch-action: manipulation;
     }
 
     .modal-box {
@@ -1085,7 +1099,7 @@
     /* Lưới Thẻ Bài Vai Trò (16-Bit Pixel RPG Role Cards) */
     .outfit-selector {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 8px;
       max-height: 330px;
       overflow-y: auto;
@@ -1104,6 +1118,8 @@
     }
 
     .outfit-card {
+      min-width: 0;
+      touch-action: manipulation;
       padding: 10px 12px;
       background: #1c182d;
       border: 2px solid #000;
@@ -2175,7 +2191,7 @@
     @media (max-width: 768px) and (orientation: portrait), (max-width: 600px) {
       .outfit-selector {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 6px;
         max-height: none !important;
         overflow: visible !important;
@@ -2234,7 +2250,7 @@
       /* 5 thẻ vai trò dàn hàng ngang 1 dòng cực gọn, không tràn */
       .outfit-selector {
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 5px;
         max-height: none !important;
         overflow: visible !important;

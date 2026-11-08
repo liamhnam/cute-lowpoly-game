@@ -284,6 +284,8 @@ export class MobileControlsManager {
 
     const onTouchStart = (e) => {
       if (!this.isEnabled) return;
+      const loginModal = document.getElementById('login-modal');
+      if (loginModal && getComputedStyle(loginModal).display !== 'none') return;
 
       for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
@@ -317,6 +319,9 @@ export class MobileControlsManager {
 
     const onTouchMove = (e) => {
       if (!this.isEnabled) return;
+      // Chỉ chặn cuộn trang khi ngón tay đang thực sự xoay/zoom camera,
+      // để các bảng (chọn vai trò, cài đặt...) vẫn cuộn & bấm bình thường
+      if (this.cameraTouchId === null && this.pinchTouchIds === null) return;
       e.preventDefault();
 
       // Nếu đang pinch 2 ngón để zoom xa gần
