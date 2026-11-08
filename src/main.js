@@ -429,6 +429,98 @@ class Game {
     return MONSTER_CONFIGS[type]?.icon || '🐉';
   }
 
+  // =========================================================================
+  // QUẢN LÝ ĐÁM ĐÔNG: giảm hỗn loạn khi bị nhiều quái vây
+  // =========================================================================
+  updateCrowdControl(delta) {
+    const c = this.character.position;
+    const alive = this.monsters.filter((m) => !m.isDead && !m.isBoss);
+
+    // 1. Lượt tấn công: mỗi 0.25s trao lượt cho các quái gần nhất (tối đa 3 nhỏ cận chiến, 2 lớn, 2 bắn xa)
+    this.crowdTimer = (this.crowdTimer || 0) - delta;
+    if (this.crowdTimer <= 0) {
+      this.crowdTimer = 0.25;
+      const ranked = alive
+        .map((m) => ({ m, d: Math.hypot(m.position.x - c.x, m.position.z - c.z) - (m.engaged ? 3 : 0) })) // ưu tiên giữ lượt, tránh đổi qua đổi lại
+        .sort((a, b) => a.d - b.d);
+      const slots = { small: 3, large: 2, ranged: 2 };
+      for (const { m } of ranked) {
+        const kind = m.type === 'fox_mage' ? 'ranged' : (m.isLarge ? 'large' : 'small');
+        if (slots[kind] > 0) {
+          slots[kind]--;
+          m.engaged = true;
+        } else {
+          m.engaged = false;
+        }
+      }
+    }
+
+    // 2. Giãn cách: quái đứng chồng lên nhau thì đẩy nhẹ ra (Boss không bị đẩy)
+    const all = this.monsters.filter((m) => !m.isDead);
+    for (let i = 0; i < all.length; i++) {
+      const a = all[i];
+      for (let j = i + 1; j < all.length; j++) {
+        const b = all[j];
+        const dx = b.position.x - a.position.x;
+        const dz = b.position.z - a.position.z;
+        const minD = (a.hitRadius + b.hitRadius) * 0.8;
+        const d2 = dx * dx + dz * dz;
+        if (d2 >= minD * minD || d2 < 1e-6) continue;
+        const d = Math.sqrt(d2);
+        const push = Math.min((minD - d) * 0.5, 6 * delta + (minD - d) * 0.15);
+        const nx = dx / d;
+        const nz = dz / d;
+        const wa = a.isBoss ? 0 : (b.isBoss ? 1 : 0.5);
+        const wb = 1 - wa;
+        a.position.x -= nx * push * wa * 2;
+        a.position.z -= nz * push * wa * 2;
+        b.position.x += nx * push * wb * 2;
+        b.position.z += nz * push * wb * 2;
+      }
+    }
+
+    // 3. Quái chắn giữa camera và nhân vật thì mờ đi để luôn thấy rõ mình
+    const cam = this.camera.position;
+    const segX = c.x - cam.x;
+    const segZ = c.z - cam.z;
+    const segLen2 = segX * segX + segZ * segZ;
+    for (const m of all) {
+      let target = 1;
+      if (segLen2 > 1) {
+        // Thân quái (bán kính hitRadius) chắn tia nhìn camera -> nhân vật, kể cả khi tâm quái nằm hơi sau nhân vật
+        const segLen = Math.sqrt(segLen2);
+        const along = ((m.position.x - cam.x) * segX + (m.position.z - cam.z) * segZ) / segLen;
+        if (along > -1 && along < segLen + m.hitRadius * 0.7) {
+          const t = Math.min(1, Math.max(0, along / segLen));
+          const px = cam.x + segX * t - m.position.x;
+          const pz = cam.z + segZ * t - m.position.z;
+          if (Math.hypot(px, pz) < m.hitRadius + 0.8) target = 0.28;
+        }
+      }
+      m.fadeOpacity += (target - m.fadeOpacity) * Math.min(1, delta * 10);
+      this.applyMonsterFade(m);
+    }
+  }
+
+  applyMonsterFade(m) {
+    const fading = m.fadeOpacity < 0.98;
+    if (!fading && !m._fadeApplied) return;
+    for (const mat of m.damageableMaterials) {
+      if (!mat.userData) mat.userData = {};
+      if (mat.userData.baseOpacity === undefined) {
+        mat.userData.baseOpacity = mat.opacity;
+        mat.userData.baseTransparent = mat.transparent;
+      }
+      const wantTransparent = fading || mat.userData.baseTransparent;
+      if (mat.transparent !== wantTransparent) {
+        mat.transparent = wantTransparent;
+        mat.needsUpdate = true;
+      }
+      mat.opacity = mat.userData.baseOpacity * (fading ? m.fadeOpacity : 1);
+    }
+    m._fadeApplied = fading;
+  }
+
   updateKillBadge() {
     if (!this.killBadge) return;
     const boss = this.bossActive
@@ -1550,7 +1642,8 @@ class Game {
     // 3. Cập nhật kỹ năng PixelFX & tàn phá địa hình
     this.pixelFX.update(delta);
 
-    // 4. Cập nhật AI quái vật & Đại Boss
+    // 4. Cập nhật AI quái vật & Đại Boss (chia lượt tấn công trước để đám đông không lao vào cùng lúc)
+    this.updateCrowdControl(delta);
     let activeBoss = null;
     for (const monster of this.monsters) {
       monster.update(delta, this.character.position, this.camera, this.character);

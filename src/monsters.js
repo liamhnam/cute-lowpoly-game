@@ -216,6 +216,13 @@ export class Monster {
     // Tạm dừng hồi sinh (vd. khi Đại Boss giáng thế thì quái thường không sinh lại)
     this.respawnPaused = false;
 
+    // Quản lý đám đông: chỉ quái có "lượt" (engaged) mới được xông vào đánh, số còn lại vây vòng ngoài chờ
+    this.engaged = true;
+    this.aggroTimer = 0;        // bị đánh thì truy đuổi xa hơn trong vài giây
+    this.returningHome = false; // bị kéo quá xa ổ thì bỏ cuộc quay về
+    this.ringSign = Math.random() < 0.5 ? 1 : -1;
+    this.fadeOpacity = 1;       // mờ đi khi che camera
+
     // Danh sách đạn, vòng cảnh báo, vệt chém 3D, sóng xung kích & bẫy độc
     this.activeEffects = [];
 
@@ -1977,6 +1984,8 @@ export class Monster {
     if (this.aiState === 'blinking') return;
 
     let finalAmount = amount;
+    this.aggroTimer = 6; // bị đánh -> nổi giận đuổi theo kẻ tấn công
+    this.returningHome = false;
     // Cơ chế riêng của từng Boss (giáp trước/lõi sau, bay lượn bất khả xâm phạm, khiên băng...)
     if (this.kit) {
       if (!this.model.visible) return; // đang độn thổ / thuấn bộ
@@ -3065,6 +3074,30 @@ export class Monster {
     }
   }
 
+  // Vòng chờ: quái nhỏ ~9m, quái bắn xa ~14m, quái lớn ~13m
+  holdAtRing(delta, distToPlayer, dx, dz, directAngle) {
+    const ringR = this.type === 'fox_mage' ? 14 : (this.isLarge ? 13 : 9);
+    const len = Math.max(0.001, Math.hypot(dx, dz));
+    const tx = dx / len;
+    const tz = dz / len;
+    // Tiến/lùi để về đúng bán kính + đi vòng tiếp tuyến
+    const radial = THREE.MathUtils.clamp((distToPlayer - ringR) / 3, -1, 1);
+    const mx = tx * radial + (-tz) * this.ringSign * 0.55;
+    const mz = tz * radial + tx * this.ringSign * 0.55;
+    const mlen = Math.hypot(mx, mz);
+    if (mlen > 0.05) {
+      const speed = this.speed * (this.isLarge ? 0.6 : 0.5);
+      this.position.x += (mx / mlen) * speed * delta;
+      this.position.z += (mz / mlen) * speed * delta;
+    }
+    let diff = directAngle - this.rotationY;
+    while (diff > Math.PI) diff -= Math.PI * 2;
+    while (diff < -Math.PI) diff += Math.PI * 2;
+    this.rotationY += diff * Math.min(1, delta * 6);
+    this.model.rotation.y = this.rotationY;
+    this.aiState = 'idle';
+  }
+
   updateMonsterAI(delta, player, distToPlayer) {
     if (!player || player.isDead) return;
 
@@ -3103,8 +3136,26 @@ export class Monster {
       return;
     }
 
-    // 3. Ngoài phạm vi phát hiện (48m) -> Đi tuần quanh điểm xuất hiện
-    if (distToPlayer > 48) {
+    // 3. Ngoài phạm vi phát hiện -> Đi tuần quanh điểm xuất hiện.
+    // Tầm phát hiện 26-30m (bị đánh thì 60m trong 6s); bị kéo xa ổ quá 45m thì bỏ cuộc quay về.
+    if (this.aggroTimer > 0) this.aggroTimer -= delta;
+    const detectRadius = this.aggroTimer > 0 ? 60 : (this.isLarge ? 30 : 26);
+    const fromHome = Math.hypot(this.position.x - this.spawnOrigin.x, this.position.z - this.spawnOrigin.z);
+    if (fromHome > 45 && this.aggroTimer <= 0) this.returningHome = true;
+    if (this.returningHome && fromHome < 10) this.returningHome = false;
+    if (distToPlayer > detectRadius || this.returningHome) {
+      if (this.returningHome) {
+        const a = Math.atan2(this.spawnOrigin.x - this.position.x, this.spawnOrigin.z - this.position.z);
+        this.rotationY = a;
+        this.model.rotation.y = a;
+        this.position.x += Math.sin(a) * this.speed * delta;
+        this.position.z += Math.cos(a) * this.speed * delta;
+        this.hp = Math.min(this.maxHp, this.hp + this.maxHp * 0.2 * delta); // về ổ hồi máu
+        const r = this.hp / this.maxHp;
+        this.barMesh.scale.x = Math.max(0.0001, r);
+        this.barMesh.position.x = -(1.0 - r) * (this.barInnerWidth * 0.5);
+        return;
+      }
       this.walkAnimTime += delta * 0.4;
       const toHomeX = this.spawnOrigin.x - this.position.x;
       const toHomeZ = this.spawnOrigin.z - this.position.z;
@@ -3120,6 +3171,12 @@ export class Monster {
     const dirToPlayerX = player.position.x - this.position.x;
     const dirToPlayerZ = player.position.z - this.position.z;
     const directAngle = Math.atan2(dirToPlayerX, dirToPlayerZ);
+
+    // Chưa tới lượt: đứng vây vòng ngoài, đi vòng chậm quanh người chơi, không tấn công
+    if (!this.engaged) {
+      this.holdAtRing(delta, distToPlayer, dirToPlayerX, dirToPlayerZ, directAngle);
+      return;
+    }
 
     // =========================================================================
     // A. HÀNH VI NHÓM QUÁI NHỎ (SMALL / FAST / ANNOYING SWARMERS)

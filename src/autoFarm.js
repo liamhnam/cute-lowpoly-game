@@ -70,7 +70,8 @@ export class AutoFarm {
       if (!m || m.isDead) continue;
       const d = Math.hypot(m.position.x - pos.x, m.position.z - pos.z);
       if (d > MAX_TARGET_DIST) continue;
-      const score = d + (m.isBoss ? BOSS_PENALTY : 0);
+      // Ưu tiên quái đang tới lượt xông vào (quái đứng vòng ngoài chờ sẽ lùi giữ khoảng cách)
+      const score = d + (m.isBoss ? BOSS_PENALTY : 0) + (m.engaged === false ? 8 : 0);
       if (score < bestScore) {
         bestScore = score;
         best = m;

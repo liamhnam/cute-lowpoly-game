@@ -285,12 +285,21 @@ class FloatingDamageText {
   }
 
   spawn(text, position, color = '#ff4757') {
+    // Chống rối mắt: chữ mới mọc ở cùng chỗ thì xếp tầng lên trên, tối đa 4 dòng (dòng cũ nhất bị thay)
+    const nearby = this.pool.filter((it) => it.sprite.visible &&
+      Math.abs(it.sprite.position.x - position.x) < 2.5 && Math.abs(it.sprite.position.z - position.z) < 2.5);
+    let recycled = null;
+    if (nearby.length >= 4) {
+      recycled = nearby.reduce((a, b) => (a.life < b.life ? a : b));
+      recycled.sprite.visible = false;
+    }
+    const stack = Math.min(nearby.length, 3);
     for (const item of this.pool) {
       if (!item.sprite.visible) {
         item.sprite.visible = true;
         item.life = item.maxLife;
         item.sprite.position.copy(position);
-        item.sprite.position.y += 1.6;
+        item.sprite.position.y += 1.6 + stack * 1.15;
         item.sprite.position.x += (Math.random() - 0.5) * 0.6;
 
         const ctx = item.ctx;
