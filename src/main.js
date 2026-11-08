@@ -686,6 +686,10 @@ class Game {
         } else {
           sound.playSwordSlash();
         }
+      } else if (msg.kind === 'mecha_attack') {
+        if (rp?.giantRobot?.isActive) {
+          rp.giantRobot.triggerAttack(this.monsters);
+        }
       } else {
         this.projectiles.slash(origin, dir, this.monsters, msg.step === 2 ? 'thrust' : 'sweep', [], null, rpSectStats, rp);
         sound.playSwordSlash();

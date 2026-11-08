@@ -1558,19 +1558,28 @@ export class Character {
     this.position.z = THREE.MathUtils.clamp(this.position.z, -121, 121);
 
     const groundY = getTerrainHeight(this.position.x, this.position.z);
+    this.position.y = groundY;
 
     if (this.isMechaActive) {
       this.isGrounded = true;
       this.freezeTimer = 0;
       this.slowTimer = 0;
 
-      // Đưa nhân vật lên ngồi trực tiếp trong buồng lái Robot ở độ cao ~26.7m!
-      const forward = new THREE.Vector3(-Math.sin(this.rotationY), 0, -Math.cos(this.rotationY));
-      const cockpitPos = this.position.clone().addScaledVector(forward, 2.0);
-      cockpitPos.y = groundY + 26.7;
+      // Đồng bộ vị trí của Namcam vào ghế lái buồng lái
+      if (this.giantRobot?.getPilotSeatPos) {
+        const seatPos = this.giantRobot.getPilotSeatPos();
+        if (seatPos) {
+          this.group.position.copy(seatPos);
+          this.group.rotation.y = this.rotationY;
+        }
+      } else {
+        const forward = new THREE.Vector3(-Math.sin(this.rotationY), 0, -Math.cos(this.rotationY));
+        const cockpitPos = this.position.clone().addScaledVector(forward, 2.0);
+        cockpitPos.y = groundY + 26.7;
 
-      this.group.position.copy(cockpitPos);
-      this.group.rotation.y = this.rotationY;
+        this.group.position.copy(cockpitPos);
+        this.group.rotation.y = this.rotationY;
+      }
       this.group.scale.set(1.35, 1.35, 1.35); // Namcam to hơn 1 chút để nhìn rõ từ bên ngoài kính
 
       // Dáng ngồi lái oai phong: 2 tay cầm cần lái, chân gác bàn đạp

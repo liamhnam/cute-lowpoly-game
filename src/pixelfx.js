@@ -4753,6 +4753,11 @@ export class PixelFXManager {
     const target = targetPos ? targetPos.clone() : character.position.clone();
     target.y = getTerrainHeight(target.x, target.z);
 
+    // Không triệu hồi thêm nếu robot của nhân vật vẫn đang hoạt động hoặc đang hợp thể
+    if (character?.giantRobot && character.giantRobot.state !== 'dead') {
+      return false;
+    }
+
     // Tạo thực thể GiantRobot
     const robot = new GiantRobot(
       this.scene,
@@ -4762,6 +4767,10 @@ export class PixelFXManager {
       this.controller,
       this
     );
+
+    if (character) {
+      character.giantRobot = robot;
+    }
 
     // Đưa robot vào danh sách hiệu ứng cần cập nhật hàng frame
     this.activeEffects.push(robot);

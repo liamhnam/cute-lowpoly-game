@@ -6,7 +6,10 @@ import { sound } from './audio.js';
 // CHIẾN THẦN CƠ GIÁP KHỔNG LỒ X20 (GIANT TITAN MECHA NAMCAM)
 // ============================================================================
 // Mô hình Robot khổng lồ cao ~36.5m (gấp 20 lần nhân vật 1.8m).
-// 7 bộ phận bay vào từ ngoài bản đồ / tầng bình lưu để hợp thể:
+// Màu sơn rằn ri quân đội Việt Nam (Olive Drab), Sao Vàng Quân Đội dập nổi 3D,
+// Buồng lái kính trong suốt nhìn rõ người lái, Đèn Visor Neon, Động cơ phản lực đôi,
+// Lò phản ứng lượng tử trung tâm, Hệ thống xi-lanh thủy lực Chrome sáng bóng.
+// 7 bộ phận bay vào từ không gian hợp thể:
 // 1. Chân Trái Thủy Lực (Left Leg & Stomping Sole)
 // 2. Chân Phải Thủy Lực (Right Leg & Stomping Sole)
 // 3. Khung Thân, Lò Phản Ứng & Buồng Lái (Torso, Cockpit & Reactor)
@@ -32,10 +35,13 @@ export class GiantRobot {
     this.group.name = 'GiantRobot_NAMCAM';
     this.scene.add(this.group);
 
+    // Trạng thái vòng đời: 'assembling' | 'active' | 'disengaging' | 'dead'
+    this.state = 'assembling';
     this.isActive = false;
     this.isAssembling = false;
     this.caster = null;
     this.monsters = [];
+    this.onCompleteCallback = null;
 
     // Thời gian duy trì cơ giáp: 30 giây
     this.duration = 30.0;
@@ -50,8 +56,23 @@ export class GiantRobot {
     this.attackTime = 0;
     this.attackDuration = 1.35;
     this.attackType = 'stomp'; // 'stomp' | 'slam'
+    this.hasImpacted = false;
 
-    // Lưu các vật liệu để giải phóng bộ nhớ khi kết thúc
+    // Quá trình lắp ráp
+    this.assemblyElapsed = 0;
+    this.totalAssemblyTime = 1.55;
+    this.flyingParts = [];
+    this.beaconGroup = null;
+    this.tractorBeam = null;
+    this.tractorMat = null;
+    this.deployPos = new THREE.Vector3();
+
+    // Quá trình phóng tên lửa kết thúc
+    this.disengageElapsed = 0;
+    this.disengageDuration = 1.4;
+    this.disengageStartY = 0;
+
+    // Lưu các vật liệu & hình học để dispose sạch sẽ
     this.materials = [];
     this.geometries = [];
 
@@ -59,7 +80,7 @@ export class GiantRobot {
     this.initMaterials();
     this.buildRobotModel();
 
-    // Ẩn nhóm chính trong khi đang bay vào hợp thể
+    // Ban đầu ẩn nhóm chính trong khi 7 mảnh đang bay vào hợp thể
     this.group.visible = false;
   }
 
@@ -74,129 +95,156 @@ export class GiantRobot {
     return geo;
   }
 
+  // ==========================================================================
+  // VẬT LIỆU MÀU SẮC CHUẨN QUÂN ĐỘI VIỆT NAM (CAMO GREEN & GOLD STAR)
+  // ==========================================================================
   initMaterials() {
-    // 1. Giáp chính màu xanh rêu quân đội Việt Nam
+    // 1. Màu xanh rêu quân đội Việt Nam (Vietnamese Military Olive Drab)
     this.armorPrimaryMat = this.registerMat(new THREE.MeshStandardMaterial({
       color: 0x244222,
-      roughness: 0.45,
+      roughness: 0.55,
       metalness: 0.35,
-      flatShading: true,
     }));
 
-    // 2. Giáp thứ cấp xanh rêu sáng (camo highlight)
+    // 2. Màu xanh lục quân đội sáng tạo điểm nhấn mảng giáp (Secondary Olive Green)
     this.armorHighlightMat = this.registerMat(new THREE.MeshStandardMaterial({
       color: 0x366333,
-      roughness: 0.4,
-      metalness: 0.3,
-      flatShading: true,
+      roughness: 0.45,
+      metalness: 0.4,
     }));
 
-    // 3. Khung thép hợp kim công nghiệp đen xám (Chassis & Joints)
+    // 3. Khung sườn thép bóng đen sẫm (Dark Gunmetal Tactical Steel)
     this.darkSteelMat = this.registerMat(new THREE.MeshStandardMaterial({
       color: 0x181e24,
       roughness: 0.35,
-      metalness: 0.7,
-      flatShading: true,
+      metalness: 0.75,
     }));
 
-    // 4. Thanh Piston thủy lực chrome sáng bóng
-    this.chromePistonMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0xcfd8dc,
-      roughness: 0.18,
-      metalness: 0.88,
-    }));
-
-    // 5. Viền & sọc cảnh báo vàng cam (Hazard Stripes / Decals)
+    // 4. Vạch sọc vàng cảnh báo quân sự (Military Warning Yellow)
     this.hazardYellowMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      roughness: 0.3,
-      metalness: 0.4,
-      flatShading: true,
+      color: 0xeab308,
+      roughness: 0.4,
+      metalness: 0.3,
     }));
 
-    // 6. Ngôi Sao Vàng Năm Cánh (Vietnam Army Emblem)
+    // 5. Xi-lanh thủy lực Piston Chrome sáng bóng (Hydraulic Chrome Pistons)
+    this.chromePistonMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.1,
+      metalness: 0.95,
+    }));
+
+    // 6. Sao Vàng Năm Cánh Quân Đội Việt Nam dập nổi 3D (Embossed Golden Star)
     this.goldStarMat = this.registerMat(new THREE.MeshStandardMaterial({
       color: 0xffd700,
       emissive: 0xd97706,
       emissiveIntensity: 0.65,
-      roughness: 0.25,
+      roughness: 0.2,
       metalness: 0.85,
     }));
 
-    // 7. Kính buồng lái & Visor mắt phát sáng Neon Cyan
-    this.cockpitGlassMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0x06b6d4,
-      emissive: 0x0891b2,
-      emissiveIntensity: 1.1,
-      roughness: 0.1,
-      metalness: 0.1,
-      transparent: true,
-      opacity: 0.82,
-    }));
-
-    // 8. Lõi lò phản ứng lượng tử phát sáng rực rỡ
-    this.reactorCoreMat = this.registerMat(new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending,
-    }));
-
-    // 9. Ngọn lửa phản lực động cơ (Thruster Jet Flame)
-    this.thrusterFlameMat = this.registerMat(new THREE.MeshBasicMaterial({
+    // 7. Lõi Lò phản ứng lượng tử trung tâm phát sáng Neon Cyan (Quantum Reactor Core)
+    this.reactorCoreMat = this.registerMat(new THREE.MeshStandardMaterial({
       color: 0x00f2fe,
+      emissive: 0x00d2d3,
+      emissiveIntensity: 1.25,
+      roughness: 0.15,
+      metalness: 0.2,
+    }));
+
+    // 8. Kính vòm buồng lái cường lực màu lam ngọc trong suốt (Translucent Cockpit Glass)
+    this.cockpitGlassMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0x22d3ee,
+      emissive: 0x0891b2,
+      emissiveIntensity: 0.3,
+      roughness: 0.08,
+      metalness: 0.15,
       transparent: true,
-      opacity: 0.88,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.35,
+      depthWrite: false,
+    }));
+
+    // 9. Ngọn lửa phản lực động cơ Thruster (Jet Thruster Flame)
+    this.thrusterFlameMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0xff9f43,
+      emissive: 0xee5253,
+      emissiveIntensity: 1.8,
+      roughness: 0.2,
+      metalness: 0.1,
     }));
   }
 
+  // Dựng hình khối Ngôi Sao Vàng Năm Cánh 3D
+  buildStarMesh(radius = 1.6, depth = 0.35) {
+    const starShape = new THREE.Shape();
+    const points = 5;
+    const innerRadius = radius * 0.42;
+
+    for (let i = 0; i < points * 2; i++) {
+      const r = i % 2 === 0 ? radius : innerRadius;
+      const angle = (i * Math.PI) / points - Math.PI / 2;
+      const x = Math.cos(angle) * r;
+      const y = Math.sin(angle) * r;
+      if (i === 0) starShape.moveTo(x, y);
+      else starShape.lineTo(x, y);
+    }
+    starShape.closePath();
+
+    const extrudeSettings = {
+      depth: depth,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      steps: 1,
+      bevelSize: 0.12,
+      bevelThickness: 0.12,
+    };
+
+    const starGeo = this.registerGeo(new THREE.ExtrudeGeometry(starShape, extrudeSettings));
+    const starMesh = new THREE.Mesh(starGeo, this.goldStarMat);
+    return starMesh;
+  }
+
   // ==========================================================================
-  // DỰNG TOÀN BỘ MÔ HÌNH 3D CHI TIẾT CỦA CHIẾN THẦN CƠ GIÁP X20
+  // XÂY DỰNG MÔ HÌNH 3D CHI TIẾT ROBOT KHỔNG LỒ X20 (~36.5M)
   // ==========================================================================
   buildRobotModel() {
     // ------------------------------------------------------------------------
-    // 1. KHUNG HÔNG & KHỚP EO (PELVIS & WAIST) - Gốc tọa độ y=0 tại mặt đất
+    // 1. HỆ THỐNG KHUNG CHẬU & HÔNG CƠ KHÍ (PELVIS & HIPS)
+    // Độ cao khớp háng: 16.5m
     // ------------------------------------------------------------------------
     this.pelvisGroup = new THREE.Group();
-    this.pelvisGroup.position.set(0, 16.5, 0); // Đặt ở độ cao ~16.5m
+    this.pelvisGroup.position.set(0, 16.5, 0);
     this.group.add(this.pelvisGroup);
 
-    // Khối khung xương hông chính
-    const pelvisCore = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(5.2, 3.2, 4.4)),
+    // Khối đế xương chậu chịu lực
+    const pelvisChassis = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(6.4, 2.8, 4.4)),
       this.darkSteelMat
     );
-    this.pelvisGroup.add(pelvisCore);
+    this.pelvisGroup.add(pelvisChassis);
 
-    // Tấm giáp háng chữ V phía trước
-    const groinArmor = new THREE.Mesh(
-      this.registerGeo(new THREE.ConeGeometry(2.4, 2.8, 4)),
+    // Tấm giáp háng trung tâm vát góc
+    const crotchPlate = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.4, 3.2, 1.8)),
       this.armorPrimaryMat
     );
-    groinArmor.rotation.y = Math.PI / 4;
-    groinArmor.rotation.x = Math.PI;
-    groinArmor.position.set(0, -0.6, 2.3);
-    this.pelvisGroup.add(groinArmor);
+    crotchPlate.position.set(0, -0.6, 1.8);
+    crotchPlate.rotation.x = 0.25;
+    this.pelvisGroup.add(crotchPlate);
 
-    // Váy giáp hông 2 bên (Side Hip Armor Skirts)
+    // Cặp váy giáp hông bảo vệ khớp đùi 2 bên
     for (const side of [-1, 1]) {
-      const hipSkirt = new THREE.Group();
-      hipSkirt.position.set(side * 3.0, -0.4, 0);
-
-      const skirtPlate = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(0.8, 3.8, 3.6)),
-        this.armorPrimaryMat
+      const hipSkirt = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(1.4, 3.6, 4.8)),
+        this.armorHighlightMat
       );
-      skirtPlate.rotation.z = side * 0.12;
-      hipSkirt.add(skirtPlate);
+      hipSkirt.position.set(side * 3.4, -0.4, 0);
+      hipSkirt.rotation.z = side * 0.18;
 
-      // Sọc cảnh báo vàng trên váy giáp
       const hazardStripe = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(0.85, 0.6, 3.2)),
+        this.registerGeo(new THREE.BoxGeometry(1.45, 0.6, 4.85)),
         this.hazardYellowMat
       );
-      hazardStripe.rotation.z = side * 0.12;
       hazardStripe.position.y = -0.5;
       hipSkirt.add(hazardStripe);
 
@@ -207,10 +255,10 @@ export class GiantRobot {
     // 2. KHUNG THÂN & LÒ PHẢN ỨNG (TORSO & COCKPIT)
     // ------------------------------------------------------------------------
     this.torsoGroup = new THREE.Group();
-    this.torsoGroup.position.set(0, 2.2, 0); // Nối tiếp trên hông
+    this.torsoGroup.position.set(0, 2.2, 0);
     this.pelvisGroup.add(this.torsoGroup);
 
-    // Bụng khớp nối linh hoạt (Abdominal segmented plates)
+    // Bụng khớp nối linh hoạt
     for (let i = 0; i < 2; i++) {
       const abPlate = new THREE.Mesh(
         this.registerGeo(new THREE.BoxGeometry(4.2 - i * 0.4, 1.2, 3.6)),
@@ -237,7 +285,7 @@ export class GiantRobot {
       this.torsoGroup.add(torsoPistonRod);
     }
 
-    // Khung Lồng Ngực Chính Khổng Lồ (Main Chest Chassis)
+    // Khung Lồng Ngực Chính Khổng Lồ
     const chestGroup = new THREE.Group();
     chestGroup.position.set(0, 4.8, 0);
     this.torsoGroup.add(chestGroup);
@@ -248,7 +296,7 @@ export class GiantRobot {
     );
     chestGroup.add(chestCenter);
 
-    // Tấm giáp ngực dốc phía trước (Angled Front Armor Plate)
+    // Tấm giáp ngực dốc phía trước
     const frontArmor = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(6.6, 4.4, 1.8)),
       this.armorHighlightMat
@@ -257,7 +305,7 @@ export class GiantRobot {
     frontArmor.rotation.x = -0.22;
     chestGroup.add(frontArmor);
 
-    // Lõi Lò Phản Ứng Lượng Tử Trung Tâm (Quantum Reactor Core)
+    // Lõi Lò Phản Ứng Lượng Tử Trung Tâm
     const reactorHousing = new THREE.Mesh(
       this.registerGeo(new THREE.CylinderGeometry(1.9, 1.9, 0.8, 12)),
       this.darkSteelMat
@@ -286,7 +334,9 @@ export class GiantRobot {
     starMesh.position.set(0, 2.3, 4.1);
     chestGroup.add(starMesh);
 
+    // ------------------------------------------------------------------------
     // BUỒNG LÁI CƠ GIÁP NỘI THẤT HOÀN CHỈNH (COCKPIT & PILOT CABIN INTERIOR)
+    // ------------------------------------------------------------------------
     // Sàn buồng lái bằng kim loại chống trượt
     const cockpitFloor = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(4.4, 0.4, 3.6)),
@@ -321,6 +371,18 @@ export class GiantRobot {
       pilotChair.add(armRest);
     }
     chestGroup.add(pilotChair);
+
+    // NODE TỌA ĐỘ VẬT LÝ GHẾ LÁI (NAMCAM PILOT POSITION)
+    this.pilotSeatNode = new THREE.Object3D();
+    this.pilotSeatNode.name = 'TitanPilotSeatNode';
+    this.pilotSeatNode.position.set(0, 2.35, 1.8);
+    chestGroup.add(this.pilotSeatNode);
+
+    // NODE TỌA ĐỘ CAMERA BUỒNG LÁI 1ST-PERSON (COCKPIT CAMERA ANCHOR)
+    this.cockpitCameraNode = new THREE.Object3D();
+    this.cockpitCameraNode.name = 'TitanCockpitCameraNode';
+    this.cockpitCameraNode.position.set(0, 3.45, 1.95);
+    chestGroup.add(this.cockpitCameraNode);
 
     // Bảng điều khiển tác chiến chữ U (Control Console)
     const consolePanel = new THREE.Mesh(
@@ -359,21 +421,9 @@ export class GiantRobot {
     }
 
     // Kính vòm cường lực trong suốt (Translucent Canopy Glass, opacity 0.35)
-    // Nhìn xuyên thấu thấy rõ nhân vật Namcam ngồi điều khiển bên trong!
-    const glassMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0x22d3ee,
-      emissive: 0x0891b2,
-      emissiveIntensity: 0.35,
-      roughness: 0.08,
-      metalness: 0.15,
-      transparent: true,
-      opacity: 0.35,
-      depthWrite: false,
-    }));
-
     const cockpitCanopy = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(4.4, 2.4, 3.4)),
-      glassMat
+      this.cockpitGlassMat
     );
     cockpitCanopy.position.set(0, 3.3, 2.1);
     cockpitCanopy.rotation.x = -0.32;
@@ -448,13 +498,13 @@ export class GiantRobot {
         this.hazardYellowMat
       );
       antenna.position.set(side * 1.8, 2.6, -0.6);
-      antenna.rotation.z = -side * 0.45;
-      antenna.rotation.x = -0.3;
+      antenna.rotation.z = side * -0.3;
+      antenna.rotation.x = -0.2;
       this.headGroup.add(antenna);
     }
 
     // ------------------------------------------------------------------------
-    // 4. BA LÔ ĐỘNG CƠ PHẢN LỰC ĐÔI (TWIN THRUSTER BACKPACK)
+    // 4. BALO PHẢN LỰC KHỔNG LỒ PHÍA SAU LƯNG (TWIN THRUSTER BACKPACK)
     // ------------------------------------------------------------------------
     this.backpackGroup = new THREE.Group();
     this.backpackGroup.position.set(0, 0.4, -3.8);
@@ -501,319 +551,280 @@ export class GiantRobot {
     }
 
     // ------------------------------------------------------------------------
-    // 5. CÁNH TAY TRÁI (LEFT ARM & CRUSHING FIST)
+    // 5. CÁNH TAY TRÁI & ĐẠI THỦ THIẾT QUYỀN (LEFT ARM & CRUSHING FIST)
     // ------------------------------------------------------------------------
-    this.leftShoulderGroup = new THREE.Group();
-    this.leftShoulderGroup.position.set(-5.6, 1.8, 0);
-    chestGroup.add(this.leftShoulderGroup);
+    this.leftArmGroup = this.buildArm(chestGroup, -1, 'fist');
 
-    // Khối Giáp Vai Khổng Lồ (Shoulder Pauldron)
-    const shoulderLMesh = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.6, 3.8, 4.4)),
+    // ------------------------------------------------------------------------
+    // 6. CÁNH TAY PHẢI & BÚA THỦY LỰC TRỌNG KÍCH (RIGHT ARM & SEISMIC GAUNTLET)
+    // ------------------------------------------------------------------------
+    this.rightArmGroup = this.buildArm(chestGroup, 1, 'hammer');
+
+    // ------------------------------------------------------------------------
+    // 7. CẶP CHÂN THỦY LỰC ĐẠI ĐỊA (LEFT & RIGHT LEGS)
+    // Chiều dài mỗi chân: ~16.5m
+    // ------------------------------------------------------------------------
+    this.leftLegGroup = this.buildLeg(-1);
+    this.rightLegGroup = this.buildLeg(1);
+  }
+
+  // Dựng cánh tay cơ khí đồ sộ
+  buildArm(parent, side, weaponType) {
+    const shoulderPivot = new THREE.Group();
+    shoulderPivot.position.set(side * 5.4, 2.2, 0);
+    parent.add(shoulderPivot);
+
+    // Giáp vai bản to hình hộp vát góc (Heavy Pauldron)
+    const pauldron = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(3.6, 3.2, 4.2)),
       this.armorPrimaryMat
     );
-    this.leftShoulderGroup.add(shoulderLMesh);
+    pauldron.position.set(side * 0.6, 0.4, 0);
+    shoulderPivot.add(pauldron);
 
-    // Ống phóng tên lửa mini trên đỉnh vai
-    for (let r = -1; r <= 1; r += 2) {
-      for (let c = -1; c <= 1; c += 2) {
-        const podTube = new THREE.Mesh(
-          this.registerGeo(new THREE.CylinderGeometry(0.35, 0.35, 0.8, 8)),
-          this.darkSteelMat
-        );
-        podTube.position.set(r * 0.8, 2.0, c * 0.9);
-        this.leftShoulderGroup.add(podTube);
+    // Sao vàng trên vai trái, vạch cảnh báo trên vai phải
+    if (side === -1) {
+      const shoulderStar = this.buildStarMesh(1.1, 0.25);
+      shoulderStar.rotation.y = -Math.PI / 2;
+      shoulderStar.position.set(side * 2.45, 0.4, 0);
+      shoulderPivot.add(shoulderStar);
+    } else {
+      const shoulderHazard = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.2, 1.2, 3.8)),
+        this.hazardYellowMat
+      );
+      shoulderHazard.position.set(side * 2.45, 0.4, 0);
+      shoulderPivot.add(shoulderHazard);
+    }
 
-        const warhead = new THREE.Mesh(
-          this.registerGeo(new THREE.SphereGeometry(0.3, 8, 8)),
+    // Bắp tay trên (Upper Arm Bicep)
+    const upperArm = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.4, 4.4, 2.6)),
+      this.darkSteelMat
+    );
+    upperArm.position.set(0, -2.6, 0);
+    shoulderPivot.add(upperArm);
+
+    // Piston thủy lực bắp tay
+    const bicepPiston = new THREE.Mesh(
+      this.registerGeo(new THREE.CylinderGeometry(0.3, 0.3, 3.6, 8)),
+      this.chromePistonMat
+    );
+    bicepPiston.position.set(side * 0.9, -2.6, 1.0);
+    shoulderPivot.add(bicepPiston);
+
+    // Khớp cùi chỏ (Elbow Joint)
+    const elbowJoint = new THREE.Mesh(
+      this.registerGeo(new THREE.CylinderGeometry(1.4, 1.4, 2.6, 10)),
+      this.darkSteelMat
+    );
+    elbowJoint.rotation.z = Math.PI / 2;
+    elbowJoint.position.set(0, -5.2, 0);
+    shoulderPivot.add(elbowJoint);
+
+    // Cẳng tay bọc giáp (Forearm Gauntlet)
+    const forearm = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(3.2, 4.6, 3.4)),
+      this.armorHighlightMat
+    );
+    forearm.position.set(0, -7.6, 0.4);
+    shoulderPivot.add(forearm);
+
+    if (weaponType === 'hammer') {
+      // Búa Thủy Lực Trọng Kích Địa Chấn (Seismic Slam Hammer)
+      const hammerHead = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(4.2, 3.4, 4.6)),
+        this.darkSteelMat
+      );
+      hammerHead.position.set(0, -10.4, 0.6);
+      shoulderPivot.add(hammerHead);
+
+      const hammerImpactFace = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(4.4, 0.8, 4.8)),
+        this.hazardYellowMat
+      );
+      hammerImpactFace.position.set(0, -12.1, 0.6);
+      shoulderPivot.add(hammerImpactFace);
+
+      // Piston khí nén áp lực cao trên mu bàn tay
+      this.seismicPistonRod = new THREE.Mesh(
+        this.registerGeo(new THREE.CylinderGeometry(0.45, 0.45, 4.2, 8)),
+        this.chromePistonMat
+      );
+      this.seismicPistonRod.position.set(0, -8.2, 2.4);
+      shoulderPivot.add(this.seismicPistonRod);
+    } else {
+      // Đại Thủ Thiết Quyền (Crushing Fist)
+      const fistMesh = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(3.2, 3.4, 3.4)),
+        this.darkSteelMat
+      );
+      fistMesh.position.set(0, -10.4, 0.4);
+      shoulderPivot.add(fistMesh);
+
+      // Đốt ngón tay kim loại
+      for (let f = 0; f < 4; f++) {
+        const knuckle = new THREE.Mesh(
+          this.registerGeo(new THREE.BoxGeometry(0.65, 1.4, 1.0)),
           this.hazardYellowMat
         );
-        warhead.position.set(r * 0.8, 2.4, c * 0.9);
-        this.leftShoulderGroup.add(warhead);
+        knuckle.position.set((f - 1.5) * 0.75, -12.0, 1.2);
+        shoulderPivot.add(knuckle);
       }
     }
 
-    // Khớp xoay cánh tay trái
-    this.leftArmGroup = new THREE.Group();
-    this.leftArmGroup.position.set(-0.6, -2.2, 0);
-    this.leftShoulderGroup.add(this.leftArmGroup);
-
-    // Bắp tay trái (Bicep)
-    const bicepL = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(2.4, 4.6, 2.6)),
-      this.darkSteelMat
-    );
-    bicepL.position.y = -2.0;
-    this.leftArmGroup.add(bicepL);
-
-    // Cẳng tay trái & Bàn tay đấm (Forearm & Crushing Fist)
-    this.leftForearmGroup = new THREE.Group();
-    this.leftForearmGroup.position.set(0, -4.6, 0);
-    this.leftArmGroup.add(this.leftForearmGroup);
-
-    const forearmL = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.2, 5.2, 3.4)),
-      this.armorPrimaryMat
-    );
-    forearmL.position.y = -2.2;
-    this.leftForearmGroup.add(forearmL);
-
-    // Nắm Đấm Thép Bên Trái (Left Steel Fist)
-    const fistL = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.4, 3.2, 3.6)),
-      this.darkSteelMat
-    );
-    fistL.position.y = -5.8;
-    this.leftForearmGroup.add(fistL);
-
-    // 4 Khớp ngón tay bọc giáp vàng
-    for (let f = 0; f < 4; f++) {
-      const knuckle = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(0.7, 1.4, 0.9)),
-        this.hazardYellowMat
-      );
-      knuckle.position.set(-1.05 + f * 0.7, -6.6, 1.2);
-      this.leftForearmGroup.add(knuckle);
-    }
-
-    // ------------------------------------------------------------------------
-    // 6. CÁNH TAY PHẢI (RIGHT ARM & SEISMIC HYDRAULIC GAUNTLET)
-    // ------------------------------------------------------------------------
-    this.rightShoulderGroup = new THREE.Group();
-    this.rightShoulderGroup.position.set(5.6, 1.8, 0);
-    chestGroup.add(this.rightShoulderGroup);
-
-    const shoulderRMesh = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.6, 3.8, 4.4)),
-      this.armorPrimaryMat
-    );
-    this.rightShoulderGroup.add(shoulderRMesh);
-
-    // Khớp xoay cánh tay phải
-    this.rightArmGroup = new THREE.Group();
-    this.rightArmGroup.position.set(0.6, -2.2, 0);
-    this.rightShoulderGroup.add(this.rightArmGroup);
-
-    const bicepR = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(2.4, 4.6, 2.6)),
-      this.darkSteelMat
-    );
-    bicepR.position.y = -2.0;
-    this.rightArmGroup.add(bicepR);
-
-    // Cẳng tay phải tích hợp PISTON THỦY LỰC ĐỊA CHẤN (Seismic Ram)
-    this.rightForearmGroup = new THREE.Group();
-    this.rightForearmGroup.position.set(0, -4.6, 0);
-    this.rightArmGroup.add(this.rightForearmGroup);
-
-    const forearmR = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.6, 5.6, 3.8)),
-      this.armorPrimaryMat
-    );
-    forearmR.position.y = -2.2;
-    this.rightForearmGroup.add(forearmR);
-
-    // Piston trợ lực thủy lực ngoại cỡ trên lưng cẳng tay
-    const seismicCylinder = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(0.85, 0.85, 4.6, 10)),
-      this.darkSteelMat
-    );
-    seismicCylinder.position.set(0, -2.0, -2.0);
-    this.rightForearmGroup.add(seismicCylinder);
-
-    this.seismicPistonRod = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(0.55, 0.55, 3.8, 10)),
-      this.chromePistonMat
-    );
-    this.seismicPistonRod.position.set(0, -3.8, -2.0);
-    this.rightForearmGroup.add(this.seismicPistonRod);
-
-    // NẮM ĐẤM THỦY LỰC ĐỊA CHẤN KHỔNG LỒ (HEAVY SEISMIC IMPACT FIST)
-    this.rightFist = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(4.2, 3.8, 4.2)),
-      this.darkSteelMat
-    );
-    this.rightFist.position.y = -6.2;
-    this.rightForearmGroup.add(this.rightFist);
-
-    // 4 Cọc búa chấn động vàng trên đốt ngón tay
-    for (let f = 0; f < 4; f++) {
-      const ramKnuckle = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(0.85, 1.8, 1.2)),
-        this.hazardYellowMat
-      );
-      ramKnuckle.position.set(-1.3 + f * 0.88, -7.2, 1.4);
-      this.rightForearmGroup.add(ramKnuckle);
-    }
-
-    // ------------------------------------------------------------------------
-    // 7. ĐÔI CHÂN TRỤ & BÀN CHÂN ĐẠI ĐỊA (LEGS & STOMPING FEET)
-    // ------------------------------------------------------------------------
-    this.leftLegGroup = new THREE.Group();
-    this.leftLegGroup.position.set(-2.8, -1.4, 0);
-    this.pelvisGroup.add(this.leftLegGroup);
-
-    this.rightLegGroup = new THREE.Group();
-    this.rightLegGroup.position.set(2.8, -1.4, 0);
-    this.pelvisGroup.add(this.rightLegGroup);
-
-    // Dựng 2 chân hoàn chỉnh đối xứng
-    this.buildLeg(this.leftLegGroup, -1);
-    this.buildLeg(this.rightLegGroup, 1);
+    return shoulderPivot;
   }
 
-  // Dựng 1 chân hoàn chỉnh gồm đùi, khớp gối có khiên giáp, bắp chân, bàn chân đạp đất
-  buildLeg(parentGroup, side) {
-    // 1. Đùi (Thigh)
-    const thighMesh = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.0, 7.2, 3.4)),
+  // Dựng chân cơ giáp khổng lồ
+  buildLeg(side) {
+    const legGroup = new THREE.Group();
+    legGroup.position.set(side * 3.2, -1.4, 0);
+    this.pelvisGroup.add(legGroup);
+
+    // Khớp háng cơ khí hình cầu
+    const hipSphere = new THREE.Mesh(
+      this.registerGeo(new THREE.SphereGeometry(1.6, 12, 12)),
+      this.darkSteelMat
+    );
+    legGroup.add(hipSphere);
+
+    // Đùi cơ giáp (Thigh Upper Leg)
+    const thigh = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(3.2, 6.4, 3.6)),
       this.armorPrimaryMat
     );
-    thighMesh.position.y = -3.6;
-    parentGroup.add(thighMesh);
+    thigh.position.set(0, -3.8, 0);
+    legGroup.add(thigh);
 
-    // Thanh piston thủy lực bên hông đùi
-    const thighPiston = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(0.3, 0.3, 5.8, 8)),
+    // Cặp xi-lanh thủy lực đùi trước sau
+    const thighPistonCyl = new THREE.Mesh(
+      this.registerGeo(new THREE.CylinderGeometry(0.4, 0.4, 4.6, 8)),
+      this.darkSteelMat
+    );
+    thighPistonCyl.position.set(side * 0.8, -3.8, 1.8);
+    legGroup.add(thighPistonCyl);
+
+    const thighPistonRod = new THREE.Mesh(
+      this.registerGeo(new THREE.CylinderGeometry(0.25, 0.25, 4.2, 8)),
       this.chromePistonMat
     );
-    thighPiston.position.set(side * 1.8, -3.6, 0);
-    parentGroup.add(thighPiston);
+    thighPistonRod.position.set(side * 0.8, -3.4, 1.8);
+    legGroup.add(thighPistonRod);
 
-    // 2. Khớp Gối (Knee Joint & High-Rise Knee Shield)
-    const kneeGroup = new THREE.Group();
-    kneeGroup.position.set(0, -7.2, 0);
-    parentGroup.add(kneeGroup);
-
+    // Khớp đầu gối (Knee Joint)
     const kneeJoint = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(1.6, 1.6, 2.6, 10)),
+      this.registerGeo(new THREE.CylinderGeometry(1.7, 1.7, 3.4, 12)),
       this.darkSteelMat
     );
     kneeJoint.rotation.z = Math.PI / 2;
-    kneeGroup.add(kneeJoint);
+    kneeJoint.position.set(0, -7.2, 0);
+    legGroup.add(kneeJoint);
 
-    // Tấm giáp che khớp gối vươn nhọn phía trước
-    const kneeShield = new THREE.Mesh(
-      this.registerGeo(new THREE.ConeGeometry(2.2, 3.2, 4)),
+    // Tấm giáp bảo vệ đầu gối nhô về phía trước (Knee Guard Armor)
+    const kneeGuard = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.8, 3.2, 1.6)),
+      this.armorHighlightMat
+    );
+    kneeGuard.position.set(0, -7.0, 2.2);
+    kneeGuard.rotation.x = -0.25;
+    legGroup.add(kneeGuard);
+
+    const kneeHazard = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.85, 0.6, 1.65)),
       this.hazardYellowMat
     );
-    kneeShield.rotation.y = Math.PI / 4;
-    kneeShield.rotation.x = 0.45;
-    kneeShield.position.set(0, 0.6, 1.8);
-    kneeGroup.add(kneeShield);
+    kneeHazard.position.set(0, -7.0, 2.2);
+    kneeHazard.rotation.x = -0.25;
+    legGroup.add(kneeHazard);
 
-    // 3. Cẳng Chân & Bắp Chân (Calf & Shin)
-    const calfMesh = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.4, 7.4, 3.8)),
+    // Cẳng chân chịu tải khổng lồ (Lower Leg Calf)
+    const lowerLeg = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(3.6, 6.2, 4.2)),
       this.armorPrimaryMat
     );
-    calfMesh.position.y = -4.0;
-    kneeGroup.add(calfMesh);
+    lowerLeg.position.set(0, -10.6, 0);
+    legGroup.add(lowerLeg);
 
-    // Động cơ phản lực hỗ trợ bật nhảy phía sau bắp chân
-    const calfThruster = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(0.7, 0.9, 2.2, 8)),
+    // Bàn Chân Đại Địa Dẫm Nát Vạn Vật (Giant Stomping Sole)
+    // Kích thước bàn chân: 4.4m x 2.2m x 7.8m
+    const footMesh = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.4, 2.2, 7.8)),
       this.darkSteelMat
     );
-    calfThruster.rotation.x = -0.3;
-    calfThruster.position.set(0, -3.8, -2.2);
-    kneeGroup.add(calfThruster);
+    footMesh.position.set(0, -14.2, 1.2);
+    legGroup.add(footMesh);
 
-    // 4. BÀN CHÂN ĐẠI ĐỊA KHỔNG LỒ (HEAVY STOMPING FOOT) - ~4.2m rộng x 7.2m dài!
-    const footGroup = new THREE.Group();
-    footGroup.position.set(0, -7.8, 0.6);
-    kneeGroup.add(footGroup);
-
-    // Khối đế bàn chân
-    const soleBase = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(4.4, 1.6, 7.4)),
-      this.darkSteelMat
+    // Móng đế giày dẫm đất chịu lực
+    const solePlate = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.6, 0.6, 8.2)),
+      this.hazardYellowMat
     );
-    soleBase.position.y = -0.5;
-    footGroup.add(soleBase);
+    solePlate.position.set(0, -15.1, 1.2);
+    legGroup.add(solePlate);
 
-    // 3 Móng vuốt xẻ rãnh bám đất phía trước bàn chân
-    for (let c = -1; c <= 1; c++) {
-      const toeClaw = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(1.2, 1.4, 2.2)),
-        this.hazardYellowMat
-      );
-      toeClaw.position.set(c * 1.4, -0.4, 4.4);
-      toeClaw.rotation.x = 0.25;
-      footGroup.add(toeClaw);
-    }
-
-    // Gót chân chống giật lùi (Heel Anchor Stabilizer)
-    const heelSpur = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.6, 1.8, 2.2)),
-      this.armorPrimaryMat
-    );
-    heelSpur.position.set(0, -0.2, -4.2);
-    heelSpur.rotation.x = -0.3;
-    footGroup.add(heelSpur);
-
-    // Lưu lại tham chiếu chân để gán hoạt ảnh bước đi và dậm nện
-    if (side < 0) {
-      this.leftFootMesh = footGroup;
-      this.leftKneeGroup = kneeGroup;
-    } else {
-      this.rightFootMesh = footGroup;
-      this.rightKneeGroup = kneeGroup;
-    }
-  }
-
-  // Dựng lưới Ngôi Sao Vàng Năm Cánh chuẩn tỷ lệ
-  buildStarMesh(radius, thickness) {
-    const starShape = new THREE.Shape();
-    const points = 5;
-    const innerRadius = radius * 0.42;
-
-    for (let i = 0; i < points * 2; i++) {
-      const r = i % 2 === 0 ? radius : innerRadius;
-      const angle = (i * Math.PI) / points - Math.PI / 2;
-      const x = Math.cos(angle) * r;
-      const y = Math.sin(angle) * r;
-      if (i === 0) starShape.moveTo(x, y);
-      else starShape.lineTo(x, y);
-    }
-    starShape.closePath();
-
-    const extrudeSettings = {
-      depth: thickness,
-      bevelEnabled: true,
-      bevelSegments: 2,
-      steps: 1,
-      bevelSize: thickness * 0.2,
-      bevelThickness: thickness * 0.2,
-    };
-    const starGeo = this.registerGeo(new THREE.ExtrudeGeometry(starShape, extrudeSettings));
-    const starMesh = new THREE.Mesh(starGeo, this.goldStarMat);
-    return starMesh;
+    return legGroup;
   }
 
   // ==========================================================================
-  // QUY TRÌNH HỢP THỂ TỪ NGOÀI KHÔNG GIAN (ATMOSPHERIC ASSEMBLY SEQUENCE)
+  // HELPER LẤY VỊ TRÍ BUỒNG LÁI & GHẾ LÁI CHÍNH XÁC 100%
+  // ==========================================================================
+  getCockpitCameraPos(outVec = new THREE.Vector3()) {
+    if (this.cockpitCameraNode) {
+      this.cockpitCameraNode.getWorldPosition(outVec);
+      return outVec;
+    }
+    outVec.copy(this.group.position);
+    outVec.y += 27.2;
+    return outVec;
+  }
+
+  getPilotSeatPos(outVec = new THREE.Vector3()) {
+    if (this.pilotSeatNode) {
+      this.pilotSeatNode.getWorldPosition(outVec);
+      return outVec;
+    }
+    outVec.copy(this.group.position);
+    outVec.y += 26.0;
+    return outVec;
+  }
+
+  // ==========================================================================
+  // KHỞI ĐỘNG HỢP THỂ: 7 MẢNH CƠ GIÁP TỪ KHÔNG GIAN LAO XUỐNG
   // ==========================================================================
   startAssembly(targetPos, caster, monsters, onComplete) {
-    this.caster = caster;
-    this.monsters = monsters;
+    this.state = 'assembling';
     this.isAssembling = true;
     this.isActive = false;
+    this.caster = caster;
+    this.monsters = monsters || [];
+    this.onCompleteCallback = onComplete;
+    this.assemblyElapsed = 0;
+    this.totalAssemblyTime = 1.55;
 
     // Tọa độ mục tiêu hạ cánh của Robot
     const groundY = getTerrainHeight(targetPos.x, targetPos.z);
-    this.deployPos = new THREE.Vector3(targetPos.x, groundY, targetPos.z);
+    this.deployPos.set(targetPos.x, groundY, targetPos.z);
     this.group.position.copy(this.deployPos);
+    this.group.rotation.y = caster?.rotationY || 0;
+    this.group.visible = false; // Ẩn thân chính khi các mảnh đang bay
 
-    // Hướng nhìn của Robot theo hướng của nhân vật
-    if (caster) {
-      this.group.rotation.y = caster.rotationY || 0;
+    // Cho nhân vật vào trạng thái mecha & bất tử ngay lập tức
+    if (this.caster) {
+      if (this.caster.setMechaActive) {
+        this.caster.setMechaActive(true);
+      } else {
+        this.caster.isMechaActive = true;
+      }
+      this.caster.giantRobot = this;
+      this.caster.isInvulnerable = true;
+      this.caster.position.copy(this.deployPos);
     }
 
-    // 1. Tạo Vòng Trận Địa Hologram Khóa Tọa Độ Thả Cơ Giáp (Target Landing Beacon)
-    const beaconGroup = new THREE.Group();
-    beaconGroup.position.copy(this.deployPos);
-    this.scene.add(beaconGroup);
+    // 1. Tạo Vòng Trận Địa Hologram Khóa Tọa Độ Thả Cơ Giáp
+    this.beaconGroup = new THREE.Group();
+    this.beaconGroup.position.copy(this.deployPos);
+    this.scene.add(this.beaconGroup);
 
     const beaconRingGeo = this.registerGeo(new THREE.RingGeometry(8.0, 9.5, 36));
     const beaconRingMat = this.registerMat(new THREE.MeshBasicMaterial({
@@ -823,46 +834,57 @@ export class GiantRobot {
       opacity: 0.85,
       blending: THREE.AdditiveBlending,
     }));
-    const beaconRing = new THREE.Mesh(beaconRingGeo, beaconRingMat);
-    beaconRing.rotation.x = -Math.PI / 2;
-    beaconRing.position.y = 0.15;
-    beaconGroup.add(beaconRing);
+    this.beaconRing = new THREE.Mesh(beaconRingGeo, beaconRingMat);
+    this.beaconRing.rotation.x = -Math.PI / 2;
+    this.beaconRing.position.y = 0.15;
+    this.beaconGroup.add(this.beaconRing);
 
     // Cột sáng định vị vút tận mây trời
     const beamGeo = this.registerGeo(new THREE.CylinderGeometry(4.5, 6.0, 120, 24, 1, true));
-    const beamMat = this.registerMat(new THREE.MeshBasicMaterial({
+    this.beamMat = this.registerMat(new THREE.MeshBasicMaterial({
       color: 0x06b6d4,
       transparent: true,
       opacity: 0.45,
       side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending,
     }));
-    const beam = new THREE.Mesh(beamGeo, beamMat);
+    const beam = new THREE.Mesh(beamGeo, this.beamMat);
     beam.position.y = 60;
-    beaconGroup.add(beam);
+    this.beaconGroup.add(beam);
+
+    // Thang máy ánh sáng phản trọng lực nâng Namcam vào buồng lái
+    const tractorGeo = this.registerGeo(new THREE.CylinderGeometry(2.2, 3.2, 28, 16, 1, true));
+    this.tractorMat = this.registerMat(new THREE.MeshBasicMaterial({
+      color: 0x00f2fe,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+    }));
+    this.tractorBeam = new THREE.Mesh(tractorGeo, this.tractorMat);
+    this.tractorBeam.position.set(this.deployPos.x, this.deployPos.y + 14, this.deployPos.z);
+    this.scene.add(this.tractorBeam);
 
     // Thông báo toàn server
     this.damageTexts.spawn('⚠️ KHỞI ĐỘNG HỢP THỂ: CHIẾN THẦN CƠ GIÁP X20!', this.deployPos.clone().add(new THREE.Vector3(0, 8.0, 0)), '#00f2fe');
     if (sound.playThunder) sound.playThunder();
 
-    // 2. TẠO 7 BỘ PHẬN BAY TỪ NGOÀI KHÔNG GIAN LAO XUỐNG
-    // Mỗi bộ phận bắt đầu ở vị trí cao 90m - 140m và cách xa 120m - 160m ngoài map
+    // 2. TẠO 7 BỘ PHẬN BAY TỪ KHÔNG GIAN LAO XUỐNG
     const partsData = [
-      { id: 'legL', delay: 0.0, flightTime: 0.85, start: new THREE.Vector3(-140, 110, -90), target: new THREE.Vector3(0, 0, 0), color: 0x244222 },
-      { id: 'legR', delay: 0.15, flightTime: 0.85, start: new THREE.Vector3(140, 110, -90), target: new THREE.Vector3(0, 0, 0), color: 0x244222 },
-      { id: 'torso', delay: 0.55, flightTime: 0.9, start: new THREE.Vector3(0, 150, -160), target: new THREE.Vector3(0, 0, 0), color: 0x366333 },
-      { id: 'armL', delay: 1.1, flightTime: 0.85, start: new THREE.Vector3(-160, 95, 120), target: new THREE.Vector3(0, 0, 0), color: 0x181e24 },
-      { id: 'armR', delay: 1.25, flightTime: 0.85, start: new THREE.Vector3(160, 95, 120), target: new THREE.Vector3(0, 0, 0), color: 0x181e24 },
-      { id: 'backpack', delay: 1.6, flightTime: 0.8, start: new THREE.Vector3(0, 120, 150), target: new THREE.Vector3(0, 0, 0), color: 0x00f2fe },
-      { id: 'head', delay: 1.9, flightTime: 0.75, start: new THREE.Vector3(0, 160, 0), target: new THREE.Vector3(0, 0, 0), color: 0xffd700 },
+      { id: 'legL', delay: 0.0, flightTime: 0.55, start: new THREE.Vector3(-120, 95, -70), color: 0x244222 },
+      { id: 'legR', delay: 0.1, flightTime: 0.55, start: new THREE.Vector3(120, 95, -70), color: 0x244222 },
+      { id: 'torso', delay: 0.3, flightTime: 0.55, start: new THREE.Vector3(0, 130, -110), color: 0x366333 },
+      { id: 'armL', delay: 0.5, flightTime: 0.5, start: new THREE.Vector3(-130, 85, 90), color: 0x181e24 },
+      { id: 'armR', delay: 0.65, flightTime: 0.5, start: new THREE.Vector3(130, 85, 90), color: 0x181e24 },
+      { id: 'backpack', delay: 0.8, flightTime: 0.45, start: new THREE.Vector3(0, 100, 120), color: 0x00f2fe },
+      { id: 'head', delay: 0.95, flightTime: 0.45, start: new THREE.Vector3(0, 140, 0), color: 0xffd700 },
     ];
 
-    const flyingMeshes = [];
+    this.flyingParts = [];
     for (const p of partsData) {
       const pGroup = new THREE.Group();
       pGroup.position.copy(p.start);
 
-      // Đại diện tạm thời của bộ phận đang bay với luồng lửa phản lực bao bọc
       const boxSize = p.id === 'torso' ? 7.0 : p.id.startsWith('leg') ? 5.5 : 4.0;
       const partBody = new THREE.Mesh(
         this.registerGeo(new THREE.BoxGeometry(boxSize, boxSize * 1.2, boxSize)),
@@ -870,7 +892,6 @@ export class GiantRobot {
       );
       pGroup.add(partBody);
 
-      // Đuôi lửa phản lực bao quanh bộ phận
       const flameTrail = new THREE.Mesh(
         this.registerGeo(new THREE.ConeGeometry(boxSize * 0.9, boxSize * 3.2, 10)),
         this.thrusterFlameMat
@@ -880,145 +901,107 @@ export class GiantRobot {
       pGroup.add(flameTrail);
 
       this.scene.add(pGroup);
-      flyingMeshes.push({ ...p, mesh: pGroup, arrived: false });
+      this.flyingParts.push({ ...p, mesh: pGroup, arrived: false });
+    }
+  }
+
+  // Cập nhật từng frame của quá trình hợp thể
+  updateAssembly(delta) {
+    this.assemblyElapsed += delta;
+
+    // Xoay vòng trận địa định vị
+    if (this.beaconRing) this.beaconRing.rotation.z += delta * 4;
+    if (this.beamMat) this.beamMat.opacity = Math.sin(this.assemblyElapsed * 14) * 0.2 + 0.45;
+
+    // Quá trình hút người chơi Namcam bay lên buồng lái
+    if (this.assemblyElapsed >= 0.4 && this.caster) {
+      const liftProgress = Math.min(1.0, (this.assemblyElapsed - 0.4) / 0.95);
+      if (this.tractorMat) this.tractorMat.opacity = Math.sin(liftProgress * Math.PI) * 0.7;
+      if (this.tractorBeam) this.tractorBeam.rotation.y += delta * 5;
+
+      const groundY = this.deployPos.y;
+      const curY = THREE.MathUtils.lerp(groundY, groundY + 26.7, liftProgress);
+      this.caster.group.position.set(this.deployPos.x, curY, this.deployPos.z);
+      this.caster.isGrounded = false;
+
+      if (this.particles && Math.random() < 0.5) {
+        this.particles.emitElementalParticles(
+          this.caster.group.position,
+          3,
+          [0x00f2fe, 0xffd700, 0xffffff],
+          [1, 3],
+          0.2,
+          2,
+          0.4
+        );
+      }
     }
 
-    let elapsed = 0;
-    const totalAssemblyTime = 2.95;
-    let notifiedLift = false;
+    // Cập nhật từng bộ phận đang lao tới
+    for (const item of this.flyingParts) {
+      if (this.assemblyElapsed >= item.delay && !item.arrived) {
+        const t = Math.min(1.0, (this.assemblyElapsed - item.delay) / item.flightTime);
+        const ease = t * t * (3 - 2 * t);
+        item.mesh.position.lerpVectors(item.start, this.deployPos, ease);
 
-    // Thang máy ánh sáng phản trọng lực nâng Namcam vào buồng lái (Tractor Lift Beam)
-    const tractorGeo = this.registerGeo(new THREE.CylinderGeometry(2.2, 3.2, 28, 16, 1, true));
-    const tractorMat = this.registerMat(new THREE.MeshBasicMaterial({
-      color: 0x00f2fe,
-      transparent: true,
-      opacity: 0.0,
-      side: THREE.DoubleSide,
-      blending: THREE.AdditiveBlending,
-    }));
-    const tractorBeam = new THREE.Mesh(tractorGeo, tractorMat);
-    tractorBeam.position.set(this.deployPos.x, this.deployPos.y + 14, this.deployPos.z);
-    this.scene.add(tractorBeam);
-
-    // Vòng lặp cập nhật quá trình bay & lắp ráp
-    const assemblyEffect = {
-      update: (delta) => {
-        elapsed += delta;
-
-        // Xoay vòng trận địa định vị
-        beaconRing.rotation.z += delta * 3.5;
-        beamMat.opacity = Math.sin(elapsed * 12) * 0.2 + 0.35;
-
-        // Quá trình hút người chơi Namcam bay lên buồng lái ở giây 0.8s -> 2.4s
-        if (elapsed >= 0.8 && this.caster) {
-          if (!notifiedLift) {
-            notifiedLift = true;
-            this.damageTexts.spawn('✨ ĐANG THĂNG TIÊN VÀO BUỒNG LÁI!', this.deployPos.clone().add(new THREE.Vector3(0, 12.0, 0)), '#00f2fe');
-            if (sound.playSwordSummon) sound.playSwordSummon();
-          }
-
-          // Cột sáng nâng buồng lái phát sáng
-          const liftProgress = Math.min(1.0, (elapsed - 0.8) / 1.6);
-          tractorMat.opacity = Math.sin(liftProgress * Math.PI) * 0.65;
-          tractorBeam.rotation.y += delta * 4;
-
-          // Hút nhân vật bay dần từ mặt đất lên độ cao buồng lái (26.7m)
-          const curY = THREE.MathUtils.lerp(groundY, groundY + 26.7, liftProgress);
-          this.caster.position.x = THREE.MathUtils.lerp(this.caster.position.x, this.deployPos.x, delta * 5);
-          this.caster.position.z = THREE.MathUtils.lerp(this.caster.position.z, this.deployPos.z, delta * 5);
-          this.caster.group.position.set(this.caster.position.x, curY, this.caster.position.z);
-          this.caster.isGrounded = false;
-
-          // Hạt hào quang bao quanh Namcam khi bay lên
-          if (this.particles && Math.random() < 0.5) {
-            this.particles.emitElementalParticles(
-              this.caster.group.position,
-              3,
-              [0x00f2fe, 0xffd700, 0xffffff],
-              [1, 3],
-              0.2,
-              2,
-              0.4
-            );
-          }
+        if (this.particles && Math.random() < 0.5) {
+          this.particles.emitElementalParticles(
+            item.mesh.position,
+            4,
+            [0x00f2fe, 0xffd700, 0xffffff],
+            [2, 5],
+            0.3,
+            5,
+            0.5
+          );
         }
 
-        // Cập nhật từng bộ phận đang lao tới
-        for (const item of flyingMeshes) {
-          if (elapsed >= item.delay && !item.arrived) {
-            const t = Math.min(1.0, (elapsed - item.delay) / item.flightTime);
-            // Đường cong bay lao dốc có gia tốc rơi
-            const ease = t * t * (3 - 2 * t);
-            item.mesh.position.lerpVectors(item.start, this.deployPos, ease);
+        if (t >= 1.0) {
+          item.arrived = true;
+          this.scene.remove(item.mesh);
 
-            // Bắn tia lửa & khói hạt
-            if (this.particles && Math.random() < 0.6) {
-              this.particles.emitElementalParticles(
-                item.mesh.position,
-                4,
-                [0x00f2fe, 0xffd700, 0xffffff],
-                [2, 5],
-                0.3,
-                5,
-                0.5
-              );
-            }
-
-            // Khi bộ phận chạm điểm khóa
-            if (t >= 1.0) {
-              item.arrived = true;
-              this.scene.remove(item.mesh);
-
-              // Hiệu ứng chốt khóa cơ khí (Mechanical Lock Impact)
-              if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
-              if (this.controller) this.controller.addTrauma(0.35);
-              if (this.particles) {
-                this.particles.emitShockwave(this.deployPos, 0x00f2fe, 12, 0.4);
-                this.particles.emitHitSparkles(this.deployPos.clone().add(new THREE.Vector3(0, 5, 0)), 18);
-              }
-            }
+          if (sound.playGiantSwordImpact) sound.playGiantSwordImpact();
+          if (this.controller) this.controller.addTrauma(0.3);
+          if (this.particles) {
+            this.particles.emitShockwave(this.deployPos, 0x00f2fe, 12, 0.4);
+            this.particles.emitHitSparkles(this.deployPos.clone().add(new THREE.Vector3(0, 5, 0)), 16);
           }
         }
+      }
+    }
 
-        // HỢP THỂ HOÀN TẤT
-        if (elapsed >= totalAssemblyTime) {
-          // Xóa hiệu ứng định vị & thang máy
-          this.scene.remove(beaconGroup);
-          beaconRingGeo.dispose();
-          beaconRingMat.dispose();
-          beamGeo.dispose();
-          beamMat.dispose();
+    // HỢP THỂ HOÀN TẤT
+    if (this.assemblyElapsed >= this.totalAssemblyTime) {
+      this.cleanupAssemblyVisuals();
+      this.activatePilotMode();
+    }
+  }
 
-          this.scene.remove(tractorBeam);
-          tractorGeo.dispose();
-          tractorMat.dispose();
-
-          for (const item of flyingMeshes) {
-            if (item.mesh.parent) this.scene.remove(item.mesh);
-          }
-
-          // Kích hoạt Robot chính thức
-          this.activatePilotMode(onComplete);
-          return false; // Kết thúc effect trong PixelFXManager
-        }
-
-        return true;
-      },
-    };
-
-    this.pixelFX.activeEffects.push(assemblyEffect);
+  cleanupAssemblyVisuals() {
+    if (this.beaconGroup) {
+      this.scene.remove(this.beaconGroup);
+      this.beaconGroup = null;
+    }
+    if (this.tractorBeam) {
+      this.scene.remove(this.tractorBeam);
+      this.tractorBeam = null;
+    }
+    for (const item of this.flyingParts) {
+      if (item.mesh.parent) this.scene.remove(item.mesh);
+    }
+    this.flyingParts = [];
   }
 
   // ==========================================================================
   // KÍCH HOẠT TRẠNG THÁI ĐIỀU KHIỂN CƠ GIÁP (PILOT MODE)
   // ==========================================================================
-  activatePilotMode(onComplete) {
+  activatePilotMode() {
+    this.state = 'active';
     this.isAssembling = false;
     this.isActive = true;
     this.group.visible = true;
     this.timeLeft = this.duration;
 
-    // Gán cờ cho nhân vật
     if (this.caster) {
       if (this.caster.setMechaActive) {
         this.caster.setMechaActive(true);
@@ -1026,15 +1009,14 @@ export class GiantRobot {
         this.caster.isMechaActive = true;
       }
       this.caster.giantRobot = this;
-      this.caster.isInvulnerable = true; // Cơ giáp khổng lồ siêu bền
-      // Đưa nhân vật vào vị trí buồng lái trên cao
+      this.caster.isInvulnerable = true;
       this.caster.position.copy(this.deployPos);
     }
 
     // Nổ sóng xung kích đại địa khi toàn bộ hệ thống kích hoạt
     if (sound.playThunder) sound.playThunder();
     if (sound.playRockShatter) sound.playRockShatter();
-    if (this.controller) this.controller.addTrauma(0.85);
+    if (this.controller) this.controller.addTrauma(0.9);
 
     if (this.particles) {
       this.particles.emitShockwave(this.deployPos, 0xffd700, 36.0, 0.9);
@@ -1050,11 +1032,13 @@ export class GiantRobot {
       );
     }
 
-    // Thông báo xuất hiện oanh liệt
     this.damageTexts.spawn('🤖 CHIẾN THẦN CƠ GIÁP HỢP THỂ HOÀN TẤT!', this.deployPos.clone().add(new THREE.Vector3(0, 18.0, 0)), '#ffd700');
-    this.damageTexts.spawn('💥 SỨC MẠNH X20: ĐẠP & NỆN ĐẠI ĐỊA!', this.deployPos.clone().add(new THREE.Vector3(0, 14.5, 0)), '#ff4757');
+    this.damageTexts.spawn('💥 ĐÃ VÀO BUỒNG LÁI! [Chuột Trái/F]: Đạp Đất & Nện Sấm Sét | [V]: Buồng Lái', this.deployPos.clone().add(new THREE.Vector3(0, 14.5, 0)), '#ff4757');
 
-    if (onComplete) onComplete();
+    if (this.onCompleteCallback) {
+      this.onCompleteCallback();
+      this.onCompleteCallback = null;
+    }
   }
 
   // ==========================================================================
@@ -1065,19 +1049,17 @@ export class GiantRobot {
 
     this.isAttacking = true;
     this.attackTime = 0;
-    this.attackCooldown = 1.45; // Đòn đánh chậm có sức nặng
+    this.attackCooldown = 1.45;
     this.attackType = this.attackCombo === 0 ? 'stomp' : 'slam';
     this.attackCombo = (this.attackCombo + 1) % 2;
+    this.hasImpacted = false;
 
     this.monsters = monsters || this.monsters;
 
-    // Rung nhẹ khi bắt đầu dồn lực
     if (this.controller) this.controller.addTrauma(0.2);
-
     return true;
   }
 
-  // Thực thi gây sát thương nổ & biến dạng địa hình khi đòn chạm đất
   executeImpact() {
     const forward = new THREE.Vector3(
       -Math.sin(this.group.rotation.y),
@@ -1085,7 +1067,6 @@ export class GiantRobot {
       -Math.cos(this.group.rotation.y)
     ).normalize();
 
-    // Điểm nện cách robot 8m - 12m phía trước
     const dist = this.attackType === 'stomp' ? 7.5 : 10.5;
     const impactPoint = this.group.position.clone().addScaledVector(forward, dist);
     impactPoint.y = getTerrainHeight(impactPoint.x, impactPoint.z);
@@ -1112,7 +1093,7 @@ export class GiantRobot {
     if (sound.playRockShatter) sound.playRockShatter();
     if (!isStomp && sound.playThunder) sound.playThunder();
 
-    // 3. Rung lắc camera cực mạnh (Trauma Shake)
+    // 3. Rung lắc camera cực mạnh
     if (this.controller) this.controller.addTrauma(isStomp ? 0.65 : 0.85);
 
     // 4. Bùng nổ hạt & sóng xung kích
@@ -1129,7 +1110,7 @@ export class GiantRobot {
       );
     }
 
-    // 5. GÂY SÁT THƯƠNG DIỆN RỘNG (AOE DAMAGE) LÊN QUÁI VẬT & NGƯỜI CHƠI
+    // 5. GÂY SÁT THƯƠNG DIỆN RỘNG (AOE DAMAGE)
     if (this.pixelFX && this.pixelFX.dealDamageAOE) {
       this.pixelFX.dealDamageAOE(
         impactPoint,
@@ -1148,14 +1129,34 @@ export class GiantRobot {
 
   // ==========================================================================
   // CẬP NHẬT HOẠT ẢNH & LOGIC HÀNG FRAME (UPDATE LOOP)
+  // Luôn trả về TRUE khi robot còn tồn tại để PixelFX không bao giờ xóa nhầm!
   // ==========================================================================
   update(delta) {
-    if (!this.isActive) return;
+    if (this.state === 'dead') {
+      return false;
+    }
 
+    if (this.state === 'assembling') {
+      this.updateAssembly(delta);
+      return true;
+    }
+
+    if (this.state === 'active') {
+      this.updateActive(delta);
+      return true;
+    }
+
+    if (this.state === 'disengaging') {
+      return this.updateDisengaging(delta);
+    }
+
+    return true;
+  }
+
+  updateActive(delta) {
     this.animTime += delta;
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
 
-    // Đếm ngược thời gian duy trì
     this.timeLeft -= delta;
     if (this.timeLeft <= 0) {
       this.disengage();
@@ -1186,14 +1187,12 @@ export class GiantRobot {
       const progress = this.attackTime / this.attackDuration;
 
       if (this.attackType === 'stomp') {
-        // Đòn Đạp Chân: Nâng chân trái cao 8m rồi dậm cực mạnh xuống
         if (progress < 0.4) {
           const up = progress / 0.4;
           this.leftLegGroup.position.y = -1.4 + up * 6.5;
           this.leftLegGroup.rotation.x = -up * 0.85;
           this.torsoGroup.rotation.x = up * 0.15;
         } else if (progress < 0.55) {
-          // Hạ chân dậm mạnh xuống
           const down = (progress - 0.4) / 0.15;
           this.leftLegGroup.position.y = 5.1 - down * 6.5;
           this.leftLegGroup.rotation.x = -0.85 + down * 0.85;
@@ -1202,13 +1201,11 @@ export class GiantRobot {
             this.executeImpact();
           }
         } else {
-          // Khôi phục thế đứng
           this.leftLegGroup.position.y = -1.4;
           this.leftLegGroup.rotation.x = 0;
           this.torsoGroup.rotation.x = 0;
         }
       } else {
-        // Đòn Nện Nắm Đấm Thủy Lực: Vung tay phải lên cao rồi nện cắm xuống đất
         if (progress < 0.42) {
           const up = progress / 0.42;
           this.rightArmGroup.rotation.x = -up * 1.9;
@@ -1216,7 +1213,7 @@ export class GiantRobot {
           if (this.seismicPistonRod) this.seismicPistonRod.position.y = -3.8 - up * 1.2;
         } else if (progress < 0.58) {
           const slam = (progress - 0.42) / 0.16;
-          this.rightArmGroup.rotation.x = -1.9 + slam * 2.8; // Nện sâu xuống phía trước
+          this.rightArmGroup.rotation.x = -1.9 + slam * 2.8;
           this.torsoGroup.rotation.x = slam * 0.35;
           if (progress >= 0.52 && !this.hasImpacted) {
             this.hasImpacted = true;
@@ -1246,20 +1243,17 @@ export class GiantRobot {
     // 4. HOẠT ẢNH BƯỚC ĐI CỦA ROBOT (HEAVY WALKING CYCLE)
     const isMoving = this.caster && (this.caster.speed > 0.1 || (this.caster.velocity && this.caster.velocity.lengthSq() > 0.1));
     if (isMoving) {
-      this.walkCycle += delta * 2.8; // Bước sải dài, chậm rãi đầy uy lực
+      this.walkCycle += delta * 2.8;
       const legSwing = Math.sin(this.walkCycle) * 0.42;
 
       this.leftLegGroup.rotation.x = legSwing;
       this.rightLegGroup.rotation.x = -legSwing;
 
-      // Cánh tay đung đưa theo nhịp bước
       this.leftArmGroup.rotation.x = -legSwing * 0.6;
       this.rightArmGroup.rotation.x = legSwing * 0.6;
 
-      // Hông nhún nhẹ theo từng bước
       this.pelvisGroup.position.y = 16.5 + Math.abs(Math.sin(this.walkCycle * 2)) * 0.45;
 
-      // Bụi & chấn động mỗi khi bước chân chạm đất
       if (Math.abs(legSwing) > 0.38 && Math.random() < 0.25) {
         if (sound.playFootstep) sound.playFootstep(true);
         if (this.controller) this.controller.addTrauma(0.06);
@@ -1269,7 +1263,6 @@ export class GiantRobot {
         }
       }
     } else {
-      // Đứng thở thủy lực (Idle Breathing)
       this.leftLegGroup.rotation.x = 0;
       this.rightLegGroup.rotation.x = 0;
       this.leftArmGroup.rotation.x = 0;
@@ -1283,10 +1276,10 @@ export class GiantRobot {
   // KẾT THÚC CƠ GIÁP & PHÓNG TÊN LỬA VỀ TẦNG BÌNH LƯU (DISENGAGE)
   // ==========================================================================
   disengage() {
-    if (!this.isActive) return;
+    if (this.state !== 'active') return;
+    this.state = 'disengaging';
     this.isActive = false;
 
-    // Trả lại trạng thái cho nhân vật
     if (this.caster) {
       if (this.caster.setMechaActive) {
         this.caster.setMechaActive(false);
@@ -1298,54 +1291,49 @@ export class GiantRobot {
       const gY = getTerrainHeight(this.caster.position.x, this.caster.position.z);
       this.caster.position.y = gY;
       this.caster.group.position.set(this.caster.position.x, gY, this.caster.position.z);
+      this.caster.group.visible = true;
+    }
+
+    if (this.controller) {
+      this.controller.isCockpitView = false;
     }
 
     this.damageTexts.spawn('🚀 CHIẾN THẦN CƠ GIÁP VỀ CĂN CỨ!', this.group.position.clone().add(new THREE.Vector3(0, 16.0, 0)), '#00f2fe');
-
-    // Hiệu ứng tên lửa phụt cực đại phóng robot vút lên trời
-    let launchElapsed = 0;
-    const launchDuration = 1.4;
-    const startY = this.group.position.y;
-
     if (sound.playThunder) sound.playThunder();
 
-    const launchEffect = {
-      update: (delta) => {
-        launchElapsed += delta;
-        const progress = launchElapsed / launchDuration;
-
-        // Vút lên trời theo hàm mũ gia tốc
-        this.group.position.y = startY + Math.pow(progress, 3) * 160;
-
-        if (this.particles) {
-          this.particles.emitElementalParticles(
-            this.group.position.clone().add(new THREE.Vector3(0, 4, 0)),
-            8,
-            [0x00f2fe, 0xffd700, 0xffffff],
-            [3, 8],
-            0.5,
-            6,
-            0.8
-          );
-        }
-
-        if (progress >= 1.0) {
-          this.destroy();
-          return false;
-        }
-        return true;
-      },
-    };
-
-    if (this.pixelFX && this.pixelFX.activeEffects) {
-      this.pixelFX.activeEffects.push(launchEffect);
-    } else {
-      this.destroy();
-    }
+    this.disengageElapsed = 0;
+    this.disengageDuration = 1.4;
+    this.disengageStartY = this.group.position.y;
   }
 
-  // Giải phóng toàn bộ Three.js tài nguyên khi kết thúc
+  updateDisengaging(delta) {
+    this.disengageElapsed += delta;
+    const progress = this.disengageElapsed / this.disengageDuration;
+
+    this.group.position.y = this.disengageStartY + Math.pow(progress, 3) * 180;
+
+    if (this.particles && Math.random() < 0.6) {
+      this.particles.emitElementalParticles(
+        this.group.position.clone().add(new THREE.Vector3(0, 4, 0)),
+        8,
+        [0x00f2fe, 0xffd700, 0xffffff],
+        [3, 8],
+        0.5,
+        6,
+        0.8
+      );
+    }
+
+    if (progress >= 1.0) {
+      this.state = 'dead';
+      this.destroy();
+      return false; // PixelFX sẽ splice effect này ra
+    }
+    return true;
+  }
+
   destroy() {
+    this.cleanupAssemblyVisuals();
     if (this.group.parent) {
       this.group.parent.remove(this.group);
     }
