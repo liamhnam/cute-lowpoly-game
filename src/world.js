@@ -709,11 +709,11 @@ export class World {
     palaceSign.position.set(0, 9.8, -8.1);
     this.palaceGroup.add(palaceSign);
 
-    // Cặp Sư Tử Đá Hộ Vệ (Stone Lions) trước thềm
+    // Cặp Sư Tử Đá Hộ Vệ (Stone Lions) trước thềm đặt vững chắc trên mặt đất
     const lionMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6, flatShading: true });
     for (const lx of [-6.0, 6.0]) {
       const lionGroup = new THREE.Group();
-      lionGroup.position.set(lx, 1.8, -12.5);
+      lionGroup.position.set(lx, 0.4, -12.5);
 
       const lPedestal = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.6), stoneMat);
       lionGroup.add(lPedestal);
@@ -729,7 +729,7 @@ export class World {
       this.palaceGroup.add(lionGroup);
       this.rocks.push({
         mesh: lionGroup,
-        pos: new THREE.Vector3(lx, 2.5, pz - 12.5),
+        pos: new THREE.Vector3(lx, 1.1, pz - 12.5),
         scale: new THREE.Vector3(1, 1, 1),
         radius: 1.4,
         hp: 120,
@@ -1102,26 +1102,85 @@ export class World {
     const stoneBaseMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, flatShading: true });
     const woodMat = new THREE.MeshStandardMaterial({ color: 0x8b0000, flatShading: true });
     const roofMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50, flatShading: true });
+    const bronzeBellMat = new THREE.MeshStandardMaterial({ color: 0xcd6133, metalness: 0.75, roughness: 0.35, flatShading: true });
+    const darkTimberMat = new THREE.MeshStandardMaterial({
+      map: getWoodGrainTexture(true),
+      color: 0x4a2e18,
+      flatShading: true,
+      roughness: 0.85
+    });
 
     const base = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.8, 1.6, 8), stoneBaseMat);
     base.position.y = 0.8;
     this.bellTower.add(base);
-    this.registerBuildingPart(base, 150, 'wall', 'masonry', 'bell_base');
+    this.registerBuildingPart(base, 150, 'wall', 'masonry', 'bell_tower');
 
     for (let l = 0; l < 3; l++) {
       const radius = 4.2 - l * 0.8;
       const height = 3.4;
       const y = 1.6 + l * 4.4;
 
-      const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.85, radius, height, 8), woodMat);
-      floor.position.y = y + height / 2;
-      this.bellTower.add(floor);
-      this.registerBuildingPart(floor, 90, 'wall', 'wood', `bell_tier_${l}`);
+      if (l < 2) {
+        // Tầng 1 & 2: Thân tháp trụ lục giác bọc gỗ kiên cố
+        const floor = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.85, radius, height, 8), woodMat);
+        floor.position.y = y + height / 2;
+        this.bellTower.add(floor);
+        this.registerBuildingPart(floor, 90, 'wall', 'wood', 'bell_tower');
+      } else {
+        // Tầng 3: Lầu Chuông mở thông gió (Open Bell Pavilion) với 8 cột trụ chịu lực & xà gồ treo chuông
+        const floorPlatform = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.95, radius, 0.4, 8), woodMat);
+        floorPlatform.position.y = y + 0.2;
+        this.bellTower.add(floorPlatform);
+        this.registerBuildingPart(floorPlatform, 85, 'wall', 'wood', 'bell_tower');
+
+        // 8 Cột trụ gỗ lim đỡ tầng mái trên cùng
+        for (let p = 0; p < 8; p++) {
+          const pa = (p * Math.PI * 2) / 8;
+          const col = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, height - 0.4, 6), darkTimberMat);
+          col.position.set(Math.cos(pa) * (radius * 0.75), y + 0.2 + (height - 0.4) / 2, Math.sin(pa) * (radius * 0.75));
+          this.bellTower.add(col);
+          this.registerBuildingPart(col, 65, 'pillar', 'wood', 'bell_tower');
+        }
+
+        // Xà ngang chữ thập treo chuông
+        const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(radius * 1.5, 0.35, 0.35), darkTimberMat);
+        crossBeam.position.set(0, y + height - 0.3, 0);
+        this.bellTower.add(crossBeam);
+
+        // Đại Hồng Chung cổ ngàn năm treo vững chắc trên xà gồ
+        const bellGroup = new THREE.Group();
+        bellGroup.position.set(0, y + 1.8, 0);
+
+        const giantBell = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 1.22, 2.3, 12), bronzeBellMat);
+        giantBell.position.y = 0;
+        bellGroup.add(giantBell);
+
+        const bellLip = new THREE.Mesh(new THREE.TorusGeometry(1.22, 0.12, 6, 12), bronzeBellMat);
+        bellLip.position.y = -1.15;
+        bellLip.rotation.x = Math.PI / 2;
+        bellGroup.add(bellLip);
+
+        const bellCrown = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.1, 6, 8), bronzeBellMat);
+        bellCrown.position.y = 1.25;
+        bellGroup.add(bellCrown);
+
+        const striker = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 2.1, 8), darkTimberMat);
+        striker.position.set(1.4, -0.3, 0);
+        striker.rotation.x = Math.PI / 2;
+        bellGroup.add(striker);
+
+        this.bellTower.add(bellGroup);
+        this.animatedBells.push({
+          mesh: giantBell,
+          striker: striker,
+          phase: 0.5,
+        });
+      }
 
       const roof = new THREE.Mesh(new THREE.ConeGeometry(radius * 1.55, 1.2, 8), roofMat);
       roof.position.y = y + height + 0.6;
       this.bellTower.add(roof);
-      this.registerBuildingPart(roof, 75, 'eave', 'tile', `bell_roof_${l}`);
+      this.registerBuildingPart(roof, 75, 'eave', 'tile', 'bell_tower');
     }
 
     this.scene.add(this.bellTower);
@@ -1272,18 +1331,18 @@ export class World {
     group.add(rightWall);
     this.registerBuildingPart(rightWall, 75, 'wall', 'masonry', id);
 
-    // Chi tiết Cửa Sổ Hoa Văn Song Sưa Tầng 1 (Lattice Windows)
+    // Chi tiết Cửa Sổ Hoa Văn Song Sưa Tầng 1 (Lattice Windows) gắn liền vào vách tường trước
     for (const wx of [-width * 0.28, width * 0.28]) {
       const winFrame = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 0.08), winMat);
-      winFrame.position.set(wx, height * 0.52, pZ + 0.2);
-      group.add(winFrame);
+      winFrame.position.set(wx, height * 0.02, 0.2);
+      frontWall.add(winFrame);
 
       const winPaper = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 1.15), winGlow);
-      winPaper.position.set(wx, height * 0.52, pZ + 0.25);
-      group.add(winPaper);
+      winPaper.position.set(wx, height * 0.02, 0.25);
+      frontWall.add(winPaper);
     }
 
-    // Biển hiệu tiệm dát vàng thư pháp
+    // Biển hiệu tiệm dát vàng thư pháp gắn liền vào tường trước
     let shopNameZh = '靈草堂';
     let shopNameVi = 'HIỆU THUỐC';
     if (id.includes('forge')) { shopNameZh = '神兵坊'; shopNameVi = 'TIỆM RÈN'; }
@@ -1297,12 +1356,12 @@ export class World {
       roughness: 0.35
     });
     const signBoard = new THREE.Mesh(new THREE.BoxGeometry(width * 0.42, 0.72, 0.1), signBoardMat);
-    signBoard.position.set(0, height * 0.86, pZ + 0.22);
-    group.add(signBoard);
+    signBoard.position.set(0, height * 0.36, 0.22);
+    frontWall.add(signBoard);
 
     const signTrim = new THREE.Mesh(new THREE.BoxGeometry(width * 0.45, 0.76, 0.06), goldMat);
-    signTrim.position.set(0, height * 0.86, pZ + 0.2);
-    group.add(signTrim);
+    signTrim.position.set(0, height * 0.36, 0.2);
+    frontWall.add(signTrim);
 
     // 3. Mái ngói hiên chính
     const eaveY = height + 0.4;
@@ -1312,14 +1371,14 @@ export class World {
     group.add(eaveRoof);
     this.registerBuildingPart(eaveRoof, 70, 'eave', 'tile', id);
 
-    // 4 Đầu đao ngói cong vút 4 góc (Curved Eave Tips / Chiwen)
+    // 4 Đầu đao ngói cong vút 4 góc (Curved Eave Tips / Chiwen) gắn liền vào mái ngói hiên
     for (const cx of [-1, 1]) {
       for (const cz of [-1, 1]) {
         const tip = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.9, 4), roofMat);
-        tip.position.set(cx * (width / 2 + 0.95), eaveY + 0.55, cz * (depth / 2 + 0.95));
+        tip.position.set(cx * (width / 2 + 0.95), 0.55, cz * (depth / 2 + 0.95));
         tip.rotation.x = cz * 0.55;
         tip.rotation.z = -cx * 0.55;
-        group.add(tip);
+        eaveRoof.add(tip);
       }
     }
 
@@ -1330,11 +1389,11 @@ export class World {
       group.add(f2Room);
       this.registerBuildingPart(f2Room, 85, 'wall', 'masonry', id);
 
-      // Cửa sổ tầng 2
+      // Cửa sổ tầng 2 gắn liền vào phòng tầng 2
       for (const wx of [-width * 0.22, width * 0.22]) {
         const winF2 = new THREE.Mesh(new THREE.BoxGeometry(1.0, 1.2, 0.08), winMat);
-        winF2.position.set(wx, eaveY + floor2Height * 0.55, depth / 2 - 0.4);
-        group.add(winF2);
+        winF2.position.set(wx, floor2Height * 0.05 - 0.3, depth / 2 - 0.4);
+        f2Room.add(winF2);
       }
 
       const roof2 = new THREE.Mesh(new THREE.BoxGeometry(width + 1.2, 0.95, depth + 1.2), roofMat);
@@ -1343,14 +1402,14 @@ export class World {
       group.add(roof2);
       this.registerBuildingPart(roof2, 75, 'eave', 'tile', id);
 
-      // 4 Đầu đao nóc tầng 2
+      // 4 Đầu đao nóc tầng 2 gắn liền vào mái tầng 2
       for (const cx of [-1, 1]) {
         for (const cz of [-1, 1]) {
           const tip2 = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.8, 4), roofMat);
-          tip2.position.set(cx * (width / 2 + 0.55), eaveY + floor2Height + 1.15, cz * (depth / 2 + 0.55));
+          tip2.position.set(cx * (width / 2 + 0.55), 0.55, cz * (depth / 2 + 0.55));
           tip2.rotation.x = cz * 0.55;
           tip2.rotation.z = -cx * 0.55;
-          group.add(tip2);
+          roof2.add(tip2);
         }
       }
     }
@@ -2338,7 +2397,8 @@ export class World {
     for (let i = 0; i < boatSpots.length; i++) {
       const bs = boatSpots[i];
       const boatGroup = new THREE.Group();
-      boatGroup.position.set(bs.x, -0.28, bs.z);
+      // Đặt thuyền gỗ mớn nước tự nhiên (mặt nước y = -0.38, thân thuyền chìm 10cm trong nước)
+      boatGroup.position.set(bs.x, -0.48, bs.z);
       boatGroup.rotation.y = bs.rot;
 
       const hull = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 4.2), woodMat);
@@ -2367,21 +2427,21 @@ export class World {
       this.fences.push({
         group: boatGroup,
         mesh: hull,
-        pos: new THREE.Vector3(bs.x, 0.2, bs.z),
+        pos: new THREE.Vector3(bs.x, -0.2, bs.z),
         radius: 1.8,
         hp: 45,
         isBroken: false,
       });
     }
 
-    // 4. 14 Cụm Thảm Lá Sen & Hoa Sen Bồng Bềnh
+    // 4. 14 Cụm Thảm Lá Sen & Hoa Sen Bồng Bềnh nổi đúng trên mặt nước
     const lotusXCoords = [-105, -88, -62, -35, -28, -12, -7, 7, 12, 28, 35, 62, 88, 105];
     for (let i = 0; i < lotusXCoords.length; i++) {
       const lx = lotusXCoords[i];
       const lz = -16 + (i % 2 === 0 ? 1.6 : -1.6) + (Math.random() - 0.5) * 0.8;
 
       const cluster = new THREE.Group();
-      cluster.position.set(lx, -0.34, lz);
+      cluster.position.set(lx, -0.37, lz);
 
       const numPads = 3 + Math.floor(Math.random() * 3);
       for (let p = 0; p < numPads; p++) {
@@ -2407,7 +2467,7 @@ export class World {
 
       this.lotusPads.push({
         group: cluster,
-        baseY: -0.34,
+        baseY: -0.37,
         phase: i * 0.65,
       });
     }
@@ -2454,16 +2514,16 @@ export class World {
       this.fortressDecoGroup.add(stairGroup);
     }
 
-    // 2. 16 Cột Cờ Đại Kỳ Triều Đình Trên Mặt Tường Thành (Imperial War Banners)
+    // 2. 16 Cột Cờ Đại Kỳ Triều Đình Trên Mặt Tường Thành (Imperial War Banners) - cắm chuẩn xác trên mặt đá
     const bannerSpots = [
-      { x: -28, z: -W, y: wallH + 1.2 }, { x: 28, z: -W, y: wallH + 1.2 },
-      { x: -55, z: -W, y: wallH + 1.2 }, { x: 55, z: -W, y: wallH + 1.2 },
-      { x: -28, z: W, y: wallH + 1.2 },  { x: 28, z: W, y: wallH + 1.2 },
-      { x: -55, z: W, y: wallH + 1.2 },  { x: 55, z: W, y: wallH + 1.2 },
-      { x: -W, z: -45, y: wallH + 1.2 }, { x: -W, z: 45, y: wallH + 1.2 },
-      { x: W, z: -45, y: wallH + 1.2 },  { x: W, z: 45, y: wallH + 1.2 },
-      { x: -W + 2, z: -W + 2, y: wallH + 10.5 }, { x: W - 2, z: -W + 2, y: wallH + 10.5 },
-      { x: -W + 2, z: W - 2, y: wallH + 10.5 },  { x: W - 2, z: W - 2, y: wallH + 10.5 },
+      { x: -28, z: -W, y: wallH }, { x: 28, z: -W, y: wallH },
+      { x: -55, z: -W, y: wallH }, { x: 55, z: -W, y: wallH },
+      { x: -28, z: W, y: wallH },  { x: 28, z: W, y: wallH },
+      { x: -55, z: W, y: wallH },  { x: 55, z: W, y: wallH },
+      { x: -W, z: -45, y: wallH }, { x: -W, z: 45, y: wallH },
+      { x: W, z: -45, y: wallH },  { x: W, z: 45, y: wallH },
+      { x: -W + 2, z: -W + 2, y: wallH + 2.0 }, { x: W - 2, z: -W + 2, y: wallH + 2.0 },
+      { x: -W + 2, z: W - 2, y: wallH + 2.0 },  { x: W - 2, z: W - 2, y: wallH + 2.0 },
     ];
 
     for (let i = 0; i < bannerSpots.length; i++) {
@@ -2491,14 +2551,14 @@ export class World {
       this.fortressDecoGroup.add(poleGroup);
     }
 
-    // 3. 10 Vạc Đuốc Đồng Bập Bùng (Bronze Braziers)
+    // 3. 10 Vạc Đuốc Đồng Bập Bùng (Bronze Braziers) - chân kiềng đặt vững chắc trên mặt sàn
     const brazierSpots = [
-      { x: -14, z: -W + 2, y: wallH + 1.0 }, { x: 14, z: -W + 2, y: wallH + 1.0 },
-      { x: -14, z: W - 2, y: wallH + 1.0 },  { x: 14, z: W - 2, y: wallH + 1.0 },
-      { x: 0, z: -W + 3.5, y: wallH + 5.5 },
-      { x: 0, z: W - 3.5, y: wallH + 5.5 },
-      { x: -W + 4, z: -W + 4, y: wallH + 2.5 }, { x: W - 4, z: -W + 4, y: wallH + 2.5 },
-      { x: -W + 4, z: W - 4, y: wallH + 2.5 },  { x: W - 4, z: W - 4, y: wallH + 2.5 },
+      { x: -14, z: -W + 2, y: wallH }, { x: 14, z: -W + 2, y: wallH },
+      { x: -14, z: W - 2, y: wallH },  { x: 14, z: W - 2, y: wallH },
+      { x: 0, z: -W + 3.5, y: wallH + 2.25 },
+      { x: 0, z: W - 3.5, y: wallH + 2.25 },
+      { x: -W + 4, z: -W + 4, y: wallH + 2.0 }, { x: W - 4, z: -W + 4, y: wallH + 2.0 },
+      { x: -W + 4, z: W - 4, y: wallH + 2.0 },  { x: W - 4, z: W - 4, y: wallH + 2.0 },
     ];
 
     for (let i = 0; i < brazierSpots.length; i++) {
@@ -3008,31 +3068,31 @@ export class World {
         const col = new THREE.Mesh(new THREE.CylinderGeometry(p.r * 0.92, p.r, p.h, 8), redLacquerMat);
         col.position.set(p.x, 0.9 + p.h / 2, 0);
         pailouGroup.add(col);
-        this.registerBuildingPart(col, 95, 'pillar', 'wood', `${nameId}_col_${idx}`);
+        this.registerBuildingPart(col, 95, 'pillar', 'wood', nameId);
 
-        // Đấu củng đỡ mái trên đầu cột
+        // Đấu củng đỡ mái gắn liền trên đầu cột chịu lực
         const bracket = new THREE.Mesh(new THREE.BoxGeometry(p.r * 2.8, 0.45, p.r * 2.8), darkWoodMat);
-        bracket.position.set(p.x, 0.9 + p.h + 0.2, 0);
-        pailouGroup.add(bracket);
+        bracket.position.set(0, p.h / 2 + 0.2, 0);
+        col.add(bracket);
       });
 
       // Xà ngang gian giữa & 2 gian bên
       const centerBeam = new THREE.Mesh(new THREE.BoxGeometry(5.4, 0.65, 0.6), redLacquerMat);
       centerBeam.position.set(0, 6.6, 0);
       pailouGroup.add(centerBeam);
-      this.registerBuildingPart(centerBeam, 80, 'eave', 'wood', `${nameId}_beam_c`);
+      this.registerBuildingPart(centerBeam, 80, 'eave', 'wood', nameId);
 
       for (const side of [-1, 1]) {
         const sideBeam = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.55, 0.5), redLacquerMat);
         sideBeam.position.set(side * 4.6, 5.2, 0);
         pailouGroup.add(sideBeam);
-        this.registerBuildingPart(sideBeam, 70, 'eave', 'wood', `${nameId}_beam_s_${side}`);
+        this.registerBuildingPart(sideBeam, 70, 'eave', 'wood', nameId);
       }
 
-      // Biển ngạch đề chữ dát vàng ở gian chính giữa
+      // Biển ngạch đề chữ dát vàng ở gian chính giữa gắn liền vào xà gồ chính
       const signBoard = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.25, 0.22), darkWoodMat);
-      signBoard.position.set(0, 7.6, 0);
-      pailouGroup.add(signBoard);
+      signBoard.position.set(0, 1.0, 0);
+      centerBeam.add(signBoard);
 
       const signTex = (nameId === 'chutuoc_pailou'
         ? getCalligraphySignTexture('朱雀門', 'CHU TƯỚC BÀI PHƯỜNG', 'vermilion')
@@ -3040,31 +3100,31 @@ export class World {
       );
       const signInnerMat = new THREE.MeshStandardMaterial({ map: signTex, roughness: 0.35 });
       const signInner = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.95, 0.26), signInnerMat);
-      signInner.position.set(0, 7.6, 0);
-      pailouGroup.add(signInner);
+      signInner.position.set(0, 1.0, 0.02);
+      centerBeam.add(signInner);
 
       // Mái ngói gian giữa (cao nhất)
       const centerRoof = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.85, 2.6), roofMat);
       centerRoof.position.set(0, 8.8, 0);
       centerRoof.castShadow = true;
       pailouGroup.add(centerRoof);
-      this.registerBuildingPart(centerRoof, 100, 'eave', 'tile', `${nameId}_roof_c`);
+      this.registerBuildingPart(centerRoof, 100, 'eave', 'tile', nameId);
 
       // Mái ngói 2 gian bên (thấp hơn)
       for (const side of [-1, 1]) {
         const sideRoof = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.75, 2.2), roofMat);
         sideRoof.position.set(side * 4.6, 7.1, 0);
         pailouGroup.add(sideRoof);
-        this.registerBuildingPart(sideRoof, 85, 'eave', 'tile', `${nameId}_roof_s_${side}`);
+        this.registerBuildingPart(sideRoof, 85, 'eave', 'tile', nameId);
 
-        // Đèn lồng đỏ treo dưới mái hiên bài phường
+        // Đèn lồng đỏ treo dưới mái hiên bài phường gắn liền vào mái
         const lantern = new THREE.Mesh(new THREE.SphereGeometry(0.38, 6, 6), redLacquerMat);
-        lantern.position.set(side * 4.6, 6.2, 0);
-        pailouGroup.add(lantern);
+        lantern.position.set(0, -0.9, 0);
+        sideRoof.add(lantern);
 
         const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.12, 0.45, 6), goldPlateMat);
-        tassel.position.set(side * 4.6, 5.8, 0);
-        pailouGroup.add(tassel);
+        tassel.position.set(0, -1.3, 0);
+        sideRoof.add(tassel);
       }
 
       this.imperialPlazaGroup.add(pailouGroup);
@@ -3096,22 +3156,22 @@ export class World {
     screenWallGroup.add(wallBody);
     this.registerBuildingPart(wallBody, 220, 'wall', 'masonry', 'nine_dragon_wall');
 
-    // Tranh bích họa Cửu Long Châu ngọc 2 mặt trước sau
+    // Tranh bích họa Cửu Long Châu ngọc 2 mặt trước sau gắn liền vào thân tường
     const dragonMuralMat = new THREE.MeshStandardMaterial({
       map: getDragonScreenTexture(),
       roughness: 0.35,
       metalness: 0.2
     });
     const muralFront = new THREE.Mesh(new THREE.PlaneGeometry(15.0, 3.0), dragonMuralMat);
-    muralFront.position.set(0, 2.55, -0.56);
-    screenWallGroup.add(muralFront);
+    muralFront.position.set(0, 0, -0.56);
+    wallBody.add(muralFront);
 
     const muralBack = new THREE.Mesh(new THREE.PlaneGeometry(15.0, 3.0), dragonMuralMat);
-    muralBack.position.set(0, 2.55, 0.56);
+    muralBack.position.set(0, 0, 0.56);
     muralBack.rotation.y = Math.PI;
-    screenWallGroup.add(muralBack);
+    wallBody.add(muralBack);
 
-    // 9 Khối phù điêu rồng ngọc 9 màu rực rỡ
+    // 9 Khối phù điêu rồng ngọc 9 màu rực rỡ gắn liền vào thân tường
     const dragonColors = [
       0x2980b9, 0xf39c12, 0x27ae60, 0xc0392b, 0x8e44ad,
       0xecf0f1, 0xd35400, 0x16a085, 0xf1c40f
@@ -3126,22 +3186,22 @@ export class World {
       });
       // Thân rồng uốn lượn low-poly
       const dragonBody = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.16, 6, 8, Math.PI * 1.3), dMat);
-      dragonBody.position.set(dx, 2.55, -0.6);
+      dragonBody.position.set(dx, 0, -0.6);
       dragonBody.rotation.z = (d % 2 === 0 ? 0.4 : -0.4);
-      screenWallGroup.add(dragonBody);
+      wallBody.add(dragonBody);
 
       // Đầu rồng ngậm ngọc
       const dHead = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.35, 5), dMat);
-      dHead.position.set(dx + 0.3, 2.9, -0.62);
+      dHead.position.set(dx + 0.3, 0.35, -0.62);
       dHead.rotation.z = -Math.PI / 4;
-      screenWallGroup.add(dHead);
+      wallBody.add(dHead);
     }
 
     // Mái ngói lưu ly vàng che đỉnh Cửu Long Bích
     const wallRoof = new THREE.Mesh(new THREE.BoxGeometry(16.4, 0.75, 2.2), goldRoofMat);
     wallRoof.position.y = 4.45;
     screenWallGroup.add(wallRoof);
-    this.registerBuildingPart(wallRoof, 110, 'eave', 'tile', 'nine_dragon_roof');
+    this.registerBuildingPart(wallRoof, 110, 'eave', 'tile', 'nine_dragon_wall');
 
     this.imperialPlazaGroup.add(screenWallGroup);
 
@@ -3217,20 +3277,20 @@ export class World {
       huabiaoGroup.add(hCol);
       this.registerBuildingPart(hCol, 150, 'pillar', 'masonry', `huabiao_${side > 0 ? 'r' : 'l'}`);
 
-      // Vân bản (Bản mây bay ngang thân cột)
+      // Vân bản (Bản mây bay ngang thân cột) gắn liền vào thân cột
       const cloudWing = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.55, 0.14), whiteMarbleMat);
-      cloudWing.position.set(0, 7.8, 0);
-      huabiaoGroup.add(cloudWing);
+      cloudWing.position.set(0, 2.85, 0);
+      hCol.add(cloudWing);
 
-      // Đĩa Thừa Lộ Bàn hứng sương trời
+      // Đĩa Thừa Lộ Bàn hứng sương trời gắn liền vào thân cột
       const dewdish = new THREE.Mesh(new THREE.CylinderGeometry(0.78, 0.62, 0.22, 10), whiteMarbleMat);
-      dewdish.position.y = 9.15;
-      huabiaoGroup.add(dewdish);
+      dewdish.position.set(0, 4.2, 0);
+      hCol.add(dewdish);
 
-      // Linh thú Hống (Denglong) ngồi chầu trên đĩa
+      // Linh thú Hống (Denglong) ngồi chầu trên đĩa gắn liền vào thân cột
       const beast = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.55, 0.48), whiteMarbleMat);
-      beast.position.set(0, 9.55, 0);
-      huabiaoGroup.add(beast);
+      beast.position.set(0, 4.6, 0);
+      hCol.add(beast);
 
       this.imperialPlazaGroup.add(huabiaoGroup);
     }
@@ -3482,38 +3542,7 @@ export class World {
       });
     }
 
-    // D. Đại Hồng Chung (Giant Bronze Bell) treo tại lầu Tháp Chuông (bx = -48, bz = 40)
-    const bellGroup = new THREE.Group();
-    bellGroup.position.set(-48, 11.2, 40);
-
-    // Chuông đồng cổ ngàn năm
-    const giantBell = new THREE.Mesh(new THREE.CylinderGeometry(0.68, 1.22, 2.3, 12), bronzeBellMat);
-    giantBell.position.y = 0;
-    bellGroup.add(giantBell);
-
-    // Vành môi chuông & quai chuông chạm bồ lao
-    const bellLip = new THREE.Mesh(new THREE.TorusGeometry(1.22, 0.12, 6, 12), bronzeBellMat);
-    bellLip.position.y = -1.15;
-    bellLip.rotation.x = Math.PI / 2;
-    bellGroup.add(bellLip);
-
-    const bellCrown = new THREE.Mesh(new THREE.TorusGeometry(0.38, 0.1, 6, 8), bronzeBellMat);
-    bellCrown.position.y = 1.25;
-    bellGroup.add(bellCrown);
-
-    // Chày gỗ gióng chuông treo lơ lửng
-    const striker = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 2.1, 8), darkTimberMat);
-    striker.position.set(1.4, -0.3, 0);
-    striker.rotation.x = Math.PI / 2;
-    bellGroup.add(striker);
-
-    this.animatedBells.push({
-      mesh: giantBell,
-      striker: striker,
-      phase: Math.random() * Math.PI * 2
-    });
-
-    this.martialGroup.add(bellGroup);
+    // D. Đại Hồng Chung (Giant Bronze Bell) đã được tích hợp kiên cố vào Lầu Tháp Chuông (bx = -48, bz = 40) có cột trụ & xà gồ chịu lực.
 
     // E. Lò Luyện Đan Bát Quái (Ba-Gua Alchemy Cauldron) tại x = -68, z = 85 (Linh Dược Các)
     const cauldronGroup = new THREE.Group();
@@ -3726,7 +3755,7 @@ export class World {
       });
     });
 
-    // C. 14 Thủy Thạch & Ghềnh Đá Cuội Rêu Phong (Mossy Canal Boulders)
+    // C. 16 Thủy Thạch & Ghềnh Đá Cuội Rêu Phong (Mossy Canal & Avenue Boulders) - bám sát cao độ địa hình
     const rockLocations = [
       { x: -13.5, z: -100, s: 1.4 }, { x: 13.5, z: -85, s: 1.2 },
       { x: -14.0, z: -60, s: 1.3 },  { x: 14.0, z: -35, s: 1.5 },
@@ -3734,12 +3763,15 @@ export class World {
       { x: -13.8, z: 45, s: 1.6 },   { x: 13.2, z: 68, s: 1.25 },
       { x: -14.2, z: 92, s: 1.4 },   { x: 13.8, z: 105, s: 1.3 },
       { x: -4.5, z: -45, s: 0.9 },   { x: 4.8, z: 25, s: 0.85 },
-      { x: -5.0, z: 75, s: 0.95 },   { x: 5.2, z: -90, s: 0.9 }
+      { x: -5.0, z: 75, s: 0.95 },   { x: 5.2, z: -90, s: 0.9 },
+      { x: -55, z: -17.5, s: 1.1 },  { x: 55, z: -14.5, s: 1.15 }
     ];
 
     rockLocations.forEach((rl) => {
       const rockGroup = new THREE.Group();
-      const rY = (Math.abs(rl.x) < 8 ? -0.8 : 0.0); // ghềnh trong nước hoặc trên bờ cỏ
+      const gH = getTerrainHeight(rl.x, rl.z);
+      const inCanal = Math.abs(rl.z - (-16)) < 4.5 && Math.abs(rl.x) < 128;
+      const rY = inCanal ? Math.max(gH, -0.6) : gH;
       rockGroup.position.set(rl.x, rY, rl.z);
       rockGroup.scale.set(rl.s, rl.s * 0.75, rl.s);
 
@@ -3757,7 +3789,7 @@ export class World {
 
       this.rocks.push({
         mesh: rockGroup,
-        pos: new THREE.Vector3(rl.x, rY + 0.4, rl.z),
+        pos: new THREE.Vector3(rl.x, rY + 0.4 * rl.s, rl.z),
         scale: new THREE.Vector3(rl.s, rl.s, rl.s),
         radius: rl.s * 0.85,
         hp: 75,
@@ -3787,13 +3819,13 @@ export class World {
     const palisadeWoodMat = new THREE.MeshStandardMaterial({ color: 0x4a2e18, flatShading: true, roughness: 0.9 });
     const ironBandMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, metalness: 0.75, roughness: 0.4 });
 
-    // A. 8 Đèn Hoa Đăng Cầu Nguyện thả trôi bồng bềnh dọc theo kênh đào (z = -16, y = -0.34)
+    // A. 8 Đèn Hoa Đăng Cầu Nguyện thả trôi bồng bềnh sát mặt nước kênh đào (z = -16, y = -0.37)
     const lanternX = [-96, -68, -40, -14, 14, 40, 68, 96];
     for (let i = 0; i < lanternX.length; i++) {
       const flGroup = new THREE.Group();
       const fx = lanternX[i] + (Math.sin(i * 2.3) * 3.5);
       const fz = -16 + (i % 2 === 0 ? 1.4 : -1.4);
-      const fBaseY = -0.34; // Mặt nước kênh đào tại y = -0.38
+      const fBaseY = -0.37; // Mặt nước kênh đào tại y = -0.38, hoa đăng nổi chìm 1cm tự nhiên
       flGroup.position.set(fx, fBaseY, fz);
 
       // Đế gỗ vuông nổi trên mặt nước
@@ -4149,15 +4181,33 @@ export class World {
         if (isHugeBlast) this.particles.emitSmoke(part.center, 8, 0x222222, 1.2, true);
       }
 
-      // Phản ứng dây chuyền: Nếu phá sập CỘT CHỊU LỰC, làm sập các mảng mái ngói phía trên nó!
-      if (part.partType === 'pillar') {
-        for (const otherPart of this.buildingParts) {
-          if (!otherPart.isBroken && otherPart.buildingId === part.buildingId && otherPart.partType === 'eave') {
-            const hDist = Math.hypot(otherPart.center.x - part.center.x, otherPart.center.z - part.center.z);
-            if (hDist < 5.0 && otherPart.center.y > part.center.y) {
-              otherPart.hp -= 55;
-              if (otherPart.hp <= 0) {
-                this.breakBuildingPart(otherPart, part.center, force * 0.85, isFire);
+      // 3. VẬT LÝ SẬP DÂY CHUYỀN THEO TRỌNG LỰC (CASCADE COLLAPSE SYSTEM)
+      // Nếu một móng, cột trụ hoặc tường chịu lực bị phá sập:
+      // Kiểm tra các kết cấu tầng trên (eave, wall, room) trong cùng công trình.
+      // Nếu không còn bất kỳ cột trụ hoặc tường chịu lực nào phía dưới nâng đỡ -> SẬP THEO TRỌNG LỰC!
+      if (part.partType === 'wall' || part.partType === 'pillar' || part.partType === 'eave') {
+        for (let i = 0; i < this.buildingParts.length; i++) {
+          const upper = this.buildingParts[i];
+          if (!upper.isBroken && upper.buildingId === part.buildingId && upper.center.y > part.center.y + 0.3) {
+            const hDist = Math.hypot(upper.center.x - part.center.x, upper.center.z - part.center.z);
+            if (hDist < Math.max(5.0, upper.radius + 1.2)) {
+              // Kiểm tra xem phía dưới `upper` còn phần tử chịu lực nào (wall / pillar) còn nguyên vẹn không
+              let hasSupport = false;
+              for (let j = 0; j < this.buildingParts.length; j++) {
+                const support = this.buildingParts[j];
+                if (!support.isBroken && support.buildingId === upper.buildingId && support !== upper) {
+                  if (support.center.y < upper.center.y - 0.3 && (support.partType === 'wall' || support.partType === 'pillar')) {
+                    const sDist = Math.hypot(upper.center.x - support.center.x, upper.center.z - support.center.z);
+                    if (sDist < Math.max(5.0, upper.radius + 1.2)) {
+                      hasSupport = true;
+                      break;
+                    }
+                  }
+                }
+              }
+              if (!hasSupport) {
+                // Mất hoàn toàn bệ đỡ phía dưới -> lập tức sập theo trọng lực thành đống đổ nát
+                this.breakBuildingPart(upper, part.center, force * 0.85 + 4, isFire);
               }
             }
           }

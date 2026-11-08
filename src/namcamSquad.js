@@ -461,6 +461,8 @@ export class NamcamSquad {
     if (clone.giantRobot) {
       if (clone.giantRobot.isActive) {
         clone.giantRobot.disengage();
+      } else {
+        clone.giantRobot.destroy();
       }
       clone.giantRobot = null;
     }

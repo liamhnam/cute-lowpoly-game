@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+scratch/
 .env*
 !.env.production
 !.env.example

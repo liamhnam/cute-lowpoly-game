@@ -1563,7 +1563,9 @@ export class Character {
     this.position.z = THREE.MathUtils.clamp(this.position.z, -121, 121);
 
     const groundY = getTerrainHeight(this.position.x, this.position.z);
-    this.position.y = groundY;
+    if (this.isGrounded) {
+      this.position.y = groundY;
+    }
 
     if (this.isMechaActive) {
       this.isGrounded = true;

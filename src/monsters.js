@@ -3034,15 +3034,26 @@ export class Monster {
       }
     }
 
-    // 6. Áp dụng phản lực Đẩy lùi (Knockback Velocity)
-    if (this.velocity.lengthSq() > 0.01) {
+    // 6. Áp dụng phản lực Đẩy lùi (Knockback Velocity) & Trọng lực vật lý liên tục
+    if (Math.abs(this.velocity.x) > 0.001 || Math.abs(this.velocity.z) > 0.001) {
       this.position.x += this.velocity.x * delta;
       this.position.z += this.velocity.z * delta;
-      this.position.y += this.velocity.y * delta;
-
       this.velocity.x *= 0.88;
       this.velocity.z *= 0.88;
-      this.velocity.y -= 24 * delta;
+      if (Math.abs(this.velocity.x) < 0.001) this.velocity.x = 0;
+      if (Math.abs(this.velocity.z) < 0.001) this.velocity.z = 0;
+    }
+
+    const groundY = getTerrainHeight(this.position.x, this.position.z);
+    if (this.aiState !== 'leaping') {
+      if (this.position.y > groundY || this.velocity.y !== 0) {
+        this.velocity.y -= 24 * delta;
+        this.position.y += this.velocity.y * delta;
+      }
+      if (this.position.y <= groundY) {
+        this.position.y = groundY;
+        this.velocity.y = 0;
+      }
     }
 
     if (this.torso && !this.attackAnimType) {
@@ -3062,9 +3073,10 @@ export class Monster {
     this.position.x = THREE.MathUtils.clamp(this.position.x, -120, 120);
     this.position.z = THREE.MathUtils.clamp(this.position.z, -120, 120);
 
-    const groundY = getTerrainHeight(this.position.x, this.position.z);
-    if (this.aiState !== 'leaping' && this.position.y <= groundY) {
-      this.position.y = groundY;
+    // Đảm bảo không bao giờ bị lơ lửng sau khi AI di chuyển
+    const finalGroundY = getTerrainHeight(this.position.x, this.position.z);
+    if (this.aiState !== 'leaping' && this.position.y <= finalGroundY) {
+      this.position.y = finalGroundY;
       this.velocity.y = 0;
     }
 
