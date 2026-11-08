@@ -1342,7 +1342,14 @@ export class Monster {
       );
     }
     if (player.pixelFX?.controller && dist < 40) {
-      player.pixelFX.controller.addTrauma(this.isBoss ? 0.35 : 0.2);
+      if (this.isBoss) {
+        player.pixelFX.controller.addTrauma(0.35);
+      } else if (this.isLarge) {
+        player.pixelFX.controller.addTrauma(0.2);
+      } else {
+        // Quái nhỏ: chỉ rung nhẹ & không cộng dồn quá mức khi bị cả đàn vây đánh
+        player.pixelFX.controller.addTrauma(0.1, 0.18);
+      }
     }
   }
 

@@ -90,8 +90,10 @@ export class ThirdPersonController {
     this.cameraDistance = THREE.MathUtils.clamp(this.cameraDistance, this.minDistance, this.maxDistance);
   }
 
-  addTrauma(amount) {
-    this.trauma = Math.min(1.0, this.trauma + amount);
+  // maxTrauma: giới hạn mức rung mà nguồn này được phép đẩy lên (không hạ mức rung đang có)
+  addTrauma(amount, maxTrauma = 1.0) {
+    if (this.trauma >= maxTrauma) return;
+    this.trauma = Math.min(maxTrauma, this.trauma + amount);
   }
 
   requestLock() {
