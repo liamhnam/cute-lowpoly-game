@@ -445,6 +445,20 @@
       transition: transform 0.05s ease;
     }
 
+    /* Nút Tự Động Trảm Yêu: nhấp nháy viền xanh khi đang bật */
+    .btn-auto-farm.active {
+      background: #0f5132;
+      box-shadow:
+        inset 2px 2px 0 #2ecc71,
+        inset -2px -2px 0 #0a3622,
+        0 3px 0 #000;
+      animation: autoFarmPulse 1.2s steps(2) infinite;
+    }
+
+    @keyframes autoFarmPulse {
+      50% { filter: brightness(1.35); }
+    }
+
     .rpg-cmd-btn:hover,
     .btn-settings-trigger:hover {
       background: #332d4d;
@@ -2176,6 +2190,16 @@
         right: 6px;
       }
 
+      /* Nút AUTO trên điện thoại: chỉ còn biểu tượng để không đè thanh máu */
+      .btn-auto-farm .auto-label {
+        display: none;
+      }
+
+      .btn-auto-farm {
+        padding: 6px 8px;
+        font-size: 0.85rem;
+      }
+
       .btn-settings-trigger {
         padding: 6px 8px;
         font-size: 0.65rem;
@@ -2249,6 +2273,12 @@
 
     /* Điện thoại dọc hẹp (≤ 370px, vd. iPhone SE / mini): thu nhỏ cụm nút & cần gạt để không chạm nhau */
     @media (orientation: portrait) and (max-width: 370px) {
+      /* Xếp nút AUTO xuống dưới nút cài đặt để không đè thanh máu */
+      .rpg-command-buttons {
+        flex-direction: column-reverse;
+        align-items: flex-end;
+      }
+
       .mobile-action-cluster,
       body.mobile-ui-active .skill-bar-wrapper {
         transform: scale(0.82) !important;
@@ -2732,6 +2762,11 @@
         <button class="rpg-cmd-btn" id="btn-hud-leaderboard" title="Bảng Phong Thần (Phím Tab)">
           <kbd>Tab</kbd>
           <span>Phong Thần</span>
+        </button>
+        <button class="rpg-cmd-btn btn-auto-farm" id="btn-auto-farm" title="Tự động trảm yêu - chỉ PvE (Phím T)" style="display:none">
+          <kbd>T</kbd>
+          <span>🤖</span>
+          <span class="auto-label">AUTO</span>
         </button>
         <button class="btn-settings-trigger" id="btn-settings" title="Cài đặt trò chơi (Esc)">
           <kbd>Esc</kbd>

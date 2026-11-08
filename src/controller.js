@@ -71,6 +71,11 @@ export class ThirdPersonController {
     this.cameraTouchActive = false;
     this.lastManualCameraTime = 0;
 
+    // Hướng di chuyển do Auto Farm điều khiển (toạ độ thế giới); tay người chơi luôn được ưu tiên
+    this.autoMoveWorld = new THREE.Vector3();
+    this.autoSprint = false;
+    this.onAutoToggle = null;
+
     this.initListeners();
   }
 
@@ -172,6 +177,7 @@ export class ThirdPersonController {
       const movementY = e.movementY || e.mozMovementY || e.webkitMovementY || 0;
 
       const sensitivity = 0.0032;
+      if (movementX || movementY) this.lastManualCameraTime = performance.now();
       this.yaw -= movementX * sensitivity;
       this.pitch += movementY * sensitivity;
 
@@ -308,7 +314,7 @@ export class ThirdPersonController {
   }
 
   // KÍCH HOẠT KỸ NĂNG VÀ TÍNH ĐIỂM RƠI MỤC TIÊU PHÍA TRƯỚC
-  triggerSkill(skillNum) {
+  triggerSkill(skillNum, targetPosOverride = null) {
     if (this.character.isDead) return;
     const forward = new THREE.Vector3(
       -Math.sin(this.yaw),
@@ -317,7 +323,9 @@ export class ThirdPersonController {
     ).normalize();
 
     // Điểm ngắm rơi kỹ năng cách nhân vật khoảng 14m phía trước
-    const targetPos = this.character.position.clone().addScaledVector(forward, 14);
+    const targetPos = targetPosOverride
+      ? targetPosOverride.clone()
+      : this.character.position.clone().addScaledVector(forward, 14);
     targetPos.y = getTerrainHeight(targetPos.x, targetPos.z);
 
     if (this.onCastSkill) {
@@ -327,6 +335,12 @@ export class ThirdPersonController {
         this.addTrauma(skillNum === 4 ? 0.4 : skillNum === 3 ? 0.3 : (skillNum === 2 ? 0.18 : 0.12));
       }
     }
+  }
+
+  // Người chơi có đang tự điều khiển di chuyển (phím WASD hoặc cần gạt) không
+  hasManualMoveInput() {
+    return this.keys.forward || this.keys.backward || this.keys.left || this.keys.right ||
+      this.joystickInput.lengthSq() > 0.01;
   }
 
   handleKey(code, isDown) {
@@ -358,6 +372,9 @@ export class ThirdPersonController {
       case 'KeyJ':
         if (isDown) this.beginAttackHold();
         else this.releaseAttackHold();
+        break;
+      case 'KeyT':
+        if (isDown && this.onAutoToggle) this.onAutoToggle();
         break;
       case 'KeyC':
         if (isDown && this.onOutfitChange) {
@@ -464,7 +481,15 @@ export class ThirdPersonController {
       this.yaw -= this.joystickInput.x * strength * followRate * delta;
     }
 
-    const isSprinting = this.keys.sprint || this.joystickSprint;
+    // Auto Farm: chỉ dùng hướng đi tự động khi người chơi không tự điều khiển
+    if (worldMoveVector.lengthSq() === 0 && this.autoMoveWorld.lengthSq() > 0 &&
+        !this.character.isDead && !this.character.isFloatingUlt) {
+      worldMoveVector.copy(this.autoMoveWorld);
+      if (worldMoveVector.length() > 1) worldMoveVector.normalize();
+    }
+
+    const isSprinting = this.keys.sprint || this.joystickSprint ||
+      (this.autoSprint && worldMoveVector.lengthSq() > 0);
     this.character.update(delta, worldMoveVector, isSprinting);
 
     const targetLookAt = this.character.position.clone();

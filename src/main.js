@@ -12,6 +12,7 @@ import { loadSwordModel } from './sword.js';
 import { NetworkManager } from './network.js';
 import { RemotePlayer } from './remotePlayer.js';
 import { CloneManager } from './clones.js';
+import { AutoFarm } from './autoFarm.js';
 
 class Game {
   constructor() {
@@ -226,7 +227,7 @@ class Game {
           }
 
           const skillName = skillMeta ? `${skillMeta.name} ${skillMeta.icon}` : 'Kỹ Năng';
-          this.showNotification(`Thi triển [${skillName}]!${cost > 0 ? ` (-${cost} Linh Lực)` : ''}`);
+          if (!this.autoFarm?.isCasting) this.showNotification(`Thi triển [${skillName}]!${cost > 0 ? ` (-${cost} Linh Lực)` : ''}`);
         }
         return success;
       }
@@ -371,8 +372,21 @@ class Game {
     if (bossHud) bossHud.classList.remove('show', 'enraged');
   }
 
+  // Nút AUTO chỉ hiện ở PvE, sáng lên khi đang bật
+  updateAutoFarmButton() {
+    const btn = document.getElementById('btn-auto-farm');
+    if (!btn) return;
+    const isPve = this.gameMode === 'pve';
+    btn.style.display = isPve ? '' : 'none';
+    const on = Boolean(this.autoFarm?.enabled);
+    btn.classList.toggle('active', on);
+    const label = btn.querySelector('.auto-label');
+    if (label) label.textContent = on ? 'AUTO: BẬT' : 'AUTO';
+  }
+
   setGameMode(mode) {
     this.gameMode = mode === 'pve' ? 'pve' : 'pvp';
+    if (this.gameMode !== 'pve' && this.autoFarm) this.autoFarm.setEnabled(false);
     if (this.gameMode === 'pve') {
       this.spawnMonsters();
     } else {
@@ -387,6 +401,7 @@ class Game {
     if (modeBtn) {
       modeBtn.classList.toggle('active', this.gameMode === 'pve');
     }
+    this.updateAutoFarmButton();
   }
 
   // Đột phá Cảnh Giới Tu Vi theo chiến tích
@@ -875,6 +890,35 @@ class Game {
       });
     }
 
+    // Tự Động Trảm Yêu (Auto Farm PvE): nút AUTO trên HUD hoặc phím T
+    this.autoFarm = new AutoFarm(this);
+    const autoBtn = document.getElementById('btn-auto-farm');
+    const toggleAutoFarm = () => {
+      if (this.gameMode !== 'pve') {
+        this.showNotification('🤖 Tự động trảm yêu chỉ dùng được ở chế độ PvE.');
+        return;
+      }
+      const on = this.autoFarm.toggle();
+      this.updateAutoFarmButton();
+      this.showNotification(on
+        ? '🤖 BẬT Tự Động Trảm Yêu: tự tìm quái, tự đánh & tung chiêu (đẩy cần gạt để tự lái)'
+        : '✋ TẮT Tự Động Trảm Yêu');
+    };
+    if (autoBtn) {
+      autoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleAutoFarm();
+      });
+    }
+    this.controller.onAutoToggle = () => {
+      const loginModal = document.getElementById('login-modal');
+      if (loginModal && getComputedStyle(loginModal).display !== 'none') return;
+      const el = document.activeElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
+      toggleAutoFarm();
+    };
+    this.updateAutoFarmButton();
+
     // Khởi tạo Hệ thống Điều Khiển Cảm Ứng Di Động (Mobile Controls)
     this.mobileControls = new MobileControlsManager(
       this,
@@ -1328,7 +1372,8 @@ class Game {
       }
     }
 
-    // 1. Cập nhật nhân vật & điều khiển
+    // 1. Cập nhật nhân vật & điều khiển (Auto Farm quyết định hướng đi/đòn đánh trước)
+    if (this.autoFarm) this.autoFarm.update(delta);
     this.controller.update(delta);
 
     // Cập nhật danh sách người chơi khác (Remote Players)
