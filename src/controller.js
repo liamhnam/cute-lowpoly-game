@@ -492,16 +492,19 @@ export class ThirdPersonController {
       (this.autoSprint && worldMoveVector.lengthSq() > 0);
     this.character.update(delta, worldMoveVector, isSprinting);
 
+    const isMecha = Boolean(this.character.isMechaActive || this.character.giantRobot?.isActive);
     const targetLookAt = this.character.position.clone();
-    targetLookAt.y += 1.45;
+    targetLookAt.y += isMecha ? 14.5 : 1.45;
 
-    const offsetX = Math.sin(this.yaw) * Math.cos(this.pitch) * this.cameraDistance;
-    const offsetY = Math.sin(this.pitch) * this.cameraDistance;
-    const offsetZ = Math.cos(this.yaw) * Math.cos(this.pitch) * this.cameraDistance;
+    const actualCamDist = isMecha ? 38.0 : this.cameraDistance;
+
+    const offsetX = Math.sin(this.yaw) * Math.cos(this.pitch) * actualCamDist;
+    const offsetY = Math.sin(this.pitch) * actualCamDist;
+    const offsetZ = Math.cos(this.yaw) * Math.cos(this.pitch) * actualCamDist;
 
     const targetCamPos = new THREE.Vector3(
       this.character.position.x + offsetX,
-      this.character.position.y + offsetY + 1.2,
+      this.character.position.y + offsetY + (isMecha ? 8.0 : 1.2),
       this.character.position.z + offsetZ
     );
 

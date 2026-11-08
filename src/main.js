@@ -175,6 +175,15 @@ class Game {
       this.character,
       this.canvas,
       (origin, attackDir, comboStep) => {
+        // Nếu đang điều khiển Chiến Thần Robot Khổng Lồ: đòn đánh thường là Đạp đất & Nện nắm đấm!
+        if (this.character.isMechaActive && this.character.giantRobot?.isActive) {
+          const success = this.character.giantRobot.triggerAttack(this.monsters);
+          if (success && this.network.isConnected) {
+            this.network.sendShoot(origin, attackDir, { kind: 'mecha_attack', step: comboStep });
+          }
+          return;
+        }
+
         const sectStats = this.character.sectStats;
         if (sectStats?.isGun) {
           this.projectiles.spawnBullet(
@@ -212,8 +221,8 @@ class Game {
         // Mỗi môn phái có 3 kỹ năng (1, 2, 3); Đạo Gia có thêm chiêu 4
         if (skillNum < 1 || skillNum > 4 || !this.pixelFX.cooldowns[skillNum]) return false;
 
-        if (this.character.isFloatingUlt) {
-          this.showNotification(`⚡ Đang vận sức Thiên Phạt Diệt Thế...`);
+        if (this.character.isMechaActive && skillNum === 4) {
+          this.showNotification(`🤖 Đang điều khiển Chiến Thần Cơ Giáp X20!`);
           return false;
         }
 
@@ -254,6 +263,14 @@ class Game {
 
     // Giữ chuột trái tụ lực rồi thả: phóng kiếm khí (màu sắc & lực sát thương theo môn phái)
     this.controller.onChargedRelease = (origin, attackDir, power) => {
+      if (this.character.isMechaActive && this.character.giantRobot?.isActive) {
+        const success = this.character.giantRobot.triggerAttack(this.monsters);
+        if (success && this.network.isConnected) {
+          this.network.sendShoot(origin, attackDir, { kind: 'mecha_attack', power });
+        }
+        return;
+      }
+
       const qiOrigin = origin.clone().addScaledVector(attackDir, 0.6);
       const sectStats = this.character.sectStats;
       this.projectiles.spawnSwordQi(qiOrigin, attackDir, power, true, sectStats, this.character);
