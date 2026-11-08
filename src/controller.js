@@ -42,9 +42,12 @@ export class ThirdPersonController {
     this.onChargedRelease = null;
 
     // Thông số Camera Orbit góc nhìn thứ 3
-    this.cameraDistance = 8.5;
+    // Đặt camera lùi xa hơn để nhân vật không che khuất khung cảnh;
+    // màn hình dọc (điện thoại) có góc nhìn ngang hẹp nên lùi xa thêm chút nữa
+    const isPortrait = window.innerHeight > window.innerWidth;
+    this.cameraDistance = isPortrait ? 13.5 : 11.5;
     this.minDistance = 4.0;
-    this.maxDistance = 16.0;
+    this.maxDistance = 20.0;
 
     this.pitch = 0.28;
     this.yaw = 0.0;
