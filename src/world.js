@@ -1938,6 +1938,8 @@ export class World {
       for (let j = 0; j < numPuffs; j++) {
         const puffSize = 3.2 + Math.random() * 2.8;
         const puff = new THREE.Mesh(new THREE.DodecahedronGeometry(puffSize, 1), cloudMat);
+        puff.castShadow = false; // Mây trời không đổ bóng xuống mặt đất
+        puff.receiveShadow = false;
         puff.position.set(
           (j - numPuffs / 2) * 2.6 + (Math.random() - 0.5) * 1.5,
           (Math.random() - 0.5) * 1.0,

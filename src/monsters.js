@@ -251,6 +251,7 @@ export class Monster {
     this.removeBossShield();
     this.group.visible = false;
     if (this.healthBarGroup) this.healthBarGroup.visible = false;
+    if (this.contactShadow) this.contactShadow.visible = false;
   }
 
   // Quái thường tan biến (không tính là bị hạ, không thưởng) & tạm ngưng hồi sinh
@@ -269,6 +270,7 @@ export class Monster {
     this.clearActiveEffects();
     this.group.visible = false;
     if (this.healthBarGroup) this.healthBarGroup.visible = false;
+    if (this.contactShadow) this.contactShadow.visible = false;
   }
 
   // Cho phép hồi sinh lại sau `delay` giây
@@ -1160,6 +1162,7 @@ export class Monster {
     this.model.visible = true;
     this.group.visible = true;
     this.healthBarGroup.visible = true;
+    if (this.contactShadow) this.contactShadow.visible = true;
     this.guardTimer = 0;
     this.guardHits = 0;
     this.removeBossShield();
@@ -2919,6 +2922,8 @@ export class Monster {
       this.model.rotation.x = THREE.MathUtils.lerp(this.model.rotation.x, -Math.PI / 2.2, delta * 5);
       this.model.scale.multiplyScalar(0.96);
       this.healthBarGroup.visible = false;
+      // Ẩn vệt bóng dưới chân để không để lại vết tối trên mặt đất khi quái đã chết / tan biến / chờ giáng thế
+      if (this.contactShadow) this.contactShadow.visible = false;
 
       if (!this.respawnPaused && this.respawnTimer <= 0) {
         this.respawn();
