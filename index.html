@@ -2234,6 +2234,33 @@
         width: 260px;
         height: 260px;
       }
+
+      /* Bố cục vòng cung màn dọc: các nút cách nhau ≥ 8px, không đè lên nhau hay lên cần gạt */
+      .btn-shoot { bottom: 12px; right: 12px; width: 72px; height: 72px; }
+      .btn-jump { bottom: 12px; right: 96px; width: 52px; height: 52px; }
+      .btn-sprint { bottom: 96px; right: 12px; width: 52px; height: 52px; }
+      .btn-outfit { bottom: 160px; right: 12px; width: 44px; height: 44px; }
+
+      body.mobile-ui-active #skill-slot-1 { bottom: 76px; right: 96px; width: 52px; height: 52px; }
+      body.mobile-ui-active #skill-slot-2 { bottom: 160px; right: 76px; width: 52px; height: 52px; }
+      body.mobile-ui-active #skill-slot-3 { bottom: 24px; right: 160px; width: 52px; height: 52px; }
+      body.mobile-ui-active #skill-slot-4 { bottom: 140px; right: 140px; width: 58px; height: 58px; }
+    }
+
+    /* Điện thoại dọc hẹp (≤ 370px, vd. iPhone SE / mini): thu nhỏ cụm nút & cần gạt để không chạm nhau */
+    @media (orientation: portrait) and (max-width: 370px) {
+      .mobile-action-cluster,
+      body.mobile-ui-active .skill-bar-wrapper {
+        transform: scale(0.82) !important;
+        transform-origin: bottom right;
+      }
+
+      .joystick-base {
+        left: 14px;
+        bottom: 24px;
+        width: 100px;
+        height: 100px;
+      }
     }
 
     /* 3. CHẾ ĐỘ MÀN HÌNH NGANG (LANDSCAPE) */
@@ -2349,14 +2376,14 @@
       }
 
       .btn-sprint {
-        bottom: 66px;
+        bottom: 80px;
         right: 10px;
         width: 40px;
         height: 40px;
       }
 
       .btn-outfit {
-        bottom: 118px;
+        bottom: 130px;
         right: 10px;
         width: 36px;
         height: 36px;
