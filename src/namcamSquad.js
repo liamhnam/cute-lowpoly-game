@@ -171,7 +171,7 @@ export class NamcamSquad {
   transformAllToRobots(monsters) {
     if (!this.hasActiveClones()) return;
 
-    this.damageTexts.spawn('🤖 BINH ĐOÀN 10 ROBOT KHỔNG LỒ HỢP THỂ CHIẾN ĐẤU!', this.clones[0].body.position.clone().add(new THREE.Vector3(0, 10.0, 0)), '#ffd700');
+    this.damageTexts.spawn('🤖 BINH ĐOÀN 10 GUNDAM CHIẾN THẦN HỢP THỂ XUNG KÍCH!', this.clones[0].body.position.clone().add(new THREE.Vector3(0, 10.0, 0)), '#ffd700');
 
     for (const clone of this.clones) {
       if (clone.isRobot || clone.giantRobot) continue;

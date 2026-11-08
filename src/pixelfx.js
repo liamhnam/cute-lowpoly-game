@@ -614,16 +614,16 @@ export const SECTS = [
         icon: '👥',
         cd: 20.0,
         mana: 35,
-        desc: 'Triệu hồi 10 Phân Thân Chiến Sĩ NAMCAM tự động tác chiến, rượt đuổi và nã súng trường diệt quái! ĐẶC BIỆT: Nếu kích hoạt [4] Chiến Thần Robot, toàn bộ 10 phân thân sẽ ĐỒNG LOẠT BIẾN THÀNH 10 ROBOT KHỔNG LỒ cùng xung kích!'
+        desc: 'Triệu hồi 10 Phân Thân Chiến Sĩ NAMCAM tự động tác chiến, rượt đuổi và nã súng trường diệt quái! ĐẶC BIỆT: Nếu kích hoạt [4] Chiến Thần Gundam, toàn bộ 10 phân thân sẽ ĐỒNG LOẠT BIẾN THÀNH 10 GUNDAM KHỔNG LỒ cùng xung kích!'
       },
       {
         id: 4,
-        name: 'Chiến Thần Robot Khổng Lồ',
-        tag: 'CƠ GIÁP HỢP THỂ',
+        name: 'Chiến Thần Gundam Khổng Lồ',
+        tag: 'GUNDAM HỢP THỂ',
         icon: '🤖',
         cd: 28.0,
         mana: 40,
-        desc: 'Triệu hồi 7 mảnh cơ giáp từ không gian bay vào hợp thể thành Robot Khổng Lồ gấp 20 lần! Đòn đánh thường biến thành đạp và nện đại địa chấn động, chậm rãi nhưng sát thương kinh thiên động địa!'
+        desc: 'Triệu hồi 7 mảnh cơ giáp từ không gian bay vào hợp thể thành Gundam Mobile Suit Khổng Lồ gấp 20 lần! Đòn đánh thường biến thành đạp và nện đại địa chấn động, chậm rãi nhưng sát thương kinh thiên động địa!'
       }
     ]
   }

@@ -1163,3 +1163,151 @@ export function getDinoScalesTexture() {
   textureCache.set('dinoScales', texture);
   return texture;
 }
+
+/**
+ * 14. Texture Giáp Cơ Giáp Gundam Công Nghệ Cao (High-Tech Gundam Mecha Armor Panels)
+ * Bao gồm panel lining (đường kẻ rãnh giáp), decal cảnh báo mecha, cổng bảo trì vernier
+ */
+export function getGundamPanelTexture(theme = 'white') {
+  const cacheKey = `gundamPanel_${theme}`;
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  if (theme === 'blue') {
+    // Gundam Cobalt Blue
+    ctx.fillStyle = '#1e40af';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Mảng giáp sắc thái thứ cấp
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(20, 20, 230, 230);
+    ctx.fillRect(270, 270, 220, 220);
+
+    // Đường rãnh panel line sắc nét
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 3.5;
+    ctx.strokeRect(10, 10, 492, 492);
+    ctx.strokeRect(20, 20, 230, 230);
+    ctx.strokeRect(270, 270, 220, 220);
+
+    // Decal cảnh báo màu trắng & vàng
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 13px monospace';
+    ctx.fillText('MOBILE SUIT - GUNDAM', 35, 45);
+    ctx.fillText('CAUTION: HIGH VOLTAGE', 285, 295);
+
+    // Vạch cảnh báo sọc vàng/đen góc giáp
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(35, 60, 80, 8);
+    ctx.fillRect(285, 310, 80, 8);
+  } else if (theme === 'red') {
+    // Gundam Crimson Red
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(0, 0, 512, 512);
+
+    ctx.fillStyle = '#b91c1c';
+    ctx.fillRect(15, 15, 482, 180);
+    ctx.fillRect(15, 230, 482, 260);
+
+    ctx.strokeStyle = '#450a0a';
+    ctx.lineWidth = 3.5;
+    ctx.strokeRect(10, 10, 492, 492);
+    ctx.strokeRect(15, 15, 482, 180);
+    ctx.strokeRect(15, 230, 482, 260);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText('WARNING: THRUSTER EXHAUST', 30, 40);
+    ctx.fillText('DANGER - KEEP CLEAR', 30, 255);
+
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.moveTo(430, 30);
+    ctx.lineTo(445, 55);
+    ctx.lineTo(415, 55);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    // Gundam Polar White (màu trắng kinh điển của Gundam RX-78 / Freedom / Strike)
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Các phiến giáp màu xám trắng tương phản nhẹ (Real Grade two-tone shading)
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(15, 15, 230, 230);
+    ctx.fillRect(270, 270, 225, 225);
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fillRect(270, 15, 225, 120);
+
+    // Rãnh kẻ panel line chuẩn mô hình Gundam kẻ mực (Charcoal Panel Lines)
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3.0;
+
+    // Viền khung ngoài
+    ctx.strokeRect(8, 8, 496, 496);
+
+    // Các đường cắt góc cơ khí (45-degree chamfered panel lines)
+    ctx.beginPath();
+    ctx.moveTo(15, 245);
+    ctx.lineTo(120, 245);
+    ctx.lineTo(150, 275);
+    ctx.lineTo(495, 275);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(255, 15);
+    ctx.lineTo(255, 380);
+    ctx.lineTo(285, 410);
+    ctx.lineTo(285, 495);
+    ctx.stroke();
+
+    // Vít lục giác & cổng bảo trì cơ khí
+    ctx.fillStyle = '#64748b';
+    const bolts = [
+      [35, 35], [225, 35], [35, 225], [225, 225],
+      [290, 290], [475, 290], [290, 475], [475, 475]
+    ];
+    for (const [bx, by] of bolts) {
+      ctx.beginPath();
+      ctx.arc(bx, by, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Decal tem nhãn cảnh báo đỏ Mecha (Red Caution Decals & E.F.S.F. Stencils)
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(35, 60, 42, 14);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 9px monospace';
+    ctx.fillText('RX-78', 38, 71);
+
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(300, 60, 10, 10);
+    ctx.fillStyle = '#334155';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('CAUTION: BEAM WEAPON', 315, 70);
+    ctx.fillText('E.F.S.F. EARTH FEDERATION', 35, 180);
+
+    // Tam giác cảnh báo hazard vàng
+    ctx.fillStyle = '#eab308';
+    ctx.beginPath();
+    ctx.moveTo(450, 220);
+    ctx.lineTo(470, 250);
+    ctx.lineTo(430, 250);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1.5, 1.5);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  textureCache.set(cacheKey, texture);
+  return texture;
+}

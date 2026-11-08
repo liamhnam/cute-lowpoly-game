@@ -1,25 +1,21 @@
 import * as THREE from 'three';
 import { getTerrainHeight } from './world.js';
 import { sound } from './audio.js';
+import { getGundamPanelTexture } from './textures.js';
 
 // ============================================================================
-// CHIẾN THẦN CƠ GIÁP KHỔNG LỒ X20 (GIANT TITAN MECHA NAMCAM)
+// CHIẾN THẦN GUNDAM KHỔNG LỒ X20 (RX-78 TITAN GUNDAM MECHA)
 // ============================================================================
-// Mô hình Robot khổng lồ cao ~36.5m (gấp 20 lần nhân vật 1.8m).
-// Màu sơn rằn ri quân đội Việt Nam (Olive Drab), Sao Vàng Quân Đội dập nổi 3D,
-// Buồng lái kính trong suốt nhìn rõ người lái, Đèn Visor Neon, Động cơ phản lực đôi,
-// Lò phản ứng lượng tử trung tâm, Hệ thống xi-lanh thủy lực Chrome sáng bóng.
-// 7 bộ phận bay vào từ không gian hợp thể:
-// 1. Chân Trái Thủy Lực (Left Leg & Stomping Sole)
-// 2. Chân Phải Thủy Lực (Right Leg & Stomping Sole)
-// 3. Khung Thân, Lò Phản Ứng & Buồng Lái (Torso, Cockpit & Reactor)
-// 4. Cánh Tay Trái & Đại Thủ Thiết Quyền (Left Arm & Crushing Fist)
-// 5. Cánh Tay Phải & Búa Thủy Lực Trọng Kích (Right Arm & Seismic Gauntlet)
-// 6. Cặp Động Cơ Phản Lực Khổng Lồ (Twin Thruster Backpack)
-// 7. Đầu Cơ Giáp Chiến Thần & Mũ Kính Visor (Titan Head & Visor)
-//
-// Đòn đánh thường: Đạp Chân Đại Địa & Nện Thiết Quyền Thủy Lực gây chấn động
-// và biến dạng địa hình thật (Terrain Deform Craters).
+// Mô hình Gundam Mobile Suit huyền thoại cao ~36.5m (gấp 20 lần nhân vật 1.8m).
+// Phối màu chuẩn Mobile Suit Gundam: Trắng tinh khôi (Polar White), Xanh Cobalt (Cobalt Blue),
+// Đỏ thẫm (Crimson Red), Vàng kim (Golden Yellow) và Xám nòng súng (Dark Gunmetal Frame).
+// - Ăng-ten V-Fin vàng kim 4 cánh kinh điển với ngọc trán đỏ & cảm biến ngọc lục bảo.
+// - Đôi mắt xanh lục Neon phát quang sắc sảo (Twin Glowing Emerald Eyes) & cằm đỏ vát góc.
+// - Lồng ngực xanh Cobalt với CẶP KHE HÚT GIÓ VÀNG KIM (Dual Golden Air Intake Vents).
+// - Cặp váy giáp trước/hông/sau di động & Khối giáp háng đỏ góc cạnh (Red Crotch Block).
+// - Balo phản lực đôi với CẶP CHUÔI KIẾM ÁNH SÁNG BEAM SABER & ngọn lửa hạt năng lượng GN.
+// - Tay trái trang bị KHIÊN GUNDAM LỤC QUÂN (Gundam Defense Shield) chuẩn anime mecha.
+// - Cặp chân dài thon gọn khí động học, bắp chân nở nang và BÀN CHÂN ĐỎ GUNDAM 2 KHÚC.
 // ============================================================================
 
 export class GiantRobot {
@@ -32,7 +28,7 @@ export class GiantRobot {
     this.pixelFX = pixelFX;
 
     this.group = new THREE.Group();
-    this.group.name = 'GiantRobot_NAMCAM';
+    this.group.name = 'GiantRobot_GUNDAM';
     this.scene.add(this.group);
 
     // Trạng thái vòng đời: 'assembling' | 'active' | 'disengaging' | 'dead'
@@ -97,67 +93,82 @@ export class GiantRobot {
   }
 
   // ==========================================================================
-  // VẬT LIỆU MÀU SẮC CHUẨN QUÂN ĐỘI VIỆT NAM (CAMO GREEN & GOLD STAR)
+  // VẬT LIỆU MÀU SẮC CHUẨN GUNDAM MECHA (POLAR WHITE, COBALT BLUE, CRIMSON RED)
   // ==========================================================================
   initMaterials() {
-    // 1. Màu xanh rêu quân đội Việt Nam (Vietnamese Military Olive Drab)
+    // 1. Giáp chính trắng tinh khôi chuẩn Gundam (Gundam Polar White Panel Texture)
     this.armorPrimaryMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0x244222,
-      roughness: 0.55,
-      metalness: 0.35,
-    }));
-
-    // 2. Màu xanh lục quân đội sáng tạo điểm nhấn mảng giáp (Secondary Olive Green)
-    this.armorHighlightMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0x366333,
-      roughness: 0.45,
-      metalness: 0.4,
-    }));
-
-    // 3. Khung sườn thép bóng đen sẫm (Dark Gunmetal Tactical Steel)
-    this.darkSteelMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0x181e24,
+      map: getGundamPanelTexture('white'),
+      color: 0xf8fafc,
       roughness: 0.35,
-      metalness: 0.75,
+      metalness: 0.18,
     }));
 
-    // 4. Vạch sọc vàng cảnh báo quân sự (Military Warning Yellow)
-    this.hazardYellowMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0xeab308,
-      roughness: 0.4,
-      metalness: 0.3,
+    // 2. Giáp ngực & balo xanh Cobalt Gundam (Gundam Cobalt Blue)
+    this.armorBlueMat = this.registerMat(new THREE.MeshStandardMaterial({
+      map: getGundamPanelTexture('blue'),
+      color: 0x1e40af,
+      roughness: 0.32,
+      metalness: 0.28,
+    }));
+    this.armorHighlightMat = this.armorBlueMat; // Tương thích ngược
+
+    // 3. Giáp đỏ thẫm kinh điển Gundam: Cằm, Háng, Bàn chân (Gundam Crimson Red)
+    this.armorRedMat = this.registerMat(new THREE.MeshStandardMaterial({
+      map: getGundamPanelTexture('red'),
+      color: 0xdc2626,
+      roughness: 0.32,
+      metalness: 0.22,
     }));
 
-    // 5. Xi-lanh thủy lực Piston Chrome sáng bóng (Hydraulic Chrome Pistons)
-    this.chromePistonMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0xe2e8f0,
-      roughness: 0.1,
-      metalness: 0.95,
-    }));
-
-    // 6. Sao Vàng Năm Cánh Quân Đội Việt Nam dập nổi 3D (Embossed Golden Star)
-    this.goldStarMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0xffd700,
+    // 4. V-Fin & Khe hút gió màu Vàng Kim Gundam (Iconic V-Fin Gold / Yellow)
+    this.goldVFinMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0xfbbf24,
       emissive: 0xd97706,
-      emissiveIntensity: 0.65,
-      roughness: 0.2,
+      emissiveIntensity: 0.25,
+      roughness: 0.22,
       metalness: 0.85,
     }));
+    this.goldStarMat = this.goldVFinMat; // Tương thích ngược
+    this.hazardYellowMat = this.goldVFinMat;
 
-    // 7. Lõi Lò phản ứng lượng tử trung tâm phát sáng Neon Cyan (Quantum Reactor Core)
+    // 5. Khung sườn kim loại xám nòng súng / Titanium Inner Frame
+    this.darkSteelMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0x1e293b,
+      roughness: 0.35,
+      metalness: 0.82,
+    }));
+
+    // 6. Xi-lanh thủy lực Piston Chrome sáng bóng (Hydraulic Chrome Pistons)
+    this.chromePistonMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0xf1f5f9,
+      roughness: 0.08,
+      metalness: 0.96,
+    }));
+
+    // 7. Đôi mắt quang học xanh ngọc lục bảo Neon (Gundam Glowing Twin Green Eyes)
+    this.gundamEyeMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0x10b981,
+      emissive: 0x059669,
+      emissiveIntensity: 2.5,
+      roughness: 0.12,
+      metalness: 0.1,
+    }));
+
+    // 8. Lõi lò phản ứng hạt nhân Minovsky / GN Drive phát sáng Cyan
     this.reactorCoreMat = this.registerMat(new THREE.MeshStandardMaterial({
       color: 0x00f2fe,
       emissive: 0x00d2d3,
-      emissiveIntensity: 1.25,
+      emissiveIntensity: 1.6,
       roughness: 0.15,
       metalness: 0.2,
     }));
 
-    // 8. Kính vòm buồng lái cường lực màu lam ngọc trong suốt (Translucent Cockpit Glass)
+    // 9. Kính vòm buồng lái cường lực màu lam ngọc trong suốt (Translucent Cockpit Glass)
     this.cockpitGlassMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0x22d3ee,
+      color: 0x06b6d4,
       emissive: 0x0891b2,
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.35,
       roughness: 0.08,
       metalness: 0.15,
       transparent: true,
@@ -165,14 +176,72 @@ export class GiantRobot {
       depthWrite: false,
     }));
 
-    // 9. Ngọn lửa phản lực động cơ Thruster (Jet Thruster Flame)
-    this.thrusterFlameMat = this.registerMat(new THREE.MeshStandardMaterial({
-      color: 0xff9f43,
-      emissive: 0xee5253,
-      emissiveIntensity: 1.8,
-      roughness: 0.2,
+    // 10. Lưỡi kiếm ánh sáng Beam Saber Plasma hồng rực (Hot Pink Beam Saber Blade)
+    this.beamSaberMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0xff007f,
+      emissive: 0xff007f,
+      emissiveIntensity: 2.8,
+      roughness: 0.1,
       metalness: 0.1,
     }));
+
+    // 11. Ngọn lửa hạt năng lượng GN phản lực động cơ Thruster (Cyan/Blue Energy Plume)
+    this.thrusterFlameMat = this.registerMat(new THREE.MeshStandardMaterial({
+      color: 0x38bdf8,
+      emissive: 0x00f2fe,
+      emissiveIntensity: 2.2,
+      roughness: 0.2,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.88,
+    }));
+  }
+
+  // Dựng hình khối Ăng-ten V-Fin Hoàng Kim 4 Cánh chuẩn Gundam
+  buildGundamVFin() {
+    const vFinGroup = new THREE.Group();
+
+    // Khối ngọc trán ngũ giác màu đỏ (Red Center Diamond Base)
+    const centerGem = new THREE.Mesh(
+      this.registerGeo(new THREE.ConeGeometry(0.55, 0.95, 5)),
+      this.armorRedMat
+    );
+    centerGem.rotation.x = Math.PI;
+    centerGem.position.set(0, 0, 0.45);
+    vFinGroup.add(centerGem);
+
+    // Cảm biến camera xanh ngọc lục bảo ngay trên trán
+    const foreheadSensor = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(0.45, 0.55, 0.65)),
+      this.gundamEyeMat
+    );
+    foreheadSensor.position.set(0, 0.65, 0.25);
+    vFinGroup.add(foreheadSensor);
+
+    // Cặp cánh V-Fin chính màu vàng vươn dài sắc lẹm
+    for (const side of [-1, 1]) {
+      const mainBlade = new THREE.Mesh(
+        this.registerGeo(new THREE.ConeGeometry(0.32, 4.4, 4)),
+        this.goldVFinMat
+      );
+      mainBlade.position.set(side * 1.6, 1.4, 0.25);
+      mainBlade.rotation.z = -side * 1.05;
+      mainBlade.rotation.y = side * 0.15;
+      mainBlade.scale.set(0.65, 1.0, 0.18);
+      vFinGroup.add(mainBlade);
+
+      // Cặp cánh V-Fin phụ phía sau tạo độ sâu 3D
+      const subBlade = new THREE.Mesh(
+        this.registerGeo(new THREE.ConeGeometry(0.22, 2.4, 4)),
+        this.goldVFinMat
+      );
+      subBlade.position.set(side * 1.0, 0.9, -0.2);
+      subBlade.rotation.z = -side * 1.15;
+      subBlade.scale.set(0.65, 1.0, 0.18);
+      vFinGroup.add(subBlade);
+    }
+
+    return vFinGroup;
   }
 
   // Dựng hình khối Ngôi Sao Vàng Năm Cánh 3D
@@ -201,68 +270,108 @@ export class GiantRobot {
     };
 
     const starGeo = this.registerGeo(new THREE.ExtrudeGeometry(starShape, extrudeSettings));
-    const starMesh = new THREE.Mesh(starGeo, this.goldStarMat);
+    const starMesh = new THREE.Mesh(starGeo, this.goldVFinMat);
     return starMesh;
   }
 
   // ==========================================================================
-  // XÂY DỰNG MÔ HÌNH 3D CHI TIẾT ROBOT KHỔNG LỒ X20 (~36.5M)
+  // XÂY DỰNG MÔ HÌNH 3D CHI TIẾT GUNDAM MOBILE SUIT X20 (~36.5M)
   // ==========================================================================
   buildRobotModel() {
     // ------------------------------------------------------------------------
-    // 1. HỆ THỐNG KHUNG CHẬU & HÔNG CƠ KHÍ (PELVIS & HIPS)
+    // 1. HỆ THỐNG KHUNG CHẬU & VÁY GIÁP GUNDAM (PELVIS & MOBILE SUIT SKIRTS)
     // Độ cao khớp háng: 16.5m
     // ------------------------------------------------------------------------
     this.pelvisGroup = new THREE.Group();
     this.pelvisGroup.position.set(0, 16.5, 0);
     this.group.add(this.pelvisGroup);
 
-    // Khối đế xương chậu chịu lực
+    // Khung sườn xương chậu Titanium chịu lực
     const pelvisChassis = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(6.4, 2.8, 4.4)),
+      this.registerGeo(new THREE.BoxGeometry(5.8, 2.8, 4.2)),
       this.darkSteelMat
     );
     this.pelvisGroup.add(pelvisChassis);
 
-    // Tấm giáp háng trung tâm vát góc
-    const crotchPlate = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(2.4, 3.2, 1.8)),
-      this.armorPrimaryMat
+    // Khối giáp háng trung tâm màu đỏ Gundam (Iconic Red Crotch Block)
+    const crotchBlock = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.2, 3.4, 2.6)),
+      this.armorRedMat
     );
-    crotchPlate.position.set(0, -0.6, 1.8);
-    crotchPlate.rotation.x = 0.25;
-    this.pelvisGroup.add(crotchPlate);
+    crotchBlock.position.set(0, -0.6, 2.0);
+    crotchBlock.rotation.x = 0.22;
+    this.pelvisGroup.add(crotchBlock);
 
-    // Cặp váy giáp hông bảo vệ khớp đùi 2 bên
+    // Biểu tượng chữ V vàng kim dập nổi trên khối háng đỏ
+    const crotchV = new THREE.Mesh(
+      this.registerGeo(new THREE.ConeGeometry(0.35, 1.2, 4)),
+      this.goldVFinMat
+    );
+    crotchV.position.set(0, -0.4, 3.35);
+    crotchV.rotation.x = Math.PI / 1.35;
+    this.pelvisGroup.add(crotchV);
+
+    // Cặp váy giáp trước màu trắng viền xanh (Twin Front Skirt Armors)
     for (const side of [-1, 1]) {
-      const hipSkirt = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(1.4, 3.6, 4.8)),
-        this.armorHighlightMat
+      const frontSkirt = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(2.2, 3.8, 0.65)),
+        this.armorPrimaryMat
       );
-      hipSkirt.position.set(side * 3.4, -0.4, 0);
-      hipSkirt.rotation.z = side * 0.18;
+      frontSkirt.position.set(side * 1.85, -0.7, 2.15);
+      frontSkirt.rotation.x = -0.25;
+      frontSkirt.rotation.y = -side * 0.12;
 
-      const hazardStripe = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(1.45, 0.6, 4.85)),
-        this.hazardYellowMat
+      // Viền xanh cobalt phía chân váy
+      const skirtTrim = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(2.25, 0.8, 0.7)),
+        this.armorBlueMat
       );
-      hazardStripe.position.y = -0.5;
-      hipSkirt.add(hazardStripe);
+      skirtTrim.position.y = -1.5;
+      frontSkirt.add(skirtTrim);
 
-      this.pelvisGroup.add(hipSkirt);
+      this.pelvisGroup.add(frontSkirt);
     }
 
+    // Cặp váy giáp hông màu trắng có chốt sạc Beam Saber (Side Skirts)
+    for (const side of [-1, 1]) {
+      const sideSkirt = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.9, 4.2, 3.8)),
+        this.armorPrimaryMat
+      );
+      sideSkirt.position.set(side * 3.3, -0.5, 0);
+      sideSkirt.rotation.z = side * 0.15;
+
+      // Hộp tiếp đạn / năng lượng gắn bên hông
+      const ammoBox = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.95, 1.6, 2.2)),
+        this.armorBlueMat
+      );
+      ammoBox.position.set(side * 0.1, -0.2, 0);
+      sideSkirt.add(ammoBox);
+
+      this.pelvisGroup.add(sideSkirt);
+    }
+
+    // Váy giáp sau với cặp ống xả phản lực phụ (Rear Skirt Armor)
+    const rearSkirt = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(5.2, 3.6, 0.75)),
+      this.armorPrimaryMat
+    );
+    rearSkirt.position.set(0, -0.6, -2.15);
+    rearSkirt.rotation.x = 0.28;
+    this.pelvisGroup.add(rearSkirt);
+
     // ------------------------------------------------------------------------
-    // 2. KHUNG THÂN & LÒ PHẢN ỨNG (TORSO & COCKPIT)
+    // 2. KHUNG THÂN & LỒNG NGỰC XANH COBALT (TORSO & COCKPIT)
     // ------------------------------------------------------------------------
     this.torsoGroup = new THREE.Group();
     this.torsoGroup.position.set(0, 2.2, 0);
     this.pelvisGroup.add(this.torsoGroup);
 
-    // Bụng khớp nối linh hoạt
+    // Khối cơ bụng chuyển động đa tầng màu xám titan (Segmented Abdominal Section)
     for (let i = 0; i < 2; i++) {
       const abPlate = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(4.2 - i * 0.4, 1.2, 3.6)),
+        this.registerGeo(new THREE.BoxGeometry(4.0 - i * 0.35, 1.25, 3.4)),
         this.darkSteelMat
       );
       abPlate.position.set(0, 0.8 + i * 1.3, 0);
@@ -286,59 +395,82 @@ export class GiantRobot {
       this.torsoGroup.add(torsoPistonRod);
     }
 
-    // Khung Lồng Ngực Chính Khổng Lồ
+    // Khung Lồng Ngực Chính Xanh Cobalt Gundam (Gundam Cobalt Blue Chest)
     const chestGroup = new THREE.Group();
     chestGroup.position.set(0, 4.8, 0);
     this.torsoGroup.add(chestGroup);
 
     const chestCenter = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(7.6, 5.6, 6.2)),
-      this.armorPrimaryMat
+      this.armorBlueMat
     );
     chestGroup.add(chestCenter);
 
-    // Tấm giáp ngực dốc phía trước
-    const frontArmor = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(6.6, 4.4, 1.8)),
-      this.armorHighlightMat
-    );
-    frontArmor.position.set(0, 0.4, 3.4);
-    frontArmor.rotation.x = -0.22;
-    chestGroup.add(frontArmor);
+    // Giáp cổ trắng dựng cao bảo vệ buồng lái (White Collar Armor Guards)
+    for (const side of [-1, 1]) {
+      const collarGuard = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(1.2, 2.4, 2.8)),
+        this.armorPrimaryMat
+      );
+      collarGuard.position.set(side * 2.2, 3.2, 1.2);
+      collarGuard.rotation.y = -side * 0.35;
+      collarGuard.rotation.x = -0.15;
+      chestGroup.add(collarGuard);
+    }
 
-    // Lõi Lò Phản Ứng Lượng Tử Trung Tâm
+    // CẶP KHE HÚT GIÓ VÀNG KIM KINH ĐIỂN CỦA GUNDAM (DUAL GOLDEN AIR INTAKE VENTS)
+    for (const side of [-1, 1]) {
+      const intakeGroup = new THREE.Group();
+      intakeGroup.position.set(side * 2.2, 0.8, 3.4);
+
+      // Khung viền ngoài khe hút gió màu vàng
+      const intakeFrame = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(1.8, 2.4, 0.8)),
+        this.goldVFinMat
+      );
+      intakeGroup.add(intakeFrame);
+
+      // 3 Thanh nan tản nhiệt đen bên trong
+      for (let l = 0; l < 3; l++) {
+        const louver = new THREE.Mesh(
+          this.registerGeo(new THREE.BoxGeometry(1.6, 0.16, 0.85)),
+          this.darkSteelMat
+        );
+        louver.position.y = (l - 1) * 0.65;
+        louver.rotation.x = 0.35;
+        intakeGroup.add(louver);
+      }
+      chestGroup.add(intakeGroup);
+    }
+
+    // Nắp Buồng Lái Đỏ Vát Nhọn Trung Tâm (Gundam Red Cockpit Hatch)
+    const cockpitHatch = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.4, 2.8, 1.8)),
+      this.armorRedMat
+    );
+    cockpitHatch.position.set(0, 0.4, 3.8);
+    cockpitHatch.rotation.x = -0.35;
+    chestGroup.add(cockpitHatch);
+
+    // Lõi Lò Phản Ứng Minovsky / GN Drive Trung Tâm
     const reactorHousing = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(1.9, 1.9, 0.8, 12)),
+      this.registerGeo(new THREE.CylinderGeometry(1.6, 1.6, 0.8, 12)),
       this.darkSteelMat
     );
     reactorHousing.rotation.x = Math.PI / 2;
-    reactorHousing.position.set(0, 0.2, 4.3);
+    reactorHousing.position.set(0, -1.2, 3.4);
     chestGroup.add(reactorHousing);
 
     this.reactorGlow = new THREE.Mesh(
-      this.registerGeo(new THREE.SphereGeometry(1.35, 16, 16)),
+      this.registerGeo(new THREE.SphereGeometry(1.15, 16, 16)),
       this.reactorCoreMat
     );
-    this.reactorGlow.position.set(0, 0.2, 4.45);
+    this.reactorGlow.position.set(0, -1.2, 3.55);
     chestGroup.add(this.reactorGlow);
-
-    // Vành hào quang lò phản ứng
-    const reactorRing = new THREE.Mesh(
-      this.registerGeo(new THREE.TorusGeometry(1.65, 0.15, 8, 24)),
-      this.hazardYellowMat
-    );
-    reactorRing.position.set(0, 0.2, 4.5);
-    chestGroup.add(reactorRing);
-
-    // NGÔI SAO VÀNG NĂM CÁNH QUÂN ĐỘI VIỆT NAM TRÊN NGỰC
-    const starMesh = this.buildStarMesh(1.8, 0.4);
-    starMesh.position.set(0, 2.3, 4.1);
-    chestGroup.add(starMesh);
 
     // ------------------------------------------------------------------------
     // BUỒNG LÁI CƠ GIÁP NỘI THẤT HOÀN CHỈNH (COCKPIT & PILOT CABIN INTERIOR)
     // ------------------------------------------------------------------------
-    // Sàn buồng lái bằng kim loại chống trượt
     const cockpitFloor = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(4.4, 0.4, 3.6)),
       this.darkSteelMat
@@ -358,7 +490,7 @@ export class GiantRobot {
 
     const seatBack = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(1.6, 2.2, 0.35)),
-      this.armorPrimaryMat
+      this.armorBlueMat
     );
     seatBack.position.set(0, 1.1, -0.7);
     pilotChair.add(seatBack);
@@ -366,14 +498,14 @@ export class GiantRobot {
     for (const side of [-1, 1]) {
       const armRest = new THREE.Mesh(
         this.registerGeo(new THREE.BoxGeometry(0.25, 0.6, 1.2)),
-        this.hazardYellowMat
+        this.goldVFinMat
       );
       armRest.position.set(side * 0.9, 0.6, 0);
       pilotChair.add(armRest);
     }
     chestGroup.add(pilotChair);
 
-    // NODE TỌA ĐỘ VẬT LÝ GHẾ LÁI (NAMCAM PILOT POSITION)
+    // NODE TỌA ĐỘ VẬT LÝ GHẾ LÁI (PILOT POSITION)
     this.pilotSeatNode = new THREE.Object3D();
     this.pilotSeatNode.name = 'TitanPilotSeatNode';
     this.pilotSeatNode.position.set(0, 2.35, 1.8);
@@ -394,7 +526,7 @@ export class GiantRobot {
     consolePanel.rotation.x = -0.4;
     chestGroup.add(consolePanel);
 
-    // Màn hình Radar Hologram phát sáng Neon
+    // Màn hình Radar Hologram phát sáng Neon Cyan
     const hudScreen = new THREE.Mesh(
       this.registerGeo(new THREE.PlaneGeometry(1.8, 0.6)),
       this.reactorCoreMat
@@ -415,7 +547,7 @@ export class GiantRobot {
 
       const stickKnob = new THREE.Mesh(
         this.registerGeo(new THREE.SphereGeometry(0.12, 8, 8)),
-        this.hazardYellowMat
+        this.armorRedMat
       );
       stickKnob.position.set(side * 0.65, 3.4, 2.7);
       chestGroup.add(stickKnob);
@@ -430,7 +562,7 @@ export class GiantRobot {
     cockpitCanopy.rotation.x = -0.32;
     chestGroup.add(cockpitCanopy);
 
-    // Khung kim loại bảo vệ kính buồng lái (Roll Cage Bars)
+    // Khung kim loại bảo vệ kính buồng lái
     for (const side of [-1, 1]) {
       const rollBar = new THREE.Mesh(
         this.registerGeo(new THREE.BoxGeometry(0.35, 2.5, 0.35)),
@@ -442,82 +574,165 @@ export class GiantRobot {
     }
 
     // ------------------------------------------------------------------------
-    // 3. ĐẦU CƠ GIÁP CHIẾN THẦN (TITAN MECHA HEAD & VISOR)
+    // 3. ĐẦU THỦ GUNDAM HUYỀN THOẠI (TITAN GUNDAM HEAD & V-FIN)
     // ------------------------------------------------------------------------
     this.headGroup = new THREE.Group();
     this.headGroup.position.set(0, 5.8, 0.5);
     chestGroup.add(this.headGroup);
 
-    // Cổ xoay cơ khí
+    // Cổ xoay cơ khí xám titan
     const neckMesh = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(1.6, 1.8, 1.2, 10)),
+      this.registerGeo(new THREE.CylinderGeometry(1.4, 1.6, 1.2, 10)),
       this.darkSteelMat
     );
     neckMesh.position.y = -0.6;
     this.headGroup.add(neckMesh);
 
-    // Hộp sọ đầu cơ giáp
-    const headSkull = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.0, 2.4, 3.2)),
+    // Mũ giáp chiến binh Gundam màu trắng góc cạnh (White Combat Helmet)
+    const headHelmet = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(2.8, 2.6, 3.2)),
       this.armorPrimaryMat
     );
-    headSkull.position.y = 1.0;
-    this.headGroup.add(headSkull);
+    headHelmet.position.y = 1.0;
+    this.headGroup.add(headHelmet);
 
-    // Mũ cối bảo vệ cảm biến cách điệu mecha (Military Helmet Crest)
-    const helmetDome = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(2.3, 2.6, 1.0, 10)),
-      this.armorHighlightMat
-    );
-    helmetDome.position.set(0, 2.2, 0);
-    this.headGroup.add(helmetDome);
-
-    const helmetRim = new THREE.Mesh(
-      this.registerGeo(new THREE.CylinderGeometry(2.8, 2.8, 0.3, 10)),
-      this.hazardYellowMat
-    );
-    helmetRim.position.set(0, 1.7, 0.2);
-    this.headGroup.add(helmetRim);
-
-    // Sao Vàng mini trên trán mũ cối
-    const headStar = this.buildStarMesh(0.7, 0.2);
-    headStar.position.set(0, 2.25, 2.0);
-    this.headGroup.add(headStar);
-
-    // Kính ngắm quang học Neon Visor (Glowing Eye Sensor Bar)
-    this.headVisor = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(2.2, 0.6, 0.8)),
-      this.cockpitGlassMat
-    );
-    this.headVisor.position.set(0, 1.1, 1.6);
-    this.headGroup.add(this.headVisor);
-
-    // Cặp ăng-ten tác chiến vát nghiêng 2 bên tai
+    // Gờ má giáp 2 bên vát góc khí động học
     for (const side of [-1, 1]) {
-      const antenna = new THREE.Mesh(
-        this.registerGeo(new THREE.CylinderGeometry(0.1, 0.25, 3.2, 6)),
-        this.hazardYellowMat
+      const cheekGuard = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.45, 2.2, 2.0)),
+        this.armorPrimaryMat
       );
-      antenna.position.set(side * 1.8, 2.6, -0.6);
-      antenna.rotation.z = side * -0.3;
-      antenna.rotation.x = -0.2;
-      this.headGroup.add(antenna);
+      cheekGuard.position.set(side * 1.55, 0.7, 0.6);
+      cheekGuard.rotation.y = side * 0.18;
+      this.headGroup.add(cheekGuard);
+
+      // Cặp nòng pháo máy Vulcan 60mm phòng không (Temple CIWS Vulcans)
+      const vulcan = new THREE.Mesh(
+        this.registerGeo(new THREE.CylinderGeometry(0.12, 0.12, 0.75, 6)),
+        this.darkSteelMat
+      );
+      vulcan.position.set(side * 1.15, 1.9, 1.4);
+      vulcan.rotation.x = Math.PI / 2;
+      this.headGroup.add(vulcan);
     }
 
+    // Mặt nạ trắng với 2 khe mang thở Gundam (Faceplate with Intake Slits)
+    const faceplate = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(1.6, 1.2, 0.9)),
+      this.armorPrimaryMat
+    );
+    faceplate.position.set(0, 0.45, 1.7);
+    this.headGroup.add(faceplate);
+
+    for (let s = -1; s <= 1; s += 2) {
+      const ventSlit = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.45, 0.12, 0.95)),
+        this.darkSteelMat
+      );
+      ventSlit.position.set(s * 0.4, 0.45, 1.72);
+      this.headGroup.add(ventSlit);
+    }
+
+    // Khối cằm đỏ Gundam nhọn vút (Iconic Red Chin)
+    const redChin = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(0.85, 0.75, 0.85)),
+      this.armorRedMat
+    );
+    redChin.position.set(0, -0.15, 1.85);
+    redChin.rotation.x = -0.35;
+    this.headGroup.add(redChin);
+
+    // Đôi mắt quang học xanh ngọc lục bảo phát sáng rực rỡ (Twin Glowing Green Eyes)
+    const eyeBand = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(1.8, 0.45, 0.35)),
+      this.darkSteelMat
+    );
+    eyeBand.position.set(0, 1.1, 1.6);
+    this.headGroup.add(eyeBand);
+
+    for (const side of [-1, 1]) {
+      const eyeSlit = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.65, 0.22, 0.4)),
+        this.gundamEyeMat
+      );
+      eyeSlit.position.set(side * 0.48, 1.1, 1.62);
+      eyeSlit.rotation.z = -side * 0.18;
+      this.headGroup.add(eyeSlit);
+    }
+
+    // ĂNG-TEN V-FIN HOÀNG KIM 4 CÁNH & CẢM BIẾN QUANG HỌC CHÍNH (ICONIC V-FIN)
+    const vFinMesh = this.buildGundamVFin();
+    vFinMesh.position.set(0, 1.75, 1.6);
+    this.headGroup.add(vFinMesh);
+
+    // Cảm biến camera sau đầu màu xanh ngọc
+    const rearSensor = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(0.45, 0.55, 0.45)),
+      this.gundamEyeMat
+    );
+    rearSensor.position.set(0, 2.1, -1.55);
+    this.headGroup.add(rearSensor);
+
     // ------------------------------------------------------------------------
-    // 4. BALO PHẢN LỰC KHỔNG LỒ PHÍA SAU LƯNG (TWIN THRUSTER BACKPACK)
+    // 4. BALO PHẢN LỰC ĐÔI & CẶP CHUÔI KIẾM ÁNH SÁNG BEAM SABER
+    // (TWIN THRUSTER BACKPACK & DUAL BEAM SABERS)
     // ------------------------------------------------------------------------
     this.backpackGroup = new THREE.Group();
     this.backpackGroup.position.set(0, 0.4, -3.8);
     chestGroup.add(this.backpackGroup);
 
+    // Thân balo màu xanh Cobalt & xám nòng súng
     const backpackChassis = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(6.4, 6.2, 2.4)),
-      this.darkSteelMat
+      this.armorBlueMat
     );
     this.backpackGroup.add(backpackChassis);
 
-    // Cặp loa xả phản lực khổng lồ (Dual Jet Engines)
+    // CẶP CHUÔI KIẾM ÁNH SÁNG BEAM SABER CẮM NGHIÊNG TRÊN HAI VAI BALO
+    for (const side of [-1, 1]) {
+      const saberRack = new THREE.Group();
+      saberRack.position.set(side * 2.4, 3.4, 0.2);
+      saberRack.rotation.z = -side * 0.25;
+      saberRack.rotation.x = -0.35;
+
+      // Giá cắm kiếm
+      const rackSocket = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.85, 1.0, 0.85)),
+        this.armorPrimaryMat
+      );
+      saberRack.add(rackSocket);
+
+      // Chuôi kiếm Beam Saber màu trắng viền vàng
+      const saberHilt = new THREE.Mesh(
+        this.registerGeo(new THREE.CylinderGeometry(0.24, 0.28, 3.4, 8)),
+        this.armorPrimaryMat
+      );
+      saberHilt.position.y = 1.9;
+      saberRack.add(saberHilt);
+
+      const saberEmitter = new THREE.Mesh(
+        this.registerGeo(new THREE.CylinderGeometry(0.32, 0.32, 0.45, 8)),
+        this.goldVFinMat
+      );
+      saberEmitter.position.y = 3.6;
+      saberRack.add(saberEmitter);
+
+      this.backpackGroup.add(saberRack);
+    }
+
+    // Cánh ổn định khí động học vút nhọn phía sau balo
+    for (const side of [-1, 1]) {
+      const wingFin = new THREE.Mesh(
+        this.registerGeo(new THREE.ConeGeometry(0.55, 3.8, 4)),
+        this.armorPrimaryMat
+      );
+      wingFin.position.set(side * 3.4, 1.6, -0.6);
+      wingFin.rotation.z = -side * 0.95;
+      wingFin.rotation.x = -0.35;
+      this.backpackGroup.add(wingFin);
+    }
+
+    // Cặp loa xả phản lực chính Vernier Thrusters viền Chrome sáng bóng
     this.thrusterFlames = [];
     for (const side of [-1, 1]) {
       const nozzleGroup = new THREE.Group();
@@ -525,26 +740,26 @@ export class GiantRobot {
 
       const nozzleHousing = new THREE.Mesh(
         this.registerGeo(new THREE.CylinderGeometry(1.3, 1.6, 3.2, 12)),
-        this.armorPrimaryMat
+        this.armorBlueMat
       );
       nozzleHousing.rotation.x = Math.PI / 4;
       nozzleGroup.add(nozzleHousing);
 
       const nozzleBell = new THREE.Mesh(
         this.registerGeo(new THREE.CylinderGeometry(1.6, 1.8, 0.8, 12, 1, true)),
-        this.darkSteelMat
+        this.chromePistonMat
       );
       nozzleBell.rotation.x = Math.PI / 4;
       nozzleBell.position.set(0, -1.2, -1.2);
       nozzleGroup.add(nozzleBell);
 
-      // Ngọn lửa phụt phản lực
+      // Ngọn lửa hạt năng lượng GN phản lực màu Cyan/Blue rực sáng
       const flameMesh = new THREE.Mesh(
-        this.registerGeo(new THREE.ConeGeometry(1.4, 4.8, 10)),
+        this.registerGeo(new THREE.ConeGeometry(1.4, 5.2, 12)),
         this.thrusterFlameMat
       );
       flameMesh.rotation.x = -Math.PI * 0.75;
-      flameMesh.position.set(0, -2.6, -2.6);
+      flameMesh.position.set(0, -2.8, -2.8);
       nozzleGroup.add(flameMesh);
       this.thrusterFlames.push(flameMesh);
 
@@ -552,61 +767,63 @@ export class GiantRobot {
     }
 
     // ------------------------------------------------------------------------
-    // 5. CÁNH TAY TRÁI & ĐẠI THỦ THIẾT QUYỀN (LEFT ARM & CRUSHING FIST)
+    // 5. CÁNH TAY TRÁI & KHIÊN GUNDAM LỤC QUÂN (LEFT ARM & GUNDAM SHIELD)
     // ------------------------------------------------------------------------
-    this.leftArmGroup = this.buildArm(chestGroup, -1, 'fist');
+    this.leftArmGroup = this.buildArm(chestGroup, -1, 'shield');
 
     // ------------------------------------------------------------------------
-    // 6. CÁNH TAY PHẢI & BÚA THỦY LỰC TRỌNG KÍCH (RIGHT ARM & SEISMIC GAUNTLET)
+    // 6. CÁNH TAY PHẢI & THIẾT QUYỀN TRỌNG LỰC (RIGHT ARM & HYPER GAUNTLET)
     // ------------------------------------------------------------------------
-    this.rightArmGroup = this.buildArm(chestGroup, 1, 'hammer');
+    this.rightArmGroup = this.buildArm(chestGroup, 1, 'fist');
 
     // ------------------------------------------------------------------------
-    // 7. CẶP CHÂN THỦY LỰC ĐẠI ĐỊA (LEFT & RIGHT LEGS)
+    // 7. CẶP CHÂN GUNDAM KHÍ ĐỘNG HỌC & BÀN CHÂN ĐỎ KINH ĐIỂN
+    // (LEFT & RIGHT LEGS & ICONIC RED FEET)
     // Chiều dài mỗi chân: ~16.5m
     // ------------------------------------------------------------------------
     this.leftLegGroup = this.buildLeg(-1);
     this.rightLegGroup = this.buildLeg(1);
   }
 
-  // Dựng cánh tay cơ khí đồ sộ
-  buildArm(parent, side, weaponType) {
+  // Dựng cánh tay cơ khí Gundam đồ sộ & Khiên Gundam
+  buildArm(parent, side, armType) {
     const shoulderPivot = new THREE.Group();
     shoulderPivot.position.set(side * 5.4, 2.2, 0);
     parent.add(shoulderPivot);
 
-    // Giáp vai bản to hình hộp vát góc (Heavy Pauldron)
+    // Giáp vai bản to Gundam màu trắng góc cạnh (Gundam Pauldron)
     const pauldron = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(3.6, 3.2, 4.2)),
+      this.registerGeo(new THREE.BoxGeometry(3.6, 3.4, 4.4)),
       this.armorPrimaryMat
     );
     pauldron.position.set(side * 0.6, 0.4, 0);
     shoulderPivot.add(pauldron);
 
-    // Sao vàng trên vai trái, vạch cảnh báo trên vai phải
-    if (side === -1) {
-      const shoulderStar = this.buildStarMesh(1.1, 0.25);
-      shoulderStar.rotation.y = -Math.PI / 2;
-      shoulderStar.position.set(side * 2.45, 0.4, 0);
-      shoulderPivot.add(shoulderStar);
-    } else {
-      const shoulderHazard = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(0.2, 1.2, 3.8)),
-        this.hazardYellowMat
-      );
-      shoulderHazard.position.set(side * 2.45, 0.4, 0);
-      shoulderPivot.add(shoulderHazard);
-    }
+    // Nắp chụp giáp vai trên màu xanh Cobalt
+    const shoulderCap = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(3.65, 0.6, 4.45)),
+      this.armorBlueMat
+    );
+    shoulderCap.position.set(side * 0.6, 2.1, 0);
+    shoulderPivot.add(shoulderCap);
 
-    // Bắp tay trên (Upper Arm Bicep)
+    // Khe tản nhiệt vàng kim trên giáp vai ngoài
+    const ventSlot = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(0.3, 1.4, 2.2)),
+      this.goldVFinMat
+    );
+    ventSlot.position.set(side * 2.45, 0.4, 0);
+    shoulderPivot.add(ventSlot);
+
+    // Bắp tay trên màu trắng (Upper Arm Bicep)
     const upperArm = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(2.4, 4.4, 2.6)),
-      this.darkSteelMat
+      this.armorPrimaryMat
     );
     upperArm.position.set(0, -2.6, 0);
     shoulderPivot.add(upperArm);
 
-    // Piston thủy lực bắp tay
+    // Piston thủy lực bắp tay mạ chrome
     const bicepPiston = new THREE.Mesh(
       this.registerGeo(new THREE.CylinderGeometry(0.3, 0.3, 3.6, 8)),
       this.chromePistonMat
@@ -614,7 +831,7 @@ export class GiantRobot {
     bicepPiston.position.set(side * 0.9, -2.6, 1.0);
     shoulderPivot.add(bicepPiston);
 
-    // Khớp cùi chỏ (Elbow Joint)
+    // Khớp cùi chỏ hình trụ tròn kép màu xám titan (Double-Jointed Elbow)
     const elbowJoint = new THREE.Mesh(
       this.registerGeo(new THREE.CylinderGeometry(1.4, 1.4, 2.6, 10)),
       this.darkSteelMat
@@ -623,61 +840,117 @@ export class GiantRobot {
     elbowJoint.position.set(0, -5.2, 0);
     shoulderPivot.add(elbowJoint);
 
-    // Cẳng tay bọc giáp (Forearm Gauntlet)
+    // Cẳng tay bọc giáp trắng (Forearm Gauntlet)
     const forearm = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(3.2, 4.6, 3.4)),
-      this.armorHighlightMat
+      this.armorPrimaryMat
     );
     forearm.position.set(0, -7.6, 0.4);
     shoulderPivot.add(forearm);
 
-    if (weaponType === 'hammer') {
-      // Búa Thủy Lực Trọng Kích Địa Chấn (Seismic Slam Hammer)
-      const hammerHead = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(4.2, 3.4, 4.6)),
+    // Nắp khớp đỏ ở cùi chỏ
+    const elbowCap = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(1.6, 1.4, 1.2)),
+      this.armorRedMat
+    );
+    elbowCap.position.set(0, -5.2, -1.3);
+    shoulderPivot.add(elbowCap);
+
+    if (armType === 'shield') {
+      // TAY TRÁI: BÀN TAY CƠ KHÍ + KHIÊN GUNDAM LỤC QUÂN (GUNDAM DEFENSE SHIELD)
+      const fistMesh = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(2.8, 3.0, 3.0)),
         this.darkSteelMat
       );
-      hammerHead.position.set(0, -10.4, 0.6);
-      shoulderPivot.add(hammerHead);
+      fistMesh.position.set(0, -10.2, 0.4);
+      shoulderPivot.add(fistMesh);
 
-      const hammerImpactFace = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(4.4, 0.8, 4.8)),
-        this.hazardYellowMat
+      // KHIÊN GUNDAM CHUẨN LỤC QUÂN / LIÊN BANG (GUNDAM HEXAGONAL SHIELD)
+      const shieldGroup = new THREE.Group();
+      shieldGroup.position.set(side * 2.2, -7.8, 0.8);
+      shieldGroup.rotation.y = side * 0.35;
+
+      // Nửa dưới khiên màu đỏ thẫm kinh điển
+      const shieldLower = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.65, 8.5, 4.6)),
+        this.armorRedMat
       );
-      hammerImpactFace.position.set(0, -12.1, 0.6);
-      shoulderPivot.add(hammerImpactFace);
+      shieldLower.position.set(0, -1.2, 0);
+      shieldGroup.add(shieldLower);
 
-      // Piston khí nén áp lực cao trên mu bàn tay
+      // Nửa trên khiên màu xanh Cobalt
+      const shieldUpper = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.7, 4.5, 4.65)),
+        this.armorBlueMat
+      );
+      shieldUpper.position.set(0, 5.0, 0);
+      shieldGroup.add(shieldUpper);
+
+      // Viền khiên màu trắng vát góc khí động học
+      const shieldTrim = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.75, 13.5, 0.7)),
+        this.armorPrimaryMat
+      );
+      shieldTrim.position.set(0, 1.8, 2.3);
+      shieldGroup.add(shieldTrim);
+
+      // Khe ngắm bắn quan sát (Viewing Port) trên đỉnh khiên
+      const viewSlot = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.85, 0.75, 2.4)),
+        this.darkSteelMat
+      );
+      viewSlot.position.set(0, 5.4, 0);
+      shieldGroup.add(viewSlot);
+
+      // Ngôi Sao Vàng Năm Cánh / Chữ Thập Liên Bang trên nền khiên
+      const shieldStar = this.buildStarMesh(1.4, 0.35);
+      shieldStar.rotation.y = -Math.PI / 2;
+      shieldStar.position.set(side * 0.4, 0.8, 0);
+      shieldGroup.add(shieldStar);
+
+      shoulderPivot.add(shieldGroup);
+
+    } else {
+      // TAY PHẢI: THIẾT QUYỀN NỆN ĐẤT + PISTON KHÍ NÉN ĐỊA CHẤN
+      const fistMesh = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(3.4, 3.6, 3.6)),
+        this.darkSteelMat
+      );
+      fistMesh.position.set(0, -10.4, 0.4);
+      shoulderPivot.add(fistMesh);
+
+      // 4 Đốt ngón tay kim loại màu vàng kim
+      for (let f = 0; f < 4; f++) {
+        const knuckle = new THREE.Mesh(
+          this.registerGeo(new THREE.BoxGeometry(0.7, 1.5, 1.2)),
+          this.goldVFinMat
+        );
+        knuckle.position.set((f - 1.5) * 0.8, -12.2, 1.4);
+        shoulderPivot.add(knuckle);
+      }
+
+      // Nòng pháo hạt năng lượng trên mu bàn tay
+      const beamGauntlet = new THREE.Mesh(
+        this.registerGeo(new THREE.CylinderGeometry(0.4, 0.4, 2.2, 8)),
+        this.darkSteelMat
+      );
+      beamGauntlet.position.set(0, -8.6, 2.2);
+      beamGauntlet.rotation.x = Math.PI / 2;
+      shoulderPivot.add(beamGauntlet);
+
+      // Piston khí nén áp lực cao phục vụ hoạt ảnh nện đất (Seismic Impact Piston)
       this.seismicPistonRod = new THREE.Mesh(
         this.registerGeo(new THREE.CylinderGeometry(0.45, 0.45, 4.2, 8)),
         this.chromePistonMat
       );
       this.seismicPistonRod.position.set(0, -8.2, 2.4);
       shoulderPivot.add(this.seismicPistonRod);
-    } else {
-      // Đại Thủ Thiết Quyền (Crushing Fist)
-      const fistMesh = new THREE.Mesh(
-        this.registerGeo(new THREE.BoxGeometry(3.2, 3.4, 3.4)),
-        this.darkSteelMat
-      );
-      fistMesh.position.set(0, -10.4, 0.4);
-      shoulderPivot.add(fistMesh);
-
-      // Đốt ngón tay kim loại
-      for (let f = 0; f < 4; f++) {
-        const knuckle = new THREE.Mesh(
-          this.registerGeo(new THREE.BoxGeometry(0.65, 1.4, 1.0)),
-          this.hazardYellowMat
-        );
-        knuckle.position.set((f - 1.5) * 0.75, -12.0, 1.2);
-        shoulderPivot.add(knuckle);
-      }
     }
 
     return shoulderPivot;
   }
 
-  // Dựng chân cơ giáp khổng lồ
+  // Dựng chân Gundam khí động học & Bàn chân đỏ kinh điển
   buildLeg(side) {
     const legGroup = new THREE.Group();
     legGroup.position.set(side * 3.2, -1.4, 0);
@@ -690,7 +963,7 @@ export class GiantRobot {
     );
     legGroup.add(hipSphere);
 
-    // Đùi cơ giáp (Thigh Upper Leg)
+    // Đùi Gundam màu trắng thon dài (Thigh Upper Leg)
     const thigh = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(3.2, 6.4, 3.6)),
       this.armorPrimaryMat
@@ -698,7 +971,7 @@ export class GiantRobot {
     thigh.position.set(0, -3.8, 0);
     legGroup.add(thigh);
 
-    // Cặp xi-lanh thủy lực đùi trước sau
+    // Cặp xi-lanh thủy lực đùi trước sau mạ chrome
     const thighPistonCyl = new THREE.Mesh(
       this.registerGeo(new THREE.CylinderGeometry(0.4, 0.4, 4.6, 8)),
       this.darkSteelMat
@@ -713,7 +986,7 @@ export class GiantRobot {
     thighPistonRod.position.set(side * 0.8, -3.4, 1.8);
     legGroup.add(thighPistonRod);
 
-    // Khớp đầu gối (Knee Joint)
+    // Khớp đầu gối 2 tầng cơ khí (Double-Hinged Knee Joint)
     const kneeJoint = new THREE.Mesh(
       this.registerGeo(new THREE.CylinderGeometry(1.7, 1.7, 3.4, 12)),
       this.darkSteelMat
@@ -722,24 +995,25 @@ export class GiantRobot {
     kneeJoint.position.set(0, -7.2, 0);
     legGroup.add(kneeJoint);
 
-    // Tấm giáp bảo vệ đầu gối nhô về phía trước (Knee Guard Armor)
+    // GIÁP ĐẦU GỐI NHÔ CAO KHÍ ĐỘNG HỌC GUNDAM (GUNDAM KNEE CAP ARMOR)
     const kneeGuard = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(2.8, 3.2, 1.6)),
-      this.armorHighlightMat
+      this.registerGeo(new THREE.BoxGeometry(2.8, 3.4, 1.8)),
+      this.armorPrimaryMat
     );
-    kneeGuard.position.set(0, -7.0, 2.2);
-    kneeGuard.rotation.x = -0.25;
+    kneeGuard.position.set(0, -7.0, 2.3);
+    kneeGuard.rotation.x = -0.32;
     legGroup.add(kneeGuard);
 
-    const kneeHazard = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(2.85, 0.6, 1.65)),
-      this.hazardYellowMat
+    // Mũi nhọn xanh Cobalt trang trí đỉnh đầu gối
+    const kneeChevron = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(1.6, 1.2, 1.9)),
+      this.armorBlueMat
     );
-    kneeHazard.position.set(0, -7.0, 2.2);
-    kneeHazard.rotation.x = -0.25;
-    legGroup.add(kneeHazard);
+    kneeChevron.position.set(0, -6.6, 2.35);
+    kneeChevron.rotation.x = -0.32;
+    legGroup.add(kneeChevron);
 
-    // Cẳng chân chịu tải khổng lồ (Lower Leg Calf)
+    // Cẳng chân Gundam trắng xòe rộng khí động học (Lower Leg Flared Calf)
     const lowerLeg = new THREE.Mesh(
       this.registerGeo(new THREE.BoxGeometry(3.6, 6.2, 4.2)),
       this.armorPrimaryMat
@@ -747,21 +1021,57 @@ export class GiantRobot {
     lowerLeg.position.set(0, -10.6, 0);
     legGroup.add(lowerLeg);
 
-    // Bàn Chân Đại Địa Dẫm Nát Vạn Vật (Giant Stomping Sole)
-    // Kích thước bàn chân: 4.4m x 2.2m x 7.8m
-    const footMesh = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(4.4, 2.2, 7.8)),
+    // Cặp nắp che động cơ phản lực Vernier 2 bên sườn bắp chân
+    for (const lSide of [-1, 1]) {
+      const calfThrusterCover = new THREE.Mesh(
+        this.registerGeo(new THREE.BoxGeometry(0.65, 3.2, 2.2)),
+        this.armorBlueMat
+      );
+      calfThrusterCover.position.set(lSide * 1.95, -11.2, -0.4);
+      calfThrusterCover.rotation.z = lSide * 0.18;
+      legGroup.add(calfThrusterCover);
+
+      const vernierBell = new THREE.Mesh(
+        this.registerGeo(new THREE.CylinderGeometry(0.45, 0.65, 0.8, 8)),
+        this.chromePistonMat
+      );
+      vernierBell.position.set(lSide * 2.1, -11.8, -0.4);
+      vernierBell.rotation.z = lSide * Math.PI / 3;
+      legGroup.add(vernierBell);
+    }
+
+    // Khối bảo vệ mắt cá chân màu trắng (Ankle Armor Guard)
+    const ankleGuard = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.2, 1.4, 4.8)),
+      this.armorPrimaryMat
+    );
+    ankleGuard.position.set(0, -13.4, 0.4);
+    legGroup.add(ankleGuard);
+
+    // BÀN CHÂN ĐỎ HUYỀN THOẠI CỦA GUNDAM 2 KHÚC (ICONIC RED GUNDAM FOOT)
+    // 1. Mũi bàn chân đỏ vát góc nhọn khí động học
+    const toeMesh = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.4, 2.2, 4.6)),
+      this.armorRedMat
+    );
+    toeMesh.position.set(0, -14.4, 2.6);
+    toeMesh.rotation.x = -0.08;
+    legGroup.add(toeMesh);
+
+    // 2. Gót bàn chân đỏ vững chãi phía sau
+    const heelMesh = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.2, 2.2, 3.4)),
+      this.armorRedMat
+    );
+    heelMesh.position.set(0, -14.4, -1.2);
+    legGroup.add(heelMesh);
+
+    // Móng đế giày xám nòng súng dẫm đất chịu lực (Stomping Sole Plate)
+    const solePlate = new THREE.Mesh(
+      this.registerGeo(new THREE.BoxGeometry(4.6, 0.6, 8.4)),
       this.darkSteelMat
     );
-    footMesh.position.set(0, -14.2, 1.2);
-    legGroup.add(footMesh);
-
-    // Móng đế giày dẫm đất chịu lực
-    const solePlate = new THREE.Mesh(
-      this.registerGeo(new THREE.BoxGeometry(4.6, 0.6, 8.2)),
-      this.hazardYellowMat
-    );
-    solePlate.position.set(0, -15.1, 1.2);
+    solePlate.position.set(0, -15.4, 1.2);
     legGroup.add(solePlate);
 
     return legGroup;
@@ -868,19 +1178,19 @@ export class GiantRobot {
 
     // Thông báo toàn server (chỉ khi là robot chính của người chơi)
     if (!this.isCloneRobot) {
-      this.damageTexts.spawn('⚠️ KHỞI ĐỘNG HỢP THỂ: CHIẾN THẦN CƠ GIÁP X20!', this.deployPos.clone().add(new THREE.Vector3(0, 8.0, 0)), '#00f2fe');
+      this.damageTexts.spawn('⚠️ KHỞI ĐỘNG HỢP THỂ: CHIẾN THẦN GUNDAM X20!', this.deployPos.clone().add(new THREE.Vector3(0, 8.0, 0)), '#00f2fe');
       if (sound.playThunder) sound.playThunder();
     }
 
-    // 2. TẠO 7 BỘ PHẬN BAY TỪ KHÔNG GIAN LAO XUỐNG
+    // 2. TẠO 7 BỘ PHẬN GUNDAM BAY TỪ KHÔNG GIAN LAO XUỐNG
     const partsData = [
-      { id: 'legL', delay: 0.0, flightTime: 0.55, start: new THREE.Vector3(-120, 95, -70), color: 0x244222 },
-      { id: 'legR', delay: 0.1, flightTime: 0.55, start: new THREE.Vector3(120, 95, -70), color: 0x244222 },
-      { id: 'torso', delay: 0.3, flightTime: 0.55, start: new THREE.Vector3(0, 130, -110), color: 0x366333 },
-      { id: 'armL', delay: 0.5, flightTime: 0.5, start: new THREE.Vector3(-130, 85, 90), color: 0x181e24 },
-      { id: 'armR', delay: 0.65, flightTime: 0.5, start: new THREE.Vector3(130, 85, 90), color: 0x181e24 },
+      { id: 'legL', delay: 0.0, flightTime: 0.55, start: new THREE.Vector3(-120, 95, -70), color: 0xf8fafc },
+      { id: 'legR', delay: 0.1, flightTime: 0.55, start: new THREE.Vector3(120, 95, -70), color: 0xf8fafc },
+      { id: 'torso', delay: 0.3, flightTime: 0.55, start: new THREE.Vector3(0, 130, -110), color: 0x1e40af },
+      { id: 'armL', delay: 0.5, flightTime: 0.5, start: new THREE.Vector3(-130, 85, 90), color: 0xdc2626 },
+      { id: 'armR', delay: 0.65, flightTime: 0.5, start: new THREE.Vector3(130, 85, 90), color: 0xf8fafc },
       { id: 'backpack', delay: 0.8, flightTime: 0.45, start: new THREE.Vector3(0, 100, 120), color: 0x00f2fe },
-      { id: 'head', delay: 0.95, flightTime: 0.45, start: new THREE.Vector3(0, 140, 0), color: 0xffd700 },
+      { id: 'head', delay: 0.95, flightTime: 0.45, start: new THREE.Vector3(0, 140, 0), color: 0xfbbf24 },
     ];
 
     this.flyingParts = [];
@@ -1082,8 +1392,8 @@ export class GiantRobot {
     const damage = this.isCloneRobot ? (isStomp ? 320 : 380) : (isStomp ? 580 : 680);
     const radius = isStomp ? 14.0 : 17.5;
     const damageText = isStomp
-      ? (this.isCloneRobot ? '💥 -320 ĐẠP ĐẤT!' : '💥 -580 ĐẠP NÁT ĐẠI ĐỊA!')
-      : (this.isCloneRobot ? '⚡ -380 NỆN THIẾT QUYỀN!' : '⚡ -680 NỆN THIẾT QUYỀN!');
+      ? (this.isCloneRobot ? '💥 -320 GUNDAM ĐẠP ĐẤT!' : '💥 -580 GUNDAM ĐẠP NÁT ĐẠI ĐỊA!')
+      : (this.isCloneRobot ? '⚡ -380 GUNDAM THIẾT QUYỀN!' : '⚡ -680 GUNDAM NỆN THIẾT QUYỀN!');
     const textColor = isStomp ? '#f59e0b' : '#ff4757';
 
     // 1. TÀN PHÁ & BIẾN DẠNG ĐỊA HÌNH THẬT
