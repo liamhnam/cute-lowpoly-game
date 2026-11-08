@@ -2,6 +2,14 @@ import * as THREE from 'three';
 import { getTerrainHeight } from './world.js';
 import { sound } from './audio.js';
 import { BOSS_CONFIGS, BOSS_KITS } from './bosses.js';
+import {
+  getDragonScalesTexture,
+  getCrackedRuneStoneTexture,
+  getCarvedJadeTexture,
+  getScorpionCarapaceTexture,
+  getCelestialSilkTexture,
+  getDinoScalesTexture,
+} from './textures.js';
 
 // Cấu hình chi tiết 2 nhóm Yêu Ma (QUÁI NHỎ nhanh khó chịu vs QUÁI LỚN chậm nặng nề, sát thương khủng dễ né) & Đại Boss
 export const MONSTER_CONFIGS = {
@@ -344,306 +352,709 @@ export class Monster {
     this.group.add(this.model);
   }
 
-  // 1. 🗿 THÁI CỔ THẠCH YÊU (MOSS GOLEM - CẬN CHIẾN ĐỊA CHẤN)
+  // 1. 🗿 THÁI CỔ THẠCH YÊU (COLOSSAL RUNIC MOSS GOLEM)
   buildGolemMesh() {
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d, flatShading: true, roughness: 0.9 });
-    const mossMat = new THREE.MeshStandardMaterial({ color: 0x589b4a, flatShading: true, roughness: 0.85 });
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
-    this.damageableMaterials = [stoneMat, mossMat];
+    const stoneTex = getCrackedRuneStoneTexture();
+    const stoneMat = new THREE.MeshStandardMaterial({
+      map: stoneTex,
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.88,
+      metalness: 0.12,
+    });
+    const darkStoneMat = new THREE.MeshStandardMaterial({
+      color: 0x3d424d,
+      flatShading: true,
+      roughness: 0.95
+    });
+    const mossMat = new THREE.MeshStandardMaterial({
+      color: 0x4a7c38,
+      flatShading: true,
+      roughness: 0.9
+    });
+    const woodMat = new THREE.MeshStandardMaterial({
+      color: 0x4a2e18,
+      flatShading: true,
+      roughness: 0.85
+    });
+    const pineLeafMat = new THREE.MeshStandardMaterial({
+      color: 0x1e5128,
+      flatShading: true,
+      roughness: 0.8
+    });
+    const magmaCoreMat = new THREE.MeshBasicMaterial({ color: 0xf39c12 });
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffea00 });
+    this.damageableMaterials = [stoneMat, darkStoneMat, mossMat];
 
     this.torso = new THREE.Group();
     this.torso.position.y = 3.2;
 
-    const mainRock = new THREE.Mesh(new THREE.DodecahedronGeometry(2.2, 1), stoneMat);
-    mainRock.scale.set(1.3, 1.1, 1.1);
+    // Lồng ngực cự thạch hùng vĩ
+    const mainRock = new THREE.Mesh(new THREE.DodecahedronGeometry(2.3, 1), stoneMat);
+    mainRock.scale.set(1.35, 1.15, 1.15);
     mainRock.castShadow = true;
     this.torso.add(mainRock);
 
-    const mossPatch = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4, 0), mossMat);
-    mossPatch.position.set(0.6, 1.0, 0.4);
-    mossPatch.scale.set(1.1, 0.5, 1.0);
-    this.torso.add(mossPatch);
+    // Lõi Ma Thạch Thái Cổ phát sáng rực rỡ ở giữa ngực
+    const coreCavity = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 0.4, 6), darkStoneMat);
+    coreCavity.position.set(0, 0.4, 1.25);
+    coreCavity.rotation.x = Math.PI / 2;
+    this.torso.add(coreCavity);
 
-    const flowerMat = new THREE.MeshStandardMaterial({ color: 0xff6b8b, flatShading: true });
-    const flower = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3, 0), flowerMat);
-    flower.position.set(0.5, 2.2, 0);
-    this.torso.add(flower);
+    const coreCrystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.38, 0), magmaCoreMat);
+    coreCrystal.position.set(0, 0.4, 1.35);
+    this.torso.add(coreCrystal);
 
-    this.head = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 0), stoneMat);
-    this.head.position.set(0, 1.5, 0.5);
+    // Tảng rêu phong bao phủ vai & sườn
+    const mossPatchL = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4, 0), mossMat);
+    mossPatchL.position.set(0.9, 1.15, 0.3);
+    mossPatchL.scale.set(1.0, 0.55, 0.9);
+    this.torso.add(mossPatchL);
+
+    const mossPatchR = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 0), mossMat);
+    mossPatchR.position.set(-0.85, 0.95, -0.2);
+    mossPatchR.scale.set(0.9, 0.45, 0.8);
+    this.torso.add(mossPatchR);
+
+    // Cổ thụ Tùng La Hán mini mọc trên bờ vai đá rêu phong
+    const bonsaiTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.22, 1.2, 5), woodMat);
+    bonsaiTrunk.position.set(1.1, 1.75, 0.2);
+    bonsaiTrunk.rotation.z = -0.35;
+    this.torso.add(bonsaiTrunk);
+
+    for (let b = 0; b < 3; b++) {
+      const foliage = new THREE.Mesh(new THREE.DodecahedronGeometry(0.42 - b * 0.08, 0), pineLeafMat);
+      foliage.position.set(1.4 + b * 0.25, 2.1 + b * 0.15, 0.2 + (b - 1) * 0.2);
+      this.torso.add(foliage);
+    }
+
+    // Dây leo cổ thụ buông rủ xuống ngực
+    for (const vx of [-0.6, 0.5, 0.8]) {
+      const vine = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 1.1, 4), mossMat);
+      vine.position.set(vx, 0.1, 1.2);
+      vine.rotation.z = vx * 0.2;
+      this.torso.add(vine);
+    }
+
+    // Đầu thủ linh thạch uy nghiêm
+    this.head = new THREE.Mesh(new THREE.DodecahedronGeometry(1.25, 0), stoneMat);
+    this.head.position.set(0, 1.55, 0.55);
     this.head.castShadow = true;
     this.torso.add(this.head);
 
-    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.15), eyeMat);
-    eyeL.position.set(-0.4, 1.6, 1.45);
-    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.15, 0.15), eyeMat);
-    eyeR.position.set(0.4, 1.6, 1.45);
+    // Chân mày đá gồ ghề
+    const stoneBrow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.35, 0.5), darkStoneMat);
+    stoneBrow.position.set(0, 1.85, 1.35);
+    this.torso.add(stoneBrow);
+
+    // Cặp mắt tinh thể ma thạch vàng phát quang
+    const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.16, 0.16), eyeMat);
+    eyeL.position.set(-0.38, 1.65, 1.5);
+    const eyeR = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.16, 0.16), eyeMat);
+    eyeR.position.set(0.38, 1.65, 1.5);
     this.torso.add(eyeL, eyeR);
 
+    // Chòm râu cằm đá nham thạch
+    const beard = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.9, 5), darkStoneMat);
+    beard.position.set(0, 0.95, 1.3);
+    beard.rotation.x = 0.3;
+    this.torso.add(beard);
+
+    // Đạo Bùa Trấn Thạch Cổ bằng giấy hoàng phù & chu sa đỏ
     const talisman = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.35, 0.75),
+      new THREE.PlaneGeometry(0.42, 0.92),
       new THREE.MeshBasicMaterial({ color: 0xffdd59, side: THREE.DoubleSide })
     );
-    talisman.position.set(0, 1.85, 1.62);
+    talisman.position.set(0, 1.95, 1.68);
     talisman.rotation.x = -0.15;
     this.torso.add(talisman);
 
     const runeCinnabar = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.18, 0.45),
+      new THREE.PlaneGeometry(0.22, 0.58),
       new THREE.MeshBasicMaterial({ color: 0xee5253, side: THREE.DoubleSide })
     );
-    runeCinnabar.position.set(0, 1.85, 1.63);
+    runeCinnabar.position.set(0, 1.95, 1.69);
     runeCinnabar.rotation.x = -0.15;
     this.torso.add(runeCinnabar);
 
+    // TAY TRÁI (Khớp đá khối, cẳng tay gồ ghề & bàn tay nắm đấm có ngón rõ nét)
     this.armL = new THREE.Group();
-    this.armL.position.set(-2.2, 0.8, 0);
-    const armLMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 0), stoneMat);
-    armLMesh.scale.set(0.8, 1.6, 0.8);
-    armLMesh.position.y = -0.7;
+    this.armL.position.set(-2.4, 0.8, 0);
+
+    const shoulderL = new THREE.Mesh(new THREE.DodecahedronGeometry(1.05, 0), stoneMat);
+    this.armL.add(shoulderL);
+
+    const armLMesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.8, 1.1), stoneMat);
+    armLMesh.position.y = -1.0;
     armLMesh.castShadow = true;
     this.armL.add(armLMesh);
+
+    // Nắm đấm cự thạch có ngón tay đá
+    const fistL = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.9, 1.25), darkStoneMat);
+    fistL.position.y = -2.1;
+    this.armL.add(fistL);
+    for (let f = 0; f < 3; f++) {
+      const knuckle = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.45, 0.35), darkStoneMat);
+      knuckle.position.set(-0.35 + f * 0.35, -2.55, 0.25);
+      this.armL.add(knuckle);
+    }
     this.torso.add(this.armL);
 
+    // TAY PHẢI
     this.armR = new THREE.Group();
-    this.armR.position.set(2.2, 0.8, 0);
-    const armRMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 0), stoneMat);
-    armRMesh.scale.set(0.8, 1.6, 0.8);
-    armRMesh.position.y = -0.7;
+    this.armR.position.set(2.4, 0.8, 0);
+
+    const shoulderR = new THREE.Mesh(new THREE.DodecahedronGeometry(1.05, 0), stoneMat);
+    this.armR.add(shoulderR);
+
+    const armRMesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.8, 1.1), stoneMat);
+    armRMesh.position.y = -1.0;
     armRMesh.castShadow = true;
     this.armR.add(armRMesh);
+
+    const fistR = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.9, 1.25), darkStoneMat);
+    fistR.position.y = -2.1;
+    this.armR.add(fistR);
+    for (let f = 0; f < 3; f++) {
+      const knuckle = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.45, 0.35), darkStoneMat);
+      knuckle.position.set(-0.35 + f * 0.35, -2.55, 0.25);
+      this.armR.add(knuckle);
+    }
     this.torso.add(this.armR);
 
     this.model.add(this.torso);
 
+    // CHÂN TRÁI (Trụ đá kiên cố có giáp gối & bàn chân có móng đá)
     this.legL = new THREE.Group();
-    this.legL.position.set(-1.1, 1.8, 0);
-    const legLMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 0), stoneMat);
-    legLMesh.scale.set(0.9, 1.4, 0.9);
+    this.legL.position.set(-1.25, 1.8, 0);
+
+    const legLMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 2.2, 6), stoneMat);
+    legLMesh.position.y = -0.3;
     legLMesh.castShadow = true;
     this.legL.add(legLMesh);
+
+    const kneeL = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), darkStoneMat);
+    kneeL.position.set(0, -0.1, 0.75);
+    this.legL.add(kneeL);
+
+    const footL = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.65, 1.7), darkStoneMat);
+    footL.position.set(0, -1.35, 0.25);
+    this.legL.add(footL);
     this.model.add(this.legL);
 
+    // CHÂN PHẢI
     this.legR = new THREE.Group();
-    this.legR.position.set(1.1, 1.8, 0);
-    const legRMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 0), stoneMat);
-    legRMesh.scale.set(0.9, 1.4, 0.9);
+    this.legR.position.set(1.25, 1.8, 0);
+
+    const legRMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.95, 2.2, 6), stoneMat);
+    legRMesh.position.y = -0.3;
     legRMesh.castShadow = true;
     this.legR.add(legRMesh);
+
+    const kneeR = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), darkStoneMat);
+    kneeR.position.set(0, -0.1, 0.75);
+    this.legR.add(kneeR);
+
+    const footR = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.65, 1.7), darkStoneMat);
+    footR.position.set(0, -1.35, 0.25);
+    this.legR.add(footR);
     this.model.add(this.legR);
   }
 
-  // 2. 🦖 HẮC DIỄM LINH THÚ (KING CHOMPER - XUNG PHONG HÚC ĐẦU)
+  // 2. 🦖 HẮC DIỄM LINH THÚ (KING CHOMPER - T-REX DRAGON BEAST)
   buildChomperMesh() {
-    const dinoMat = new THREE.MeshStandardMaterial({ color: 0x9b59b6, flatShading: true, roughness: 0.8 });
-    const bellyMat = new THREE.MeshStandardMaterial({ color: 0xf39c12, flatShading: true, roughness: 0.8 });
-    const crownMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.4, roughness: 0.3, flatShading: true });
-    this.damageableMaterials = [dinoMat, bellyMat];
+    const dinoTex = getDinoScalesTexture();
+    const dinoMat = new THREE.MeshStandardMaterial({
+      map: dinoTex,
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.65
+    });
+    const bellyMat = new THREE.MeshStandardMaterial({
+      color: 0xf39c12,
+      flatShading: true,
+      roughness: 0.75
+    });
+    const crownMat = new THREE.MeshStandardMaterial({
+      color: 0xf1c40f,
+      metalness: 0.8,
+      roughness: 0.25,
+      flatShading: true
+    });
+    const rubyMat = new THREE.MeshBasicMaterial({ color: 0xe74c3c });
+    const fangMat = new THREE.MeshStandardMaterial({ color: 0xfffff0, roughness: 0.3 });
+    const tongueMat = new THREE.MeshStandardMaterial({ color: 0xff4757, roughness: 0.5 });
+    const darkClawMat = new THREE.MeshStandardMaterial({ color: 0x1e1e24, roughness: 0.4 });
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2 });
+    const eyeSparkle = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    this.damageableMaterials = [dinoMat, bellyMat, crownMat];
 
     this.torso = new THREE.Group();
     this.torso.position.y = 2.8;
 
+    // Thân khủng long tròn trịa dễ thương với vảy sọc tím cam
     const dinoBody = new THREE.Mesh(new THREE.DodecahedronGeometry(2.3, 1), dinoMat);
-    dinoBody.scale.set(1.1, 1.25, 1.3);
+    dinoBody.scale.set(1.15, 1.25, 1.35);
     dinoBody.castShadow = true;
     this.torso.add(dinoBody);
 
-    const belly = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), bellyMat);
-    belly.position.set(0, -0.3, 1.1);
-    belly.scale.set(0.9, 1.1, 0.6);
+    // Bụng mỡ màu cam kem có ngấn sọc
+    const belly = new THREE.Mesh(new THREE.DodecahedronGeometry(1.65, 1), bellyMat);
+    belly.position.set(0, -0.35, 1.15);
+    belly.scale.set(0.92, 1.12, 0.65);
     this.torso.add(belly);
 
-    for (let i = 0; i < 4; i++) {
-      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.9, 5), crownMat);
-      spike.position.set(0, 1.2 - i * 0.55, -1.2 - i * 0.35);
+    // Dãy gai vây lưng xương rồng (Dorsal Spine Plates)
+    for (let i = 0; i < 5; i++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.38, 1.1, 5), crownMat);
+      spike.position.set(0, 1.35 - i * 0.55, -1.15 - i * 0.38);
       spike.rotation.x = -0.65;
       this.torso.add(spike);
     }
 
+    // ĐẦU THỦ & HÀM RĂNG (Head & Ferocious Cute Jaws)
     this.head = new THREE.Group();
-    this.head.position.set(0, 1.8, 0.8);
-    const headMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 1), dinoMat);
-    headMesh.castShadow = true;
-    this.head.add(headMesh);
+    this.head.position.set(0, 1.85, 0.85);
 
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.45, 0.45, 5), crownMat);
-    crown.position.set(0, 1.6, 0);
-    this.head.add(crown);
+    const headUpper = new THREE.Mesh(new THREE.DodecahedronGeometry(1.65, 1), dinoMat);
+    headUpper.scale.set(1.05, 1.0, 1.2);
+    headUpper.castShadow = true;
+    this.head.add(headUpper);
 
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-    const eyeSparkle = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    // Mũi và lỗ mũi rồng
     for (const side of [-1, 1]) {
+      const nostril = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.12), darkClawMat);
+      nostril.position.set(side * 0.32, 0.2, 1.95);
+      this.head.add(nostril);
+    }
+
+    // Hàm dưới mở to với lưỡi đỏ & răng nanh sắc nhọn
+    const lowerJaw = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.45, 1.6), dinoMat);
+    lowerJaw.position.set(0, -0.75, 0.85);
+    lowerJaw.rotation.x = 0.18;
+    this.head.add(lowerJaw);
+
+    const tongue = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.18, 1.1), tongueMat);
+    tongue.position.set(0, -0.55, 0.85);
+    this.head.add(tongue);
+
+    // 10 Răng nanh nhọn hoắt đan xen (Interlocking Ivory Fangs)
+    for (let t = 0; t < 5; t++) {
+      const fangUpperL = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.38, 4), fangMat);
+      fangUpperL.position.set(-0.65, -0.55, 0.4 + t * 0.3);
+      fangUpperL.rotation.x = Math.PI;
+      this.head.add(fangUpperL);
+
+      const fangUpperR = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.38, 4), fangMat);
+      fangUpperR.position.set(0.65, -0.55, 0.4 + t * 0.3);
+      fangUpperR.rotation.x = Math.PI;
+      this.head.add(fangUpperR);
+    }
+
+    // Vương miện hoàng kim 5 cánh nạm ngọc Ruby
+    const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.6, 0.3, 6), crownMat);
+    crownBase.position.set(0, 1.65, 0);
+    this.head.add(crownBase);
+
+    for (let c = 0; c < 5; c++) {
+      const ca = (c / 5) * Math.PI * 2;
+      const point = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.5, 4), crownMat);
+      point.position.set(Math.sin(ca) * 0.7, 1.95, Math.cos(ca) * 0.7);
+      this.head.add(point);
+    }
+    const crownJewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.22, 0), rubyMat);
+    crownJewel.position.set(0, 1.75, 0.72);
+    this.head.add(crownJewel);
+
+    // Mắt to tròn long lanh có đốm sáng trắng
+    for (const side of [-1, 1]) {
+      const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      eyeWhite.position.set(side * 0.95, 0.42, 1.05);
+
       const eye = new THREE.Mesh(new THREE.SphereGeometry(0.24, 8, 8), eyeMat);
-      eye.position.set(side * 0.9, 0.3, 1.1);
-      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), eyeSparkle);
-      spark.position.set(side * 0.95, 0.4, 1.3);
-      this.head.add(eye, spark);
+      eye.position.set(side * 1.02, 0.44, 1.15);
+
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), eyeSparkle);
+      spark.position.set(side * 1.06, 0.52, 1.28);
+      this.head.add(eyeWhite, eye, spark);
     }
     this.torso.add(this.head);
 
-    this.tail = new THREE.Mesh(new THREE.ConeGeometry(0.9, 2.5, 6), dinoMat);
-    this.tail.rotation.x = -Math.PI / 2.5;
-    this.tail.position.set(0, -0.6, -2.2);
+    // 2 TAY NHỎ ĐẶC TRƯNG KHỦNG LONG BẠO CHÚA (Tiny Articulated Raptor Arms)
+    for (const side of [-1, 1]) {
+      const armGroup = new THREE.Group();
+      armGroup.position.set(side * 1.15, -0.1, 1.35);
+
+      const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.65, 5), dinoMat);
+      upperArm.rotation.x = Math.PI / 3;
+      armGroup.add(upperArm);
+
+      const claw1 = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.28, 4), darkClawMat);
+      claw1.position.set(side * 0.08, -0.3, 0.35);
+      claw1.rotation.x = Math.PI / 2;
+      const claw2 = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.28, 4), darkClawMat);
+      claw2.position.set(-side * 0.08, -0.3, 0.35);
+      claw2.rotation.x = Math.PI / 2;
+      armGroup.add(claw1, claw2);
+
+      this.torso.add(armGroup);
+    }
+
+    // ĐUÔI KHỦNG LONG CÓ CHÙY GAI XƯƠNG (Thagomizer Tail)
+    this.tail = new THREE.Group();
+    this.tail.position.set(0, -0.6, -2.1);
+
+    const tailMesh = new THREE.Mesh(new THREE.ConeGeometry(0.95, 2.8, 6), dinoMat);
+    tailMesh.rotation.x = -Math.PI / 2.3;
+    tailMesh.position.z = -1.1;
+    this.tail.add(tailMesh);
+
+    // 4 Cọc gai xương nhọn hoắt ở chóp đuôi
+    for (let s = 0; s < 4; s++) {
+      const sa = (s / 4) * Math.PI * 2;
+      const thag = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.85, 4), crownMat);
+      thag.position.set(Math.sin(sa) * 0.45, Math.cos(sa) * 0.45, -2.2);
+      thag.rotation.z = Math.sin(sa) * 0.8;
+      this.tail.add(thag);
+    }
     this.torso.add(this.tail);
 
     this.model.add(this.torso);
 
+    // CHÂN TRÁI (Bắp đùi khủng long lực lưỡng & 3 móng vuốt chim ưng)
     this.legL = new THREE.Group();
-    this.legL.position.set(-1.2, 1.4, 0.2);
-    const legLMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 1), dinoMat);
-    legLMesh.scale.set(0.9, 1.3, 1.1);
-    legLMesh.castShadow = true;
-    this.legL.add(legLMesh);
+    this.legL.position.set(-1.25, 1.4, 0.2);
+
+    const thighL = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), dinoMat);
+    thighL.scale.set(0.95, 1.35, 1.15);
+    thighL.castShadow = true;
+    this.legL.add(thighL);
+
+    const footL = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.45, 1.4), darkClawMat);
+    footL.position.set(0, -1.05, 0.35);
+    this.legL.add(footL);
+
+    for (let c = -1; c <= 1; c++) {
+      const talon = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), darkClawMat);
+      talon.position.set(c * 0.32, -1.1, 1.1);
+      talon.rotation.x = Math.PI / 2;
+      this.legL.add(talon);
+    }
     this.model.add(this.legL);
 
+    // CHÂN PHẢI
     this.legR = new THREE.Group();
-    this.legR.position.set(1.2, 1.4, 0.2);
-    const legRMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 1), dinoMat);
-    legRMesh.scale.set(0.9, 1.3, 1.1);
-    legRMesh.castShadow = true;
-    this.legR.add(legRMesh);
+    this.legR.position.set(1.25, 1.4, 0.2);
+
+    const thighR = new THREE.Mesh(new THREE.DodecahedronGeometry(1.2, 1), dinoMat);
+    thighR.scale.set(0.95, 1.35, 1.15);
+    thighR.castShadow = true;
+    this.legR.add(thighR);
+
+    const footR = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.45, 1.4), darkClawMat);
+    footR.position.set(0, -1.05, 0.35);
+    this.legR.add(footR);
+
+    for (let c = -1; c <= 1; c++) {
+      const talon = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), darkClawMat);
+      talon.position.set(c * 0.32, -1.1, 1.1);
+      talon.rotation.x = Math.PI / 2;
+      this.legR.add(talon);
+    }
     this.model.add(this.legR);
   }
 
-  // 3. 🦊 CỬU VĨ HỒ YÊU (NINE-TAILED FOX MAGE - PHÁP SƯ HỒ HỎA TẦM XA)
+  // 3. 🦊 CỬU VĨ HỒ YÊU (NINE-TAILED CELESTIAL FOX MAGE)
   buildFoxMageMesh() {
-    const whiteFurMat = new THREE.MeshStandardMaterial({ color: 0xfff0f6, flatShading: true, roughness: 0.7 });
+    const silkTex = getCelestialSilkTexture('fox');
+    const whiteFurMat = new THREE.MeshStandardMaterial({ color: 0xfff0f6, flatShading: true, roughness: 0.6 });
+    const robeMat = new THREE.MeshStandardMaterial({
+      map: silkTex,
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.5
+    });
     const pinkMat = new THREE.MeshStandardMaterial({ color: 0xff6b8b, flatShading: true, roughness: 0.65 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd32a, metalness: 0.5, roughness: 0.3, flatShading: true });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd32a, metalness: 0.75, roughness: 0.25, flatShading: true });
+    const maskMat = new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.35 });
     const orbMat = new THREE.MeshBasicMaterial({ color: 0xff4757 });
-    this.damageableMaterials = [whiteFurMat, pinkMat];
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xa55eea });
+    const eyeSparkle = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, roughness: 0.4 });
+    this.damageableMaterials = [whiteFurMat, robeMat, pinkMat];
 
     this.torso = new THREE.Group();
     this.torso.position.y = 2.4;
 
-    const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.15, 2.3, 8), whiteFurMat);
+    // Thân áo lụa pháp y hoa lệ thêu họa tiết hoa đào & mây ngũ sắc
+    const bodyMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 1.25, 2.4, 8), robeMat);
     bodyMesh.castShadow = true;
     this.torso.add(bodyMesh);
 
-    const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 0.95, 0.55, 8), pinkMat);
-    sash.position.y = 0.2;
+    // Đai thắt lưng Obi lụa hồng cánh sen
+    const sash = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 0.96, 0.52, 8), pinkMat);
+    sash.position.y = 0.22;
     this.torso.add(sash);
 
+    // Nơ bướm đại cát sau lưng kèm ngọc bội
+    const bowCenter = new THREE.Mesh(new THREE.DodecahedronGeometry(0.24, 0), goldMat);
+    bowCenter.position.set(0, 0.25, -0.92);
+    this.torso.add(bowCenter);
+    for (const side of [-1, 1]) {
+      const bowWing = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.32, 0.12), pinkMat);
+      bowWing.position.set(side * 0.32, 0.35, -0.92);
+      bowWing.rotation.z = side * 0.35;
+      this.torso.add(bowWing);
+
+      const ribbon = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.75, 0.06), pinkMat);
+      ribbon.position.set(side * 0.18, -0.22, -0.92);
+      ribbon.rotation.z = side * 0.15;
+      this.torso.add(ribbon);
+    }
+
+    // Vòng cổ lụa đỏ đeo chuông vàng linh thiêng
+    const choker = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 6, 12), pinkMat);
+    choker.position.set(0, 1.25, 0.1);
+    choker.rotation.x = Math.PI / 2;
+    this.torso.add(choker);
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 8), goldMat);
+    bell.position.set(0, 1.15, 0.65);
+    this.torso.add(bell);
+
+    // ĐẦU THỦ CỬU VĨ HỒ (Sleek Beautiful Fox Head)
     this.head = new THREE.Group();
-    this.head.position.set(0, 1.65, 0.25);
+    this.head.position.set(0, 1.68, 0.22);
+
     const headBase = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 1), whiteFurMat);
     headBase.castShadow = true;
     this.head.add(headBase);
 
-    const snout = new THREE.Mesh(new THREE.ConeGeometry(0.48, 0.95, 6), whiteFurMat);
+    // Mõm hồ ly thon gọn với chóp mũi đen & ria mép tinh tế
+    const snout = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.95, 6), whiteFurMat);
     snout.rotation.x = Math.PI / 2;
-    snout.position.set(0, -0.1, 0.95);
+    snout.position.set(0, -0.08, 0.95);
     this.head.add(snout);
 
-    const mark = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), orbMat);
-    mark.position.set(0, 0.35, 0.88);
+    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), noseMat);
+    nose.position.set(0, -0.05, 1.48);
+    this.head.add(nose);
+
+    // Ấn Ký Hồ Tộc chu sa đỏ rực trên trán
+    const mark = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 4), orbMat);
+    mark.position.set(0, 0.42, 0.88);
+    mark.rotation.x = -0.25;
     this.head.add(mark);
 
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xd980fa });
+    // Mắt phượng hồ ly có viền kẻ chu sa & đốm sáng
     for (const side of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.12, 0.12), eyeMat);
-      eye.position.set(side * 0.42, 0.12, 0.82);
-      eye.rotation.z = -side * 0.22;
-      this.head.add(eye);
+      const eyeliner = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.14, 0.08), pinkMat);
+      eyeliner.position.set(side * 0.45, 0.16, 0.82);
+      eyeliner.rotation.z = -side * 0.32;
+      this.head.add(eyeliner);
 
-      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.36, 1.15, 5), pinkMat);
-      ear.position.set(side * 0.55, 0.98, 0);
-      ear.rotation.z = -side * 0.28;
-      this.head.add(ear);
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 8), eyeMat);
+      eye.position.set(side * 0.42, 0.16, 0.86);
+      const spark = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 6), eyeSparkle);
+      spark.position.set(side * 0.45, 0.2, 0.96);
+      this.head.add(eye, spark);
+
+      // Đôi tai hồ ly dựng cao có lông tơ hồng bên trong
+      const earGroup = new THREE.Group();
+      earGroup.position.set(side * 0.55, 0.95, 0);
+      earGroup.rotation.z = -side * 0.25;
+
+      const earOuter = new THREE.Mesh(new THREE.ConeGeometry(0.38, 1.25, 5), whiteFurMat);
+      earGroup.add(earOuter);
+
+      const earInner = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.85, 4), pinkMat);
+      earInner.position.set(0, -0.05, 0.1);
+      earGroup.add(earInner);
+
+      this.head.add(earGroup);
     }
+
+    // Mặt nạ Hồ Ly (Kitsune Mask) cách điệu đeo nghiêng bên tai
+    const maskGroup = new THREE.Group();
+    maskGroup.position.set(0.72, 0.65, 0.35);
+    maskGroup.rotation.set(-0.2, 0.6, -0.3);
+
+    const maskFace = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.75, 5), maskMat);
+    maskFace.rotation.x = Math.PI / 2;
+    maskGroup.add(maskFace);
+
+    const maskEarL = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 4), pinkMat);
+    maskEarL.position.set(-0.2, 0.35, -0.1);
+    const maskEarR = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 4), pinkMat);
+    maskEarR.position.set(0.2, 0.35, -0.1);
+    maskGroup.add(maskEarL, maskEarR);
+
+    const maskTassel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.05, 0.45, 4), pinkMat);
+    maskTassel.position.set(0, -0.4, 0);
+    maskGroup.add(maskTassel);
+
+    this.head.add(maskGroup);
     this.torso.add(this.head);
 
+    // 9 ĐUÔI HỒ LY BỒNG BỀNH TUYỆT ĐẸP (9 Lush Animated Tails)
     this.tailGroup = new THREE.Group();
-    this.tailGroup.position.set(0, -0.35, -0.85);
+    this.tailGroup.position.set(0, -0.28, -0.92);
     this.foxTails = [];
     for (let i = 0; i < 9; i++) {
-      const angle = ((i - 4) / 4) * 1.25;
+      const angle = ((i - 4) / 4) * 1.35;
       const tailPivot = new THREE.Group();
       tailPivot.userData.baseZ = angle;
-      tailPivot.userData.baseX = -0.55 - Math.abs(i - 4) * 0.06;
+      tailPivot.userData.baseX = -0.52 - Math.abs(i - 4) * 0.08;
       tailPivot.rotation.z = tailPivot.userData.baseZ;
       tailPivot.rotation.x = tailPivot.userData.baseX;
 
-      const tailMain = new THREE.Mesh(new THREE.ConeGeometry(0.38, 2.4, 6), whiteFurMat);
-      tailMain.position.y = 1.1;
+      // Đoạn gốc đuôi bồng bềnh
+      const tailMain = new THREE.Mesh(new THREE.ConeGeometry(0.42, 2.5, 7), whiteFurMat);
+      tailMain.position.y = 1.15;
       tailMain.castShadow = true;
-      const tailTip = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.85, 6), pinkMat);
-      tailTip.position.y = 2.15;
-      tailPivot.add(tailMain, tailTip);
 
+      // Ngọn đuôi chu sa chuyển sắc hồng
+      const tailTip = new THREE.Mesh(new THREE.ConeGeometry(0.34, 0.95, 7), pinkMat);
+      tailTip.position.y = 2.25;
+
+      tailPivot.add(tailMain, tailTip);
       this.tailGroup.add(tailPivot);
       this.foxTails.push(tailPivot);
     }
     this.torso.add(this.tailGroup);
 
+    // PHÁP BẢO HỒ HỎA LINH CHÂU (Floating Celestial Fox-Fire Orb)
     this.foxOrb = new THREE.Group();
-    this.foxOrb.position.set(0, 0.7, 1.6);
+    this.foxOrb.position.set(0, 0.75, 1.65);
+
     const coreOrb = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 1), orbMat);
-    const ringOrb = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.06, 6, 16), goldMat);
-    this.foxOrb.add(coreOrb, ringOrb);
+    const ringOrb1 = new THREE.Mesh(new THREE.TorusGeometry(0.68, 0.06, 6, 16), goldMat);
+    const ringOrb2 = new THREE.Mesh(new THREE.TorusGeometry(0.85, 0.04, 6, 16), pinkMat);
+    ringOrb2.rotation.x = Math.PI / 3;
+
+    // 3 Hạt ngọc Magatama câu ngọc bay xung quanh linh châu
+    for (let m = 0; m < 3; m++) {
+      const ma = (m / 3) * Math.PI * 2;
+      const magatama = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.28, 4), goldMat);
+      magatama.position.set(Math.cos(ma) * 0.85, Math.sin(ma) * 0.85, 0);
+      magatama.rotation.z = ma + Math.PI / 2;
+      this.foxOrb.add(magatama);
+    }
+
+    this.foxOrb.add(coreOrb, ringOrb1, ringOrb2);
     this.torso.add(this.foxOrb);
     this.floatingParts.push(this.foxOrb);
 
+    // TAY ÁO RỘNG THƯỢNG THẦN (Flowing Kimono Sleeves)
     this.armL = new THREE.Group();
-    this.armL.position.set(-0.95, 0.6, 0.2);
-    this.armL.add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 1.1, 6), pinkMat));
+    this.armL.position.set(-1.05, 0.65, 0.2);
+    const sleeveL = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.35, 0.75), robeMat);
+    sleeveL.position.set(-0.15, -0.35, 0);
+    const pawL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), whiteFurMat);
+    pawL.position.set(-0.1, -0.95, 0.15);
+    this.armL.add(sleeveL, pawL);
     this.torso.add(this.armL);
 
     this.armR = new THREE.Group();
-    this.armR.position.set(0.95, 0.6, 0.2);
-    this.armR.add(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.32, 1.1, 6), pinkMat));
+    this.armR.position.set(1.05, 0.65, 0.2);
+    const sleeveR = new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.35, 0.75), robeMat);
+    sleeveR.position.set(0.15, -0.35, 0);
+    const pawR = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), whiteFurMat);
+    pawR.position.set(0.1, -0.95, 0.15);
+    this.armR.add(sleeveR, pawR);
     this.torso.add(this.armR);
 
     this.model.add(this.torso);
 
+    // CHÂN HỒ TIÊN
     this.legL = new THREE.Group();
     this.legL.position.set(-0.45, 0.9, 0);
-    this.legL.add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 1.2, 6), whiteFurMat));
+    this.legL.add(new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 1.25, 6), whiteFurMat));
     this.model.add(this.legL);
 
     this.legR = new THREE.Group();
     this.legR.position.set(0.45, 0.9, 0);
-    this.legR.add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 1.2, 6), whiteFurMat));
+    this.legR.add(new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.18, 1.25, 6), whiteFurMat));
     this.model.add(this.legR);
   }
 
-  // 4. 👻 U MINH KIẾM LINH (SWORD WRAITH - SÁT THỦ ÁM ẢNH THUẤN BỘ)
+  // 4. 👻 U MINH KIẾM LINH (SPECTRAL SWORD WRAITH)
   buildSwordWraithMesh() {
-    const cloakMat = new THREE.MeshStandardMaterial({ color: 0x2c2c54, flatShading: true, roughness: 0.85 });
-    const innerMat = new THREE.MeshStandardMaterial({ color: 0x706fd3, flatShading: true, roughness: 0.6 });
+    const cloakTex = getCelestialSilkTexture('wraith');
+    const cloakMat = new THREE.MeshStandardMaterial({
+      map: cloakTex,
+      color: 0xffffff,
+      flatShading: true,
+      roughness: 0.75
+    });
+    const innerMat = new THREE.MeshStandardMaterial({ color: 0x3d375e, flatShading: true, roughness: 0.6 });
     const bladeMat = new THREE.MeshBasicMaterial({ color: 0x00d2d3 });
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0x2ed573 });
+    const maskMat = new THREE.MeshStandardMaterial({ color: 0xf5f6fa, roughness: 0.3 });
+    const goldMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.85, roughness: 0.2 });
+    const darkStrawMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, flatShading: true, roughness: 0.9 });
     this.damageableMaterials = [cloakMat, innerMat];
 
     this.torso = new THREE.Group();
     this.torso.position.y = 2.7;
 
-    const cloak = new THREE.Mesh(new THREE.ConeGeometry(1.5, 3.2, 7), cloakMat);
-    cloak.position.y = -0.2;
+    // Áo choàng u hồn rách xơ xác bay lượn phập phồng
+    const cloak = new THREE.Mesh(new THREE.ConeGeometry(1.6, 3.4, 8), cloakMat);
+    cloak.position.y = -0.25;
     cloak.castShadow = true;
     this.torso.add(cloak);
 
+    // Vạt áo tưa rách bay theo gió
+    for (let f = 0; f < 5; f++) {
+      const fa = (f / 5) * Math.PI * 2;
+      const tatter = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.2, 4), innerMat);
+      tatter.position.set(Math.sin(fa) * 1.35, -1.6, Math.cos(fa) * 1.35);
+      tatter.rotation.x = Math.PI;
+      this.torso.add(tatter);
+    }
+
+    // Giáp ngực U Hồn khắc phù văn bảo vệ
     const chestArmor = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), innerMat);
-    chestArmor.position.y = 0.55;
+    chestArmor.position.set(0, 0.55, 0.1);
     this.torso.add(chestArmor);
 
+    // ĐẦU THỦ & MẶT NẠ SÁT THỦ (Hood, Jingasa Hat & Noh Mask)
     this.head = new THREE.Group();
     this.head.position.set(0, 1.55, 0.1);
-    const voidHead = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 1), new THREE.MeshBasicMaterial({ color: 0x111118 }));
+
+    const voidHead = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 1), new THREE.MeshBasicMaterial({ color: 0x0d0d14 }));
     this.head.add(voidHead);
 
-    const hat = new THREE.Mesh(new THREE.ConeGeometry(1.65, 0.62, 10), cloakMat);
-    hat.position.y = 0.45;
+    // Mặt nạ tuồng cổ rạn nứt bí ẩn (Cracked Porcelain Mask)
+    const mask = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.85, 0.2), maskMat);
+    mask.position.set(0, 0.05, 0.48);
+    this.head.add(mask);
+
+    // Mắt U Hồn xanh ngọc bích phát quang xuyên qua mặt nạ
+    for (const side of [-1, 1]) {
+      const eyeSlot = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.1), eyeMat);
+      eyeSlot.position.set(side * 0.22, 0.12, 0.56);
+      this.head.add(eyeSlot);
+    }
+
+    // Nón tơi kiếm khách cổ phong (Jingasa Straw Hat)
+    const hat = new THREE.Mesh(new THREE.ConeGeometry(1.85, 0.55, 12), darkStrawMat);
+    hat.position.y = 0.52;
     hat.castShadow = true;
     this.head.add(hat);
 
-    for (const side of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), eyeMat);
-      eye.position.set(side * 0.26, 0.05, 0.55);
-      this.head.add(eye);
-    }
+    // Đỉnh chóp nón bọc đồng vàng
+    const hatSpire = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.4, 6), goldMat);
+    hatSpire.position.y = 0.85;
+    this.head.add(hatSpire);
+
+    // Bùa U Minh trấn yểm rủ xuống trước vành nón
+    const talisman = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.65), new THREE.MeshBasicMaterial({ color: 0x00d2d3, side: THREE.DoubleSide }));
+    talisman.position.set(0, 0.18, 1.6);
+    this.head.add(talisman);
+
     this.torso.add(this.head);
 
+    // 3 THANH KIẾM HỘ THỂ CHU THIÊN XOAY QUANH (Orbiting Spirit Swords)
     this.orbitSwords = new THREE.Group();
     this.orbitSwords.position.y = 0.6;
     this.orbitSwordNodes = [];
@@ -653,27 +1064,58 @@ export class Monster {
       swGroup.userData.baseAngle = angle;
       swGroup.position.set(Math.cos(angle) * 2.1, 0, Math.sin(angle) * 2.1);
 
-      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.1, 0.06), bladeMat);
-      const guard = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 0.14), innerMat);
-      guard.position.y = -0.8;
-      swGroup.add(blade, guard);
+      // Thân kiếm thanh quang tỏa sáng
+      const blade = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.3, 0.05), bladeMat);
+
+      // Đốc kiếm hoa sen vàng
+      const guard = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.14, 0.18), goldMat);
+      guard.position.y = -0.85;
+
+      const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.55, 6), darkStrawMat);
+      hilt.position.y = -1.15;
+
+      const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), goldMat);
+      pommel.position.y = -1.45;
+
+      // Kiếm hoa lụa đỏ U Minh
+      const tassel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.08, 0.5, 4), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+      tassel.position.set(0, -1.75, 0);
+
+      swGroup.add(blade, guard, hilt, pommel, tassel);
       swGroup.rotation.z = 0.25;
       this.orbitSwords.add(swGroup);
       this.orbitSwordNodes.push(swGroup);
     }
     this.torso.add(this.orbitSwords);
 
+    // TAY TRÁI (Áo choàng u hồn)
     this.armL = new THREE.Group();
-    this.armL.position.set(-1.1, 0.5, 0.3);
-    this.armL.add(new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.3, 5), cloakMat));
+    this.armL.position.set(-1.15, 0.5, 0.3);
+    const sleeveL = new THREE.Mesh(new THREE.ConeGeometry(0.38, 1.4, 6), cloakMat);
+    sleeveL.rotation.z = 0.35;
+    this.armL.add(sleeveL);
     this.torso.add(this.armL);
 
+    // TAY PHẢI CẦM THANH LONG BẢO KIẾM (Holding Legendary Dragon Jian)
     this.armR = new THREE.Group();
-    this.armR.position.set(1.1, 0.5, 0.3);
-    const mainSword = new THREE.Mesh(new THREE.BoxGeometry(0.18, 2.6, 0.08), bladeMat);
-    mainSword.position.set(0, -0.5, 1.0);
-    mainSword.rotation.x = Math.PI / 2.2;
-    this.armR.add(mainSword);
+    this.armR.position.set(1.15, 0.5, 0.3);
+
+    const mainSwordGroup = new THREE.Group();
+    mainSwordGroup.position.set(0, -0.4, 0.9);
+    mainSwordGroup.rotation.x = Math.PI / 2.2;
+
+    const mainBlade = new THREE.Mesh(new THREE.BoxGeometry(0.18, 2.8, 0.07), bladeMat);
+    const mainGuard = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.18, 0.22), goldMat);
+    mainGuard.position.y = -1.0;
+    const mainHilt = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.7, 6), darkStrawMat);
+    mainHilt.position.y = -1.35;
+    const mainPommel = new THREE.Mesh(new THREE.SphereGeometry(0.14, 6, 6), goldMat);
+    mainPommel.position.y = -1.75;
+    const swordTassel = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.65, 4), new THREE.MeshBasicMaterial({ color: 0xff4757 }));
+    swordTassel.position.set(0, -2.15, 0);
+
+    mainSwordGroup.add(mainBlade, mainGuard, mainHilt, mainPommel, swordTassel);
+    this.armR.add(mainSwordGroup);
     this.torso.add(this.armR);
 
     this.model.add(this.torso);
@@ -685,172 +1127,539 @@ export class Monster {
 
   // 5. 🦂 XÍCH DIỄM HẠT VƯƠNG (FLAME SCORPION KING - PHÁO KÍCH ĐỘC DỊCH)
   buildFlameScorpionMesh() {
-    const shellMat = new THREE.MeshStandardMaterial({ color: 0xb33939, flatShading: true, roughness: 0.55, metalness: 0.25 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x2c2c54, flatShading: true, roughness: 0.7 });
-    const venomMat = new THREE.MeshBasicMaterial({ color: 0x2ed573 });
-    this.damageableMaterials = [shellMat, darkMat];
+    const shellMat = new THREE.MeshStandardMaterial({
+      map: getScorpionCarapaceTexture(),
+      color: 0xb33939,
+      flatShading: true,
+      roughness: 0.45,
+      metalness: 0.3,
+    });
+    const darkChitinMat = new THREE.MeshStandardMaterial({
+      color: 0x1e1b2e,
+      flatShading: true,
+      roughness: 0.6,
+      metalness: 0.35,
+    });
+    const goldChitinMat = new THREE.MeshStandardMaterial({
+      color: 0xffa502,
+      flatShading: true,
+      roughness: 0.3,
+      metalness: 0.7,
+    });
+    const magmaGlowMat = new THREE.MeshBasicMaterial({ color: 0xff4757 });
+    const venomGlowMat = new THREE.MeshBasicMaterial({ color: 0x2ed573 });
+    this.damageableMaterials = [shellMat, darkChitinMat, goldChitinMat];
 
     this.torso = new THREE.Group();
     this.torso.position.y = 1.65;
 
+    // Giáp thân chính (Cephalothorax / Prosoma) dạng vòm gồ ghề
     const thorax = new THREE.Mesh(new THREE.DodecahedronGeometry(1.75, 1), shellMat);
-    thorax.scale.set(1.15, 0.72, 1.55);
+    thorax.scale.set(1.2, 0.72, 1.55);
     thorax.castShadow = true;
     this.torso.add(thorax);
 
+    // 3 phiến giáp lưng xếp lớp (Dorsal Tergite Plates) với gai sống lưng
+    for (let i = 0; i < 3; i++) {
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(1.8 - i * 0.25, 0.28, 0.65), darkChitinMat);
+      plate.position.set(0, 0.48 - i * 0.04, 0.3 - i * 0.65);
+      plate.rotation.x = -0.15;
+      this.torso.add(plate);
+
+      const dorsalSpine = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.6, 4), goldChitinMat);
+      dorsalSpine.position.set(0, 0.72 - i * 0.04, 0.3 - i * 0.65);
+      dorsalSpine.rotation.x = -0.25;
+      this.torso.add(dorsalSpine);
+
+      // Khe nứt dung nham phát sáng bên hông giáp
+      for (const side of [-1, 1]) {
+        const vent = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.08, 0.4), magmaGlowMat);
+        vent.position.set(side * (0.95 - i * 0.1), 0.35, 0.3 - i * 0.65);
+        this.torso.add(vent);
+      }
+    }
+
+    // Đầu & Cụm mắt đa giác quan (Head & Chelicerae)
     this.head = new THREE.Group();
     this.head.position.set(0, 0.25, 1.65);
-    const face = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), darkMat);
+
+    const face = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), darkChitinMat);
+    face.scale.set(1.1, 0.85, 1.0);
     this.head.add(face);
+
+    // Mũ sừng giáp đầu
+    const browPlate = new THREE.Mesh(new THREE.ConeGeometry(0.45, 0.75, 4), goldChitinMat);
+    browPlate.position.set(0, 0.48, 0.35);
+    browPlate.rotation.x = 0.55;
+    this.head.add(browPlate);
+
+    // 2 mắt chính độc quang phát sáng rực rỡ + 4 mắt phụ
     for (const side of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.16, 6, 6), venomMat);
-      eye.position.set(side * 0.42, 0.28, 0.72);
-      this.head.add(eye);
+      const mainEye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), venomGlowMat);
+      mainEye.position.set(side * 0.42, 0.28, 0.75);
+      this.head.add(mainEye);
+
+      const subEye1 = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), venomGlowMat);
+      subEye1.position.set(side * 0.65, 0.22, 0.55);
+      const subEye2 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), magmaGlowMat);
+      subEye2.position.set(side * 0.28, 0.42, 0.62);
+      this.head.add(subEye1, subEye2);
+
+      // Cặp hàm nhai kìm phụ (Chelicerae Fangs) sắc lẹm
+      const fang = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.65, 5), goldChitinMat);
+      fang.position.set(side * 0.32, -0.32, 0.85);
+      fang.rotation.x = 0.85;
+      fang.rotation.z = -side * 0.35;
+      this.head.add(fang);
     }
     this.torso.add(this.head);
 
-    this.armL = new THREE.Group();
-    this.armL.position.set(-1.65, 0.1, 1.5);
-    const clawL = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85, 0), shellMat);
-    clawL.scale.set(0.8, 0.6, 1.7);
-    clawL.position.z = 0.6;
-    clawL.castShadow = true;
-    this.armL.add(clawL);
+    // Càng trái & càng phải khổng lồ (Articulated Dual Guillotine Claws)
+    const buildScorpionClaw = (side) => {
+      const armGroup = new THREE.Group();
+      armGroup.position.set(side * 1.65, 0.1, 1.4);
+
+      // Cánh tay bắp thịt giáp cứng (Pedipalp Base)
+      const humerus = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.38, 1.1, 6), darkChitinMat);
+      humerus.rotation.z = -side * 0.75;
+      humerus.position.set(side * 0.45, 0.1, 0.2);
+      armGroup.add(humerus);
+
+      const elbowSpike = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.55, 4), goldChitinMat);
+      elbowSpike.position.set(side * 0.85, 0.25, 0.2);
+      elbowSpike.rotation.z = -side * 1.1;
+      armGroup.add(elbowSpike);
+
+      // Thân càng chính (Chela Palm)
+      const clawPalm = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85, 0), shellMat);
+      clawPalm.scale.set(0.85, 0.65, 1.45);
+      clawPalm.position.set(side * 0.8, 0.15, 0.95);
+      clawPalm.castShadow = true;
+      armGroup.add(clawPalm);
+
+      // Ngàm kẹp cố định (Fixed Finger) với răng cưa
+      const fixedFinger = new THREE.Mesh(new THREE.ConeGeometry(0.32, 1.35, 5), shellMat);
+      fixedFinger.position.set(side * 0.95, 0.18, 1.95);
+      fixedFinger.rotation.x = Math.PI / 2;
+      fixedFinger.rotation.y = side * 0.25;
+      armGroup.add(fixedFinger);
+
+      // Ngàm kẹp di động (Movable Dactyl)
+      const movableFinger = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.25, 5), goldChitinMat);
+      movableFinger.position.set(side * 0.55, 0.18, 1.9);
+      movableFinger.rotation.x = Math.PI / 2;
+      movableFinger.rotation.y = -side * 0.35;
+      armGroup.add(movableFinger);
+
+      // Hàng răng cưa kẹp xương (Serrated Teeth)
+      for (let t = 0; t < 4; t++) {
+        const tooth = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.22, 4), goldChitinMat);
+        tooth.position.set(side * 0.85, 0.18, 1.45 + t * 0.28);
+        tooth.rotation.z = -side * Math.PI / 2;
+        armGroup.add(tooth);
+      }
+
+      // Đỉnh ngàm đẫm nọc độc phát sáng
+      const venomTip = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 5), venomGlowMat);
+      venomTip.position.set(side * 0.95, 0.18, 2.55);
+      venomTip.rotation.x = Math.PI / 2;
+      armGroup.add(venomTip);
+
+      return armGroup;
+    };
+
+    this.armL = buildScorpionClaw(-1);
     this.torso.add(this.armL);
 
-    this.armR = new THREE.Group();
-    this.armR.position.set(1.65, 0.1, 1.5);
-    const clawR = new THREE.Mesh(new THREE.DodecahedronGeometry(0.85, 0), shellMat);
-    clawR.scale.set(0.8, 0.6, 1.7);
-    clawR.position.z = 0.6;
-    clawR.castShadow = true;
-    this.armR.add(clawR);
+    this.armR = buildScorpionClaw(1);
     this.torso.add(this.armR);
 
+    // Đuôi bò cạp 5 đốt hoàng kim & ngòi độc kép (5-Segment Metasoma & Stinger)
     this.tail = new THREE.Group();
     this.tail.position.set(0, 0.4, -1.9);
-    for (let i = 0; i < 4; i++) {
-      const seg = new THREE.Mesh(new THREE.DodecahedronGeometry(0.58 - i * 0.07, 0), shellMat);
-      seg.position.set(0, i * 0.75, -i * 0.2 + (i >= 2 ? (i - 1.5) * 0.65 : 0));
-      this.tail.add(seg);
-    }
-    const stinger = new THREE.Mesh(new THREE.ConeGeometry(0.45, 1.25, 6), venomMat);
-    stinger.position.set(0, 2.85, 0.55);
-    stinger.rotation.x = Math.PI / 2.2;
-    this.tail.add(stinger);
-    this.torso.add(this.tail);
 
+    const segPositions = [
+      [0, 0.35, -0.35, 0.58],
+      [0, 1.05, -0.65, 0.52],
+      [0, 1.85, -0.55, 0.48],
+      [0, 2.65, 0.05, 0.44],
+      [0, 3.15, 0.85, 0.40],
+    ];
+
+    for (let i = 0; i < segPositions.length; i++) {
+      const [sx, sy, sz, radius] = segPositions[i];
+      const segMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(radius, 0), shellMat);
+      segMesh.scale.set(1.0, 1.15, 1.1);
+      segMesh.position.set(sx, sy, sz);
+      this.tail.add(segMesh);
+
+      // Gai sống lưng trên mỗi đốt đuôi
+      const segSpike = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.35, radius * 0.85, 4), goldChitinMat);
+      segSpike.position.set(sx, sy + radius * 0.75, sz - radius * 0.3);
+      segSpike.rotation.x = -0.55;
+      this.tail.add(segSpike);
+    }
+
+    // Túi nọc độc phồng to (Venom Bulb / Ampulla)
+    const venomBulb = new THREE.Mesh(new THREE.SphereGeometry(0.55, 8, 8), darkChitinMat);
+    venomBulb.scale.set(0.9, 1.25, 1.1);
+    venomBulb.position.set(0, 3.25, 1.35);
+    this.tail.add(venomBulb);
+
+    // Ngòi độc chính uốn cong nhọn hoắt hướng về phía trước (Aculeus)
+    const stinger = new THREE.Mesh(new THREE.ConeGeometry(0.38, 1.45, 6), venomGlowMat);
+    stinger.position.set(0, 3.05, 2.05);
+    stinger.rotation.x = Math.PI / 1.85;
+    this.tail.add(stinger);
+
+    // Móc ngạnh độc phụ (Secondary Poison Barb)
+    const subBarb = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.65, 4), magmaGlowMat);
+    subBarb.position.set(0, 2.75, 1.85);
+    subBarb.rotation.x = Math.PI / 1.5;
+    this.tail.add(subBarb);
+
+    this.torso.add(this.tail);
     this.model.add(this.torso);
 
+    // 6 Chân bò cạp khớp đa tầng (6 Articulated Walking Legs)
     this.legL = new THREE.Group();
-    this.legL.position.set(-1.5, 0.9, 0);
+    this.legL.position.set(-1.45, 0.85, 0);
     this.legR = new THREE.Group();
-    this.legR.position.set(1.5, 0.9, 0);
-    for (let i = -1; i <= 1; i++) {
-      const lMesh = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.28, 0.28), darkMat);
-      lMesh.position.set(-0.3, -0.2, i * 1.0);
-      lMesh.rotation.z = 0.45;
-      this.legL.add(lMesh);
+    this.legR.position.set(1.45, 0.85, 0);
 
-      const rMesh = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.28, 0.28), darkMat);
-      rMesh.position.set(0.3, -0.2, i * 1.0);
-      rMesh.rotation.z = -0.45;
-      this.legR.add(rMesh);
+    const legAngles = [0.35, 0, -0.35];
+    for (let i = 0; i < 3; i++) {
+      const zOffset = (i - 1) * 0.95;
+      const angle = legAngles[i];
+
+      // Chân trái
+      const lCoxa = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 1.05, 5), darkChitinMat);
+      lCoxa.position.set(-0.45, 0.15, zOffset);
+      lCoxa.rotation.z = 0.75;
+      lCoxa.rotation.y = angle;
+      this.legL.add(lCoxa);
+
+      const lTibia = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.25, 5), shellMat);
+      lTibia.position.set(-0.95, -0.45, zOffset);
+      lTibia.rotation.z = -0.65;
+      lTibia.rotation.y = angle;
+      this.legL.add(lTibia);
+
+      const lClaw = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.45, 4), goldChitinMat);
+      lClaw.position.set(-1.35, -0.95, zOffset);
+      lClaw.rotation.z = 0.25;
+      this.legL.add(lClaw);
+
+      // Chân phải
+      const rCoxa = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.22, 1.05, 5), darkChitinMat);
+      rCoxa.position.set(0.45, 0.15, zOffset);
+      rCoxa.rotation.z = -0.75;
+      rCoxa.rotation.y = -angle;
+      this.legR.add(rCoxa);
+
+      const rTibia = new THREE.Mesh(new THREE.ConeGeometry(0.18, 1.25, 5), shellMat);
+      rTibia.position.set(0.95, -0.45, zOffset);
+      rTibia.rotation.z = 0.65;
+      rTibia.rotation.y = -angle;
+      this.legR.add(rTibia);
+
+      const rClaw = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.45, 4), goldChitinMat);
+      rClaw.position.set(1.35, -0.95, zOffset);
+      rClaw.rotation.z = -0.25;
+      this.legR.add(rClaw);
     }
     this.model.add(this.legL, this.legR);
   }
 
   // 6. 🦁 THANH NGỌC THẦN SƯ (JADE GUARDIAN LION - HỘ ĐIỆN TINH ANH)
   buildJadeGuardianMesh() {
-    const jadeMat = new THREE.MeshStandardMaterial({ color: 0x1dd1a1, flatShading: true, roughness: 0.35, metalness: 0.2 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd32a, flatShading: true, roughness: 0.3, metalness: 0.65 });
-    const iceMat = new THREE.MeshBasicMaterial({ color: 0x48dbfb });
-    this.damageableMaterials = [jadeMat, goldMat];
+    const jadeMat = new THREE.MeshStandardMaterial({
+      map: getCarvedJadeTexture(),
+      color: 0x1dd1a1,
+      flatShading: true,
+      roughness: 0.28,
+      metalness: 0.15,
+    });
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffd32a,
+      flatShading: true,
+      roughness: 0.22,
+      metalness: 0.85,
+    });
+    const iceGlowMat = new THREE.MeshBasicMaterial({ color: 0x48dbfb });
+    const silkRedMat = new THREE.MeshStandardMaterial({
+      color: 0xee5253,
+      flatShading: true,
+      roughness: 0.5,
+    });
+    const ivoryMat = new THREE.MeshStandardMaterial({
+      color: 0xf7f1e3,
+      flatShading: true,
+      roughness: 0.35,
+    });
+    this.damageableMaterials = [jadeMat, goldMat, silkRedMat];
 
     this.torso = new THREE.Group();
     this.torso.position.y = 2.9;
 
+    // Thân sư tử ngọc uy nghiêm (Muscular Arched Imperial Lion Body)
     const lionBody = new THREE.Mesh(new THREE.DodecahedronGeometry(2.1, 1), jadeMat);
-    lionBody.scale.set(1.15, 1.05, 1.35);
+    lionBody.scale.set(1.2, 1.1, 1.45);
     lionBody.castShadow = true;
     this.torso.add(lionBody);
 
-    this.guardianHalo = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.12, 8, 20), goldMat);
+    // Đai yếm thắt ngực hoàng gia & lục lạc vàng (Imperial Chest Harness & Bell)
+    const harness = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.14, 6, 16), silkRedMat);
+    harness.position.set(0, 0.2, 0.75);
+    harness.rotation.x = Math.PI / 2.8;
+    this.torso.add(harness);
+
+    const bronzeBell = new THREE.Mesh(new THREE.SphereGeometry(0.38, 8, 8), goldMat);
+    bronzeBell.position.set(0, -0.45, 1.55);
+    this.torso.add(bronzeBell);
+
+    const bellRings = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.05, 4, 12), goldMat);
+    bellRings.position.set(0, -0.78, 1.55);
+    this.torso.add(bellRings);
+
+    // Pháp Luân Hộ Thể Kim Liên (Golden Lotus Halo)
+    this.guardianHalo = new THREE.Group();
     this.guardianHalo.position.set(0, 1.1, -0.4);
+
+    const haloRing = new THREE.Mesh(new THREE.TorusGeometry(2.2, 0.12, 8, 24), goldMat);
+    this.guardianHalo.add(haloRing);
+
+    // 8 Cánh Sen Vàng tỏa sáng quanh pháp luân
+    for (let p = 0; p < 8; p++) {
+      const angle = (p / 8) * Math.PI * 2;
+      const petal = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.95, 4), goldMat);
+      petal.position.set(Math.cos(angle) * 2.2, Math.sin(angle) * 2.2, 0);
+      petal.rotation.z = angle - Math.PI / 2;
+      this.guardianHalo.add(petal);
+
+      // Hạt minh châu băng hàn tỏa sáng ở chóp cánh sen
+      const pearlPetal = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 6), iceGlowMat);
+      pearlPetal.position.set(Math.cos(angle) * 2.7, Math.sin(angle) * 2.7, 0);
+      this.guardianHalo.add(pearlPetal);
+    }
     this.torso.add(this.guardianHalo);
 
+    // Đầu Sư Tử Hoàng Gia & Bờm 16 Xoắn Ốc Thần Thánh (Head & 16 Mane Rosettes)
     this.head = new THREE.Group();
     this.head.position.set(0, 1.45, 1.45);
-    const mane = new THREE.Mesh(new THREE.DodecahedronGeometry(1.55, 1), goldMat);
-    mane.scale.set(1.15, 1.15, 0.85);
-    this.head.add(mane);
 
-    const face = new THREE.Mesh(new THREE.DodecahedronGeometry(1.15, 0), jadeMat);
+    // 16 Xoắn bờm ốc (Traditional Snail-Curl Mane Rosettes)
+    const maneGroup = new THREE.Group();
+    for (let m = 0; m < 16; m++) {
+      const angle = (m / 16) * Math.PI * 2;
+      const maneRosette = new THREE.Mesh(new THREE.DodecahedronGeometry(0.48, 0), goldMat);
+      const radius = 1.35 + (m % 2) * 0.2;
+      maneRosette.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius * 0.9, -0.35 + (m % 3) * 0.15);
+      maneRosette.rotation.set(angle, 0.5, m * 0.2);
+      maneGroup.add(maneRosette);
+    }
+    this.head.add(maneGroup);
+
+    // Khuôn mặt ngọc uy dũng
+    const face = new THREE.Mesh(new THREE.DodecahedronGeometry(1.18, 0), jadeMat);
     face.position.z = 0.45;
     this.head.add(face);
 
-    const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.38, 10, 10), iceMat);
-    pearl.position.set(0, -0.35, 1.35);
-    this.head.add(pearl);
+    // Sừng ngọc hộ pháp / miện kim vương trên trán
+    const hornCrest = new THREE.Mesh(new THREE.ConeGeometry(0.38, 1.25, 5), goldMat);
+    hornCrest.position.set(0, 1.15, 0.55);
+    hornCrest.rotation.x = -0.35;
+    this.head.add(hornCrest);
 
+    // Mõm sư tử há rộng gầm thét (Roaring Snout & Jaws)
+    const upperJaw = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.45, 0.85), jadeMat);
+    upperJaw.position.set(0, 0.15, 1.25);
+    this.head.add(upperJaw);
+
+    const lowerJaw = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.35, 0.75), jadeMat);
+    lowerJaw.position.set(0, -0.45, 1.15);
+    lowerJaw.rotation.x = 0.25;
+    this.head.add(lowerJaw);
+
+    // 4 Răng nanh ngà voi cong vút (Ivory Fangs)
     for (const side of [-1, 1]) {
-      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), iceMat);
-      eye.position.set(side * 0.48, 0.25, 1.3);
+      const upperFang = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.55, 4), ivoryMat);
+      upperFang.position.set(side * 0.38, -0.1, 1.45);
+      upperFang.rotation.x = Math.PI;
+      this.head.add(upperFang);
+
+      const lowerFang = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.45, 4), ivoryMat);
+      lowerFang.position.set(side * 0.32, -0.32, 1.4);
+      this.head.add(lowerFang);
+
+      // Tai sư tử vểnh uy nghiêm
+      const ear = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.65, 4), goldMat);
+      ear.position.set(side * 1.05, 1.05, 0.15);
+      ear.rotation.z = -side * 0.65;
+      this.head.add(ear);
+
+      // Đôi mắt băng ngọc thần quang
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), iceGlowMat);
+      eye.position.set(side * 0.48, 0.35, 1.25);
       this.head.add(eye);
     }
+
+    // Minh Châu Thần Khí (Spinning Frost Pearl in Mouth)
+    const pearl = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 12), iceGlowMat);
+    pearl.position.set(0, -0.15, 1.35);
+    this.head.add(pearl);
+
     this.torso.add(this.head);
 
-    this.tail = new THREE.Mesh(new THREE.ConeGeometry(0.65, 1.8, 6), goldMat);
-    this.tail.position.set(0, 0.5, -2.3);
-    this.tail.rotation.x = -0.8;
+    // Đuôi Sư Tử ngọc uốn lượn chùm lửa vàng (Curled Flame Tuft Tail)
+    this.tail = new THREE.Group();
+    this.tail.position.set(0, 0.5, -2.2);
+
+    const tailStem = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.35, 1.6, 6), jadeMat);
+    tailStem.rotation.x = -0.85;
+    this.tail.add(tailStem);
+
+    const tailTuft = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.85, 6), goldMat);
+    tailTuft.position.set(0, 0.95, -0.85);
+    tailTuft.rotation.x = -1.35;
+    this.tail.add(tailTuft);
     this.torso.add(this.tail);
 
-    this.armL = new THREE.Group();
-    this.armL.position.set(-1.35, -0.6, 1.1);
-    this.armL.add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 1.8, 7), jadeMat));
+    // Chân trước trái & phải (Forelegs with Gold Flame Tassels)
+    const buildForeleg = (side, hasBall) => {
+      const legGroup = new THREE.Group();
+      legGroup.position.set(side * 1.35, -0.6, 1.1);
+
+      const legColumn = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.62, 1.9, 8), jadeMat);
+      legColumn.castShadow = true;
+      legGroup.add(legColumn);
+
+      // Cánh hoa lửa vàng ở khuỷu chân (Flame Knee Guard)
+      const flameGuard = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.95, 4), goldMat);
+      flameGuard.position.set(side * 0.35, 0.45, -0.2);
+      flameGuard.rotation.x = -0.55;
+      flameGuard.rotation.z = side * 0.45;
+      legGroup.add(flameGuard);
+
+      // Bàn chân 4 móng vuốt vàng kim
+      const paw = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.35, 1.05), jadeMat);
+      paw.position.set(0, -0.85, 0.25);
+      legGroup.add(paw);
+
+      for (let c = -1; c <= 2; c++) {
+        const claw = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.42, 4), goldMat);
+        claw.position.set((c - 0.5) * 0.25, -0.85, 0.85);
+        claw.rotation.x = Math.PI / 2.2;
+        legGroup.add(claw);
+      }
+
+      // Quả Tú Cầu Hoàng Cung (Embroidered Silk Ball under right front paw)
+      if (hasBall) {
+        const xiuQiu = new THREE.Group();
+        xiuQiu.position.set(0, -0.85, 0.95);
+        const ballCore = new THREE.Mesh(new THREE.SphereGeometry(0.58, 12, 12), silkRedMat);
+        const ballRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.59, 0.07, 6, 16), goldMat);
+        const ballRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.59, 0.07, 6, 16), goldMat);
+        ballRing2.rotation.y = Math.PI / 2;
+        xiuQiu.add(ballCore, ballRing1, ballRing2);
+        legGroup.add(xiuQiu);
+      }
+
+      return legGroup;
+    };
+
+    this.armL = buildForeleg(-1, false);
     this.torso.add(this.armL);
 
-    this.armR = new THREE.Group();
-    this.armR.position.set(1.35, -0.6, 1.1);
-    this.armR.add(new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 1.8, 7), jadeMat));
+    this.armR = buildForeleg(1, true); // Chân phải dẫm Tú Cầu trấn trạch
     this.torso.add(this.armR);
 
     this.model.add(this.torso);
 
-    this.legL = new THREE.Group();
-    this.legL.position.set(-1.25, 1.3, -1.0);
-    this.legL.add(new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.55, 1.9, 7), jadeMat));
+    // 2 Chân sau (Hind Legs)
+    const buildHindLeg = (side) => {
+      const hGroup = new THREE.Group();
+      hGroup.position.set(side * 1.25, 1.3, -1.1);
+
+      const thigh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75, 0), jadeMat);
+      thigh.scale.set(0.95, 1.35, 1.15);
+      hGroup.add(thigh);
+
+      const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 1.9, 7), jadeMat);
+      shin.position.set(0, -0.9, 0.1);
+      shin.castShadow = true;
+      hGroup.add(shin);
+
+      const hindPaw = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.32, 0.95), jadeMat);
+      hindPaw.position.set(0, -1.8, 0.35);
+      hGroup.add(hindPaw);
+
+      for (let c = -1; c <= 2; c++) {
+        const claw = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.38, 4), goldMat);
+        claw.position.set((c - 0.5) * 0.22, -1.8, 0.85);
+        claw.rotation.x = Math.PI / 2.2;
+        hGroup.add(claw);
+      }
+      return hGroup;
+    };
+
+    this.legL = buildHindLeg(-1);
     this.model.add(this.legL);
 
-    this.legR = new THREE.Group();
-    this.legR.position.set(1.25, 1.3, -1.0);
-    this.legR.add(new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.55, 1.9, 7), jadeMat));
+    this.legR = buildHindLeg(1);
     this.model.add(this.legR);
   }
 
   // 7. 🐉 ĐẠI BOSS TRẤN THÀNH: HẮC LONG MA ĐẾ (WORLD BOSS)
   buildBossDragonEmperorMesh() {
-    const obsidianMat = new THREE.MeshStandardMaterial({ color: 0x1e1b2e, flatShading: true, roughness: 0.45, metalness: 0.45 });
-    const crimsonMat = new THREE.MeshStandardMaterial({ color: 0xc0392b, flatShading: true, roughness: 0.5 });
-    const goldMat = new THREE.MeshStandardMaterial({ color: 0xffd32a, flatShading: true, roughness: 0.25, metalness: 0.75 });
+    const obsidianMat = new THREE.MeshStandardMaterial({
+      map: getDragonScalesTexture(),
+      color: 0x1e1b2e,
+      flatShading: true,
+      roughness: 0.38,
+      metalness: 0.55,
+    });
+    const crimsonSilkMat = new THREE.MeshStandardMaterial({
+      map: getCelestialSilkTexture('crimson'),
+      color: 0x8b0000,
+      flatShading: true,
+      roughness: 0.45,
+    });
+    const imperialGoldMat = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      flatShading: true,
+      roughness: 0.22,
+      metalness: 0.92,
+    });
     const flameMat = new THREE.MeshBasicMaterial({ color: 0xff3838 });
-    this.damageableMaterials = [obsidianMat, crimsonMat, goldMat];
+    const flameGlowMat = new THREE.MeshBasicMaterial({ color: 0xff9f43 });
+    this.damageableMaterials = [obsidianMat, crimsonSilkMat, imperialGoldMat];
 
+    // Trận đồ Hắc Long Ma Quang dưới đất (Multi-Ring Ground Magic Circle)
     this.bossAuraRing = new THREE.Group();
     this.bossAuraRing.position.y = 0.08;
+
     const outerRing = new THREE.Mesh(
-      new THREE.RingGeometry(3.4, 4.1, 28),
-      new THREE.MeshBasicMaterial({ color: 0xff3838, side: THREE.DoubleSide, transparent: true, opacity: 0.75 })
+      new THREE.RingGeometry(3.6, 4.3, 32),
+      new THREE.MeshBasicMaterial({ color: 0xff3838, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
     );
     outerRing.rotateX(-Math.PI / 2);
+
+    const innerRunes = new THREE.Mesh(
+      new THREE.RingGeometry(2.4, 2.9, 12),
+      new THREE.MeshBasicMaterial({ color: 0xff9f43, side: THREE.DoubleSide, transparent: true, opacity: 0.8 })
+    );
+    innerRunes.rotateX(-Math.PI / 2);
+
     const innerStar = new THREE.Mesh(
-      new THREE.RingGeometry(1.8, 2.3, 6),
-      new THREE.MeshBasicMaterial({ color: 0xffd32a, side: THREE.DoubleSide, transparent: true, opacity: 0.85 })
+      new THREE.RingGeometry(1.4, 1.9, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffd700, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
     );
     innerStar.rotateX(-Math.PI / 2);
-    this.bossAuraRing.add(outerRing, innerStar);
+    this.bossAuraRing.add(outerRing, innerRunes, innerStar);
     this.model.add(this.bossAuraRing);
 
+    // Thân rồng ma đế đồ sộ (Massive Dragon Emperor Body)
     this.torso = new THREE.Group();
     this.torso.position.y = 4.6;
 
@@ -859,105 +1668,260 @@ export class Monster {
     chest.castShadow = true;
     this.torso.add(chest);
 
-    const robeLower = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 2.8, 3.2, 8), crimsonMat);
+    // Phù điêu Long Phù đầu rồng vàng ngậm châu trước ngực (Imperial Dragon Emblem on Chest)
+    const chestDragon = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), imperialGoldMat);
+    chestDragon.scale.set(1.2, 0.85, 0.9);
+    chestDragon.position.set(0, 0.45, 1.05);
+    this.torso.add(chestDragon);
+
+    const chestOrb = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), flameGlowMat);
+    chestOrb.position.set(0, 0.25, 1.55);
+    this.torso.add(chestOrb);
+
+    for (const side of [-1, 1]) {
+      const dragonFang = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), imperialGoldMat);
+      dragonFang.position.set(side * 0.35, 0.12, 1.5);
+      dragonFang.rotation.x = Math.PI;
+      this.torso.add(dragonFang);
+    }
+
+    // Long bào hạ thân xếp lớp màu huyết dụ thêu vân mây (Crimson Silk Imperial Robe Lower)
+    const robeLower = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 2.9, 3.4, 8), crimsonSilkMat);
     robeLower.position.y = -2.1;
     robeLower.castShadow = true;
     this.torso.add(robeLower);
 
-    const belt = new THREE.Mesh(new THREE.CylinderGeometry(2.15, 2.15, 0.55, 8), goldMat);
-    belt.position.y = -0.8;
+    // Đai ngọc rồng hoàng kim (Imperial Dragon Jade Belt)
+    const belt = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.2, 0.65, 8), imperialGoldMat);
+    belt.position.y = -0.75;
     this.torso.add(belt);
 
+    const beltBuckle = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), flameGlowMat);
+    beltBuckle.position.set(0, -0.75, 2.25);
+    this.torso.add(beltBuckle);
+
+    // Giáp vai Đầu Rồng đôi bên (Dragon Head Shoulder Pauldrons)
     for (const side of [-1, 1]) {
-      const pauldron = new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 0), goldMat);
+      const pauldron = new THREE.Group();
       pauldron.position.set(side * 2.8, 1.4, 0);
-      pauldron.scale.set(1.2, 0.85, 1.1);
-      const horn = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.4, 5), flameMat);
-      horn.position.set(side * 3.3, 2.2, 0);
-      horn.rotation.z = -side * 0.65;
-      this.torso.add(pauldron, horn);
+
+      const dragonShoulder = new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 0), imperialGoldMat);
+      dragonShoulder.scale.set(1.2, 0.85, 1.1);
+      pauldron.add(dragonShoulder);
+
+      const pauldronEye = new THREE.Mesh(new THREE.SphereGeometry(0.2, 6, 6), flameMat);
+      pauldronEye.position.set(side * 0.5, 0.2, 0.95);
+      pauldron.add(pauldronEye);
+
+      // Cặp sừng rồng rực lửa trên vai
+      const horn1 = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.6, 5), flameMat);
+      horn1.position.set(side * 0.45, 1.1, 0);
+      horn1.rotation.z = -side * 0.65;
+      pauldron.add(horn1);
+
+      const horn2 = new THREE.Mesh(new THREE.ConeGeometry(0.25, 1.1, 4), imperialGoldMat);
+      horn2.position.set(side * 0.25, 0.85, -0.45);
+      horn2.rotation.z = -side * 0.85;
+      horn2.rotation.x = -0.4;
+      pauldron.add(horn2);
+
+      this.torso.add(pauldron);
     }
 
+    // Đầu Ma Đế & Thập Nhị Miện Miện Lưu Hoàng Cung (Head & 12-Bead Imperial Crown)
     this.head = new THREE.Group();
     this.head.position.set(0, 2.75, 0.35);
+
+    // Chiến khôi rồng đen
     const helm = new THREE.Mesh(new THREE.DodecahedronGeometry(1.35, 1), obsidianMat);
     helm.castShadow = true;
     this.head.add(helm);
 
-    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.75, 0.85, 6), goldMat);
-    crown.position.y = 1.25;
-    this.head.add(crown);
+    // Mũ Miện Hoàng Gia (Imperial Mianguan Crown)
+    const crownBoard = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.16, 2.8), imperialGoldMat);
+    crownBoard.position.y = 1.65;
+    crownBoard.rotation.x = 0.12;
+    this.head.add(crownBoard);
 
+    // Chuỗi ngọc miện lưu trước & sau (Hanging Beaded Curtains)
+    for (let b = -3; b <= 3; b++) {
+      const beadStrandFront = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.75, 4), flameGlowMat);
+      beadStrandFront.position.set(b * 0.28, 1.25, 1.4);
+      this.head.add(beadStrandFront);
+
+      const beadStrandBack = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.75, 4), imperialGoldMat);
+      beadStrandBack.position.set(b * 0.28, 1.25, -1.35);
+      this.head.add(beadStrandBack);
+    }
+
+    // Sừng Rồng Hoàng Kim Phân Nhánh (Branching Golden Dragon Antlers)
     for (const side of [-1, 1]) {
-      const dragonHorn = new THREE.Mesh(new THREE.ConeGeometry(0.32, 2.2, 6), goldMat);
-      dragonHorn.position.set(side * 1.1, 1.65, -0.2);
-      dragonHorn.rotation.z = -side * 0.55;
-      dragonHorn.rotation.x = -0.25;
-      this.head.add(dragonHorn);
+      const mainAntler = new THREE.Mesh(new THREE.ConeGeometry(0.35, 2.4, 6), imperialGoldMat);
+      mainAntler.position.set(side * 1.1, 1.75, -0.2);
+      mainAntler.rotation.z = -side * 0.55;
+      mainAntler.rotation.x = -0.3;
+      this.head.add(mainAntler);
 
-      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.16), flameMat);
-      eye.position.set(side * 0.45, 0.15, 1.22);
+      const branchAntler = new THREE.Mesh(new THREE.ConeGeometry(0.22, 1.25, 5), imperialGoldMat);
+      branchAntler.position.set(side * 1.65, 2.15, -0.4);
+      branchAntler.rotation.z = -side * 0.95;
+      branchAntler.rotation.x = -0.55;
+      this.head.add(branchAntler);
+
+      // Đôi mắt Huyết Ma Long rực lửa
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.18, 0.18), flameMat);
+      eye.position.set(side * 0.48, 0.18, 1.25);
       eye.rotation.z = -side * 0.2;
       this.head.add(eye);
+
+      // Râu Rồng uốn lượn phong trần (Dragon Whiskers)
+      const whisker = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.02, 1.6, 5), imperialGoldMat);
+      whisker.position.set(side * 0.75, -0.45, 1.15);
+      whisker.rotation.z = -side * 0.35;
+      whisker.rotation.x = 0.35;
+      this.head.add(whisker);
     }
     this.torso.add(this.head);
 
-    this.wingL = new THREE.Group();
-    this.wingL.position.set(-1.2, 1.4, -1.2);
-    this.wingR = new THREE.Group();
-    this.wingR.position.set(1.2, 1.4, -1.2);
-    for (let i = 0; i < 3; i++) {
-      const featherL = new THREE.Mesh(new THREE.ConeGeometry(0.65, 3.8 - i * 0.6, 4), crimsonMat);
-      featherL.position.set(-1.6 - i * 0.9, 0.6 - i * 0.4, 0);
-      featherL.rotation.z = 1.1 + i * 0.22;
-      this.wingL.add(featherL);
+    // Cánh Rồng Huyết Quỷ 3 Tầng Xương (Articulated Multi-Segment Draconic Wings)
+    const buildDragonWing = (side) => {
+      const wingGroup = new THREE.Group();
+      wingGroup.position.set(side * 1.2, 1.4, -1.2);
 
-      const featherR = new THREE.Mesh(new THREE.ConeGeometry(0.65, 3.8 - i * 0.6, 4), crimsonMat);
-      featherR.position.set(1.6 + i * 0.9, 0.6 - i * 0.4, 0);
-      featherR.rotation.z = -1.1 - i * 0.22;
-      this.wingR.add(featherR);
-    }
+      // 4 Nan xương rồng vàng & màng cánh huyết sắc
+      for (let i = 0; i < 4; i++) {
+        const strut = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.08, 3.8 - i * 0.5, 5), imperialGoldMat);
+        strut.position.set(side * (1.4 + i * 0.8), 0.7 - i * 0.35, 0);
+        strut.rotation.z = -side * (1.1 + i * 0.25);
+        wingGroup.add(strut);
+
+        const feather = new THREE.Mesh(new THREE.ConeGeometry(0.75, 3.6 - i * 0.55, 4), crimsonSilkMat);
+        feather.position.set(side * (1.5 + i * 0.85), 0.6 - i * 0.35, -0.05);
+        feather.rotation.z = -side * (1.1 + i * 0.25);
+        wingGroup.add(feather);
+
+        // Móng vuốt nhọn ở đầu nan cánh
+        const claw = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), flameGlowMat);
+        claw.position.set(side * (2.8 + i * 0.95), 1.6 - i * 0.2, 0);
+        claw.rotation.z = -side * 1.6;
+        wingGroup.add(claw);
+      }
+      return wingGroup;
+    };
+
+    this.wingL = buildDragonWing(-1);
+    this.wingR = buildDragonWing(1);
     this.torso.add(this.wingL, this.wingR);
 
-    this.bossHalo = new THREE.Mesh(new THREE.TorusGeometry(3.4, 0.16, 8, 24), flameMat);
+    // Cửu Long Hộ Thể Thần Hoàn (Nine-Dragon Flaming Back Halo)
+    this.bossHalo = new THREE.Group();
     this.bossHalo.position.set(0, 1.5, -1.55);
+
+    const haloTorus = new THREE.Mesh(new THREE.TorusGeometry(3.4, 0.16, 8, 28), imperialGoldMat);
+    this.bossHalo.add(haloTorus);
+
+    // 8 Viên Hỏa Long Châu quay quanh quang hoàn
+    for (let h = 0; h < 8; h++) {
+      const hAngle = (h / 8) * Math.PI * 2;
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.32, 8, 8), flameMat);
+      orb.position.set(Math.cos(hAngle) * 3.4, Math.sin(hAngle) * 3.4, 0);
+      this.bossHalo.add(orb);
+    }
     this.torso.add(this.bossHalo);
 
+    // Cánh tay trái bọc giáp vảy rồng (Left Arm)
     this.armL = new THREE.Group();
     this.armL.position.set(-2.9, 0.7, 0.3);
     const armLMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), obsidianMat);
     armLMesh.scale.set(0.85, 1.75, 0.85);
     this.armL.add(armLMesh);
+
+    // Móng vuốt rồng bàn tay trái
+    for (let c = -1; c <= 2; c++) {
+      const talon = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), imperialGoldMat);
+      talon.position.set((c - 0.5) * 0.25, -1.65, 0.35);
+      talon.rotation.x = Math.PI / 2.2;
+      this.armL.add(talon);
+    }
     this.torso.add(this.armL);
 
+    // Cánh tay phải cầm Phương Thiên Họa Kích (Right Arm & Dragon Halberd)
     this.armR = new THREE.Group();
     this.armR.position.set(2.9, 0.7, 0.3);
     const armRMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(0.95, 0), obsidianMat);
     armRMesh.scale.set(0.85, 1.75, 0.85);
     this.armR.add(armRMesh);
 
+    for (let c = -1; c <= 2; c++) {
+      const talon = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.45, 4), imperialGoldMat);
+      talon.position.set((c - 0.5) * 0.25, -1.65, 0.35);
+      talon.rotation.x = Math.PI / 2.2;
+      this.armR.add(talon);
+    }
+
+    // 7.2m Phương Thiên Họa Kích Hắc Long (Heaven-Piercing Dragon Halberd)
     this.halberdGroup = new THREE.Group();
     this.halberdGroup.position.set(0, -1.2, 1.2);
     this.halberdGroup.rotation.x = Math.PI / 3;
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 6.8, 8), goldMat);
-    const bladeMain = new THREE.Mesh(new THREE.ConeGeometry(0.65, 2.4, 4), flameMat);
-    bladeMain.position.y = 3.6;
-    const crescent = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.3, 0.14), flameMat);
-    crescent.position.set(0.55, 2.7, 0);
-    this.halberdGroup.add(shaft, bladeMain, crescent);
-    this.armR.add(this.halberdGroup);
 
+    // Cán kích hoàng kim chạm khắc rồng cuộn
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 7.2, 8), imperialGoldMat);
+    this.halberdGroup.add(shaft);
+
+    // Đầu rồng ngậm mũi kích (Dragon Head Socket)
+    const socketDragon = new THREE.Mesh(new THREE.DodecahedronGeometry(0.45, 0), imperialGoldMat);
+    socketDragon.position.y = 3.3;
+    this.halberdGroup.add(socketDragon);
+
+    // Mũi kích chính thương kiếm 2 lưỡi (Main Spearhead Blade)
+    const bladeMain = new THREE.Mesh(new THREE.ConeGeometry(0.65, 2.6, 4), flameMat);
+    bladeMain.position.y = 4.7;
+    this.halberdGroup.add(bladeMain);
+
+    // Lưỡi liềm Nguyệt Nha Kích 2 bên đối xứng (Dual Crescent Moon Cleaver Blades)
+    for (const side of [-1, 1]) {
+      const crescent = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 0.14), flameMat);
+      crescent.position.set(side * 0.75, 3.4, 0);
+      crescent.rotation.z = side * 0.35;
+      this.halberdGroup.add(crescent);
+
+      const crescentSpike = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.85, 4), imperialGoldMat);
+      crescentSpike.position.set(side * 1.5, 3.8, 0);
+      crescentSpike.rotation.z = side * 1.1;
+      this.halberdGroup.add(crescentSpike);
+    }
+
+    // Dải lụa chiến kỳ đỏ thắm phấp phới dưới mũi kích (Crimson Battle Pennant)
+    const pennant = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.45, 4), crimsonSilkMat);
+    pennant.position.set(0, 2.6, -0.3);
+    pennant.rotation.x = -0.55;
+    this.halberdGroup.add(pennant);
+
+    this.armR.add(this.halberdGroup);
     this.torso.add(this.armR);
     this.model.add(this.torso);
 
+    // 2 Chân Ma Đế vững như bàn thạch (Heavy Scale Greaves with Dragon Knee Cops)
     this.legL = new THREE.Group();
     this.legL.position.set(-1.1, 1.6, 0);
-    this.legL.add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 1.1), obsidianMat));
+    const legLMesh = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.3, 1.15), obsidianMat);
+    legLMesh.castShadow = true;
+    this.legL.add(legLMesh);
+
+    const kneeL = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), imperialGoldMat);
+    kneeL.position.set(0, 0.45, 0.65);
+    this.legL.add(kneeL);
     this.model.add(this.legL);
 
     this.legR = new THREE.Group();
     this.legR.position.set(1.1, 1.6, 0);
-    this.legR.add(new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 1.1), obsidianMat));
+    const legRMesh = new THREE.Mesh(new THREE.BoxGeometry(1.15, 2.3, 1.15), obsidianMat);
+    legRMesh.castShadow = true;
+    this.legR.add(legRMesh);
+
+    const kneeR = new THREE.Mesh(new THREE.DodecahedronGeometry(0.55, 0), imperialGoldMat);
+    kneeR.position.set(0, 0.45, 0.65);
+    this.legR.add(kneeR);
     this.model.add(this.legR);
   }
 

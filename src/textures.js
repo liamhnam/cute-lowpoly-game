@@ -769,3 +769,397 @@ export function getBixiSteleTexture() {
   textureCache.set('bixiStele', texture);
   return texture;
 }
+
+/**
+ * 13. Texture Vảy Hắc Long Ma Đế & Long Giáp Hoàng Gia (Imperial Dragon Scales)
+ */
+export function getDragonScalesTexture() {
+  if (textureCache.has('dragonScales')) return textureCache.get('dragonScales');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Nền hắc ngọc huyền bí
+  ctx.fillStyle = '#110d18';
+  ctx.fillRect(0, 0, 512, 512);
+
+  const scaleRows = 12;
+  const rowH = 512 / scaleRows;
+  const scaleW = rowH * 1.35;
+
+  for (let r = 0; r < scaleRows + 1; r++) {
+    const y = r * (rowH * 0.85);
+    const offsetX = (r % 2 === 0) ? 0 : scaleW * 0.5;
+
+    for (let x = -scaleW; x < 512 + scaleW; x += scaleW) {
+      const cx = x + offsetX;
+      const cy = y;
+
+      // Thân vảy rồng hình giọt ngọc / móng rồng uốn cong
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.bezierCurveTo(cx - scaleW * 0.52, cy + rowH * 0.45, cx - scaleW * 0.45, cy + rowH * 1.15, cx, cy + rowH * 1.25);
+      ctx.bezierCurveTo(cx + scaleW * 0.45, cy + rowH * 1.15, cx + scaleW * 0.52, cy + rowH * 0.45, cx, cy);
+
+      // Gradient chuyển sắc từ hắc ngọc sang huyết diễm hoàng kim
+      const grad = ctx.createLinearGradient(cx, cy, cx, cy + rowH * 1.25);
+      grad.addColorStop(0, '#1e162a');
+      grad.addColorStop(0.5, '#781c1c');
+      grad.addColorStop(0.85, '#a82c2c');
+      grad.addColorStop(1, '#d63031');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Viền vảy rồng dát vàng rực lửa
+      ctx.strokeStyle = '#f1c40f';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      // Sống lưng vảy rồng nổi gân phản quang
+      ctx.strokeStyle = 'rgba(255, 234, 167, 0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + rowH * 0.2);
+      ctx.lineTo(cx, cy + rowH * 1.1);
+      ctx.stroke();
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(3, 3);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  textureCache.set('dragonScales', texture);
+  return texture;
+}
+
+/**
+ * 14. Texture Cổ Phù Văn Thạch Anh & Nham Thạch (Rune Stone & Magma Fissures)
+ * Dành cho Thái Cổ Thạch Yêu (Moss Golem)
+ */
+export function getCrackedRuneStoneTexture() {
+  if (textureCache.has('runeStone')) return textureCache.get('runeStone');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Nền đá hoa cương xám cổ
+  ctx.fillStyle = '#4b5563';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Vân rạn đá tự nhiên
+  ctx.fillStyle = '#374151';
+  for (let i = 0; i < 400; i++) {
+    const rx = Math.random() * 512;
+    const ry = Math.random() * 512;
+    ctx.fillRect(rx, ry, 2 + Math.random() * 6, 2 + Math.random() * 6);
+  }
+
+  // Mạch ma thạch & phù văn cổ ngàn năm phát sáng rực rỡ
+  ctx.shadowColor = '#f39c12';
+  ctx.shadowBlur = 8;
+  ctx.strokeStyle = '#f1c40f';
+  ctx.lineWidth = 3.5;
+
+  const fissurePaths = [
+    [[50, 40], [120, 110], [90, 190], [170, 260], [210, 380]],
+    [[320, 30], [270, 130], [330, 220], [300, 340], [380, 460]],
+    [[140, 240], [240, 250], [330, 220]],
+    [[60, 420], [150, 380], [240, 440], [360, 410], [460, 460]],
+    [[400, 90], [470, 180], [440, 290]]
+  ];
+
+  for (const path of fissurePaths) {
+    ctx.beginPath();
+    ctx.moveTo(path[0][0], path[0][1]);
+    for (let p = 1; p < path.length; p++) {
+      ctx.lineTo(path[p][0], path[p][1]);
+    }
+    ctx.stroke();
+  }
+
+  // Lõi nham thạch rực sáng ở tâm vết nứt
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.4;
+  for (const path of fissurePaths) {
+    ctx.beginPath();
+    ctx.moveTo(path[0][0], path[0][1]);
+    for (let p = 1; p < path.length; p++) {
+      ctx.lineTo(path[p][0], path[p][1]);
+    }
+    ctx.stroke();
+  }
+
+  // Các cổ phù văn triện ngữ viền phát quang
+  ctx.font = 'bold 24px "Noto Serif", "Songti SC", serif';
+  ctx.fillStyle = '#ffbe76';
+  ctx.shadowColor = '#e67e22';
+  ctx.shadowBlur = 6;
+  ctx.fillText('震', 140, 160);
+  ctx.fillText('坤', 340, 170);
+  ctx.fillText('艮', 210, 320);
+  ctx.fillText('乾', 360, 360);
+  ctx.fillText('泰', 110, 450);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 2);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  textureCache.set('runeStone', texture);
+  return texture;
+}
+
+/**
+ * 15. Texture Bích Ngọc Thụy Vân Dát Vàng (Imperial Nephrite Jade & Cloud Inlay)
+ * Dành cho Thanh Ngọc Thần Sư (Jade Guardian Lion)
+ */
+export function getCarvedJadeTexture() {
+  if (textureCache.has('carvedJade')) return textureCache.get('carvedJade');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Nền ngọc bích Phỉ Thúy mượt mà
+  const jadeGrad = ctx.createRadialGradient(256, 256, 20, 256, 256, 360);
+  jadeGrad.addColorStop(0, '#26de81');
+  jadeGrad.addColorStop(0.5, '#10ac84');
+  jadeGrad.addColorStop(1, '#0e7054');
+  ctx.fillStyle = jadeGrad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Vân mây thụy vân truyền thống dát kim ngân
+  ctx.strokeStyle = '#f6e58d';
+  ctx.lineWidth = 2.2;
+  ctx.shadowColor = '#ffeaa7';
+  ctx.shadowBlur = 4;
+
+  const drawCloudSwirl = (cx, cy, r) => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI * 0.2, Math.PI * 1.8);
+    ctx.arc(cx + r * 0.7, cy - r * 0.4, r * 0.65, Math.PI * 0.8, Math.PI * 2.1);
+    ctx.arc(cx + r * 1.4, cy, r * 0.5, Math.PI * 0.9, Math.PI * 2.2);
+    ctx.stroke();
+  };
+
+  for (let gy = 60; gy < 512; gy += 140) {
+    for (let gx = 50; gx < 512; gx += 170) {
+      drawCloudSwirl(gx + (gy % 280 === 0 ? 0 : 50), gy, 24);
+    }
+  }
+
+  // Tinh thể ngọc mờ óng ánh
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+  for (let i = 0; i < 200; i++) {
+    const jx = Math.random() * 512;
+    const jy = Math.random() * 512;
+    ctx.beginPath();
+    ctx.arc(jx, jy, 1 + Math.random() * 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 2);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  textureCache.set('carvedJade', texture);
+  return texture;
+}
+
+/**
+ * 16. Texture Giáp Xác Xích Diễm Hạt Vương (Flame Scorpion Chitin & Molten Veins)
+ */
+export function getScorpionCarapaceTexture() {
+  if (textureCache.has('scorpionCarapace')) return textureCache.get('scorpionCarapace');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  // Nền vỏ giáp chitin màu huyết dụ đen
+  ctx.fillStyle = '#4a0e17';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Mảng giáp đốt sừng bóng
+  ctx.fillStyle = '#800e13';
+  for (let y = 0; y < 512; y += 64) {
+    ctx.beginPath();
+    ctx.roundRect(16, y + 8, 480, 52, [12]);
+    ctx.fill();
+
+    // Rãnh magma rực lửa giữa các đốt giáp
+    ctx.strokeStyle = '#ff4757';
+    ctx.lineWidth = 3.5;
+    ctx.shadowColor = '#ffa502';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.moveTo(30, y + 62);
+    ctx.lineTo(482, y + 62);
+    ctx.stroke();
+
+    // Lõi nham thạch vàng rực
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#fed330';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(35, y + 62);
+    ctx.lineTo(477, y + 62);
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 2);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  textureCache.set('scorpionCarapace', texture);
+  return texture;
+}
+
+/**
+ * 17. Texture Gấm Cung Đình Cửu Vĩ Hồ & Pháp Y (Celestial Fox Silk & Kimono Brocade)
+ */
+export function getCelestialSilkTexture(theme = 'fox') {
+  const cacheKey = `celestialSilk_${theme}`;
+  if (textureCache.has(cacheKey)) return textureCache.get(cacheKey);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  if (theme === 'fox') {
+    // Lụa tơ tằm trắng hồng thanh nhã
+    const bgGrad = ctx.createLinearGradient(0, 0, 512, 512);
+    bgGrad.addColorStop(0, '#ffffff');
+    bgGrad.addColorStop(0.5, '#fff0f5');
+    bgGrad.addColorStop(1, '#ffccd5');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Hoa văn cánh hoa đào & ngọn lửa hồ ly cách điệu
+    ctx.fillStyle = '#ff758f';
+    for (let y = 30; y < 512; y += 80) {
+      for (let x = 30; x < 512; x += 80) {
+        ctx.beginPath();
+        ctx.ellipse(x, y, 12, 6, Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(x + 10, y + 10, 10, 5, -Math.PI / 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Viền kim tuyến vàng óng
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 1.8;
+    for (let d = -512; d < 1024; d += 90) {
+      ctx.beginPath();
+      ctx.moveTo(d, 0);
+      ctx.lineTo(d + 512, 512);
+      ctx.stroke();
+    }
+  } else {
+    // Áo choàng U Minh Kiếm Linh: Vải dạ quang u ám đêm đen
+    ctx.fillStyle = '#181628';
+    ctx.fillRect(0, 0, 512, 512);
+
+    ctx.strokeStyle = '#2ed573';
+    ctx.lineWidth = 2.2;
+    ctx.shadowColor = '#2ed573';
+    ctx.shadowBlur = 7;
+
+    for (let y = 40; y < 512; y += 95) {
+      ctx.beginPath();
+      ctx.arc(120, y, 18, 0, Math.PI * 1.5);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(360, y, 18, Math.PI * 0.5, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#00d2d3';
+    ctx.font = 'bold 22px serif';
+    ctx.fillText('幽', 80, 200);
+    ctx.fillText('冥', 240, 260);
+    ctx.fillText('劍', 400, 200);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 2);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  textureCache.set(cacheKey, texture);
+  return texture;
+}
+
+/**
+ * 18. Texture Vảy Khủng Long Hắc Diễm (Dino Scales & Tiger Stripes)
+ * Dành cho Hắc Diễm Linh Thú (King Chomper)
+ */
+export function getDinoScalesTexture() {
+  if (textureCache.has('dinoScales')) return textureCache.get('dinoScales');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#6c5ce7';
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Vảy bò sát dạng hạt sỏi đa giác
+  ctx.fillStyle = '#574b90';
+  for (let i = 0; i < 600; i++) {
+    const px = Math.random() * 512;
+    const py = Math.random() * 512;
+    ctx.beginPath();
+    ctx.arc(px, py, 2.5 + Math.random() * 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Sọc vằn vương giả màu cam kim hổ
+  ctx.fillStyle = '#f39c12';
+  for (let y = 40; y < 512; y += 90) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(160, y + 25);
+    ctx.lineTo(110, y + 45);
+    ctx.lineTo(0, y + 35);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(512, y + 30);
+    ctx.lineTo(350, y + 55);
+    ctx.lineTo(390, y + 75);
+    ctx.lineTo(512, y + 65);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 2);
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  textureCache.set('dinoScales', texture);
+  return texture;
+}
