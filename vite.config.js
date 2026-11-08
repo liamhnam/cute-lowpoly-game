@@ -8,6 +8,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    // Hạ cú pháp JS (vd. khối static {} của three.js chỉ có từ iOS 16.4) để chạy được trên Safari/iOS cũ
+    target: ['es2020', 'safari14', 'ios14', 'chrome87', 'firefox78', 'edge88'],
     chunkSizeWarningLimit: 1200,
   },
 });
