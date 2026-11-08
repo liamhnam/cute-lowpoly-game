@@ -206,6 +206,7 @@ export class Character {
     this.jumpVelocity = 0;
     this.gravity = -24;
     this.isSprinting = false;
+    this.stealthTimer = 0;
     this.isMoving = false;
     this.speed = 0;
 
@@ -1321,6 +1322,27 @@ export class Character {
     }
   }
 
+  // Bật/tắt hiển thị bóng ma khi tàng hình (lưu lại độ trong suốt gốc của từng vật liệu)
+  setStealthVisual(on) {
+    this._stealthVisual = on;
+    this.group.traverse((o) => {
+      if (!o.isMesh || !o.material) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if (!m.userData) m.userData = {};
+        if (on) {
+          if (m.userData.stealthBase === undefined) m.userData.stealthBase = { opacity: m.opacity, transparent: m.transparent };
+          if (!m.transparent) { m.transparent = true; m.needsUpdate = true; }
+          m.opacity = m.userData.stealthBase.opacity * 0.22;
+        } else if (m.userData.stealthBase) {
+          m.opacity = m.userData.stealthBase.opacity;
+          if (m.transparent !== m.userData.stealthBase.transparent) { m.transparent = m.userData.stealthBase.transparent; m.needsUpdate = true; }
+          delete m.userData.stealthBase;
+        }
+      }
+    });
+  }
+
   startDash(dir, distance, duration) {
     this.dashDir.set(dir.x, 0, dir.z).normalize();
     this.dashSpeed = distance / duration;
@@ -1447,7 +1469,16 @@ export class Character {
   }
 
   update(delta, inputVector, isSprinting) {
-    if (this.isDead) return;
+    if (this.isDead) {
+      if (this.stealthTimer > 0) this.stealthTimer = 0;
+      if (this._stealthVisual) this.setStealthVisual(false);
+      return;
+    }
+
+    // Tàng hình: trên máy mình nhân vật mờ như bóng ma; máy khác không thấy; quái mất dấu
+    if (this.stealthTimer > 0) this.stealthTimer -= delta;
+    const wantStealth = this.stealthTimer > 0;
+    if (wantStealth !== Boolean(this._stealthVisual)) this.setStealthVisual(wantStealth);
 
     // Xoay tinh thể trên đỉnh Quyền Trượng Pháp Sư
     if (this.staffCrystal && this.outfitIndex === 2) {

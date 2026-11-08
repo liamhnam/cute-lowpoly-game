@@ -1613,6 +1613,7 @@ class Game {
           castSkill: this.character.castSkill,
           clones: this.clones.getNetworkState(),
           outfit: this.character.outfitIndex,
+          stealth: this.character.stealthTimer > 0,
         });
       }
     }

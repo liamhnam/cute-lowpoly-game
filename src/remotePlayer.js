@@ -444,6 +444,13 @@ export class RemotePlayer {
     this.isGrounded = state.isGrounded !== undefined ? state.isGrounded : true;
     this.isCasting = Boolean(state.isCasting);
     this.castSkill = Number(state.castSkill) || 0;
+    // Đối thủ tàng hình: ẩn hoàn toàn (không thể bị bắn trúng vì checkBulletCollision bỏ qua khi ẩn)
+    const stealth = Boolean(state.stealth);
+    if (stealth !== Boolean(this.isStealthed)) {
+      this.isStealthed = stealth;
+      if (!this.isDead) this.group.visible = !stealth;
+      if (this.particles) this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 1, 0)), 14, [0xa55eea, 0x1e272e], [1, 4], 0.5, 2, 0.7);
+    }
     if (state.outfit !== undefined && state.outfit !== this.outfitIndex) {
       this.outfitIndex = Number(state.outfit);
       const isNamCam = this.outfitIndex === 5;

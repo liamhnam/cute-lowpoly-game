@@ -141,6 +141,7 @@ wss.on('connection', (ws) => {
           player.isGrounded = msg.isGrounded;
           player.isCasting = msg.isCasting;
           player.castSkill = msg.castSkill;
+          player.stealth = Boolean(msg.stealth);
           if (msg.outfit !== undefined && Number(msg.outfit) !== player.outfit) {
             player.outfit = Math.max(0, Math.min(5, Number(msg.outfit) || 0));
             const newMaxHp = ROLE_MAX_HP[player.outfit] || 2000;
@@ -164,6 +165,7 @@ wss.on('connection', (ws) => {
             isCasting: player.isCasting,
             castSkill: player.castSkill,
             outfit: player.outfit,
+            stealth: player.stealth,
             clones: sanitizeClones(msg.clones),
           });
           break;

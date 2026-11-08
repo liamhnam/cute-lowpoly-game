@@ -294,6 +294,12 @@ class BossKit {
       return;
     }
 
+    // Người chơi tàng hình: không ra đòn mới, đứng dò tìm
+    if (player.stealthTimer > 0) {
+      this.moving = false;
+      return;
+    }
+
     if (this.blockAI && this.blockAI(delta, player)) return;
 
     this.turnTo(player.position, delta);

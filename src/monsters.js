@@ -2786,7 +2786,7 @@ export class Monster {
         }
       } else if (ef.kind === 'projectile') {
         // Đạn truy đuổi: bẻ lái dần về phía người chơi
-        if (ef.homing && player && !player.isDead) {
+        if (ef.homing && player && !player.isDead && !(player.stealthTimer > 0)) {
           const speed = ef.velocity.length();
           const want = new THREE.Vector3(player.position.x - ef.mesh.position.x, 0, player.position.z - ef.mesh.position.z);
           if (want.lengthSq() > 0.01) {
@@ -4110,10 +4110,15 @@ export class Monster {
 
     // 7. CẬP NHẬT AI CHIẾN ĐẤU & DI CHUYỂN
     const distToPlayer = playerPos ? this.position.distanceTo(playerPos) : 999;
+    // Người chơi tàng hình: quái thường mất dấu (quay về tuần tra), Boss không ra đòn mới
+    const stealthed = Boolean(player && player.stealthTimer > 0);
     if (this.kit) {
       this.kit.update(delta, player, distToPlayer);
     } else if (this.isBoss) {
-      this.updateBossAI(delta, player, distToPlayer);
+      const busy = this.aiState !== 'idle' || this.attackAnimType;
+      if (!stealthed || busy) this.updateBossAI(delta, player, distToPlayer);
+    } else if (stealthed) {
+      this.updateMonsterAI(delta, player, 999);
     } else {
       this.updateMonsterAI(delta, player, distToPlayer);
     }
