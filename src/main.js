@@ -132,6 +132,17 @@ class Game {
 
     // 5. Chế độ chơi: 'pvp' (không có quái) hoặc 'pve' (có quái)
     this.gameMode = 'pvp';
+
+    // Đại Boss giáng thế sau khi trảm đủ số yêu; khi đấu Boss chỉ còn người chơi & Boss
+    this.bossKillsNeeded = 20;
+    try {
+      // Tham số thử nghiệm: ?bossKills=3 để gọi Boss nhanh khi kiểm tra
+      const q = parseInt(new URLSearchParams(window.location.search).get('bossKills'), 10);
+      if (q > 0 && q <= 100) this.bossKillsNeeded = q;
+      if (new URLSearchParams(window.location.search).has('debug')) window.__game = this;
+    } catch (err) {}
+    this.bossProgress = 0;
+    this.bossActive = false;
     this.monsters = [];
 
     // 6. Hệ thống Kỹ Năng Đạo Pháp PixelFX
@@ -340,9 +351,17 @@ class Game {
 
       monster.onDefeated = (m) => {
         this.monstersDefeated += m.isBoss ? 5 : (m.isLarge ? 2 : 1);
-        if (this.killBadge) {
-          this.killBadge.textContent = `🎯 Trảm Yêu: ${this.monstersDefeated}`;
+        if (m.isBoss) {
+          this.onBossDefeated(m);
+        } else if (!this.bossActive) {
+          this.bossProgress++;
+          if (this.bossProgress >= this.bossKillsNeeded) {
+            setTimeout(() => this.summonBoss(), 1200);
+          } else if (this.bossKillsNeeded - this.bossProgress === 5) {
+            this.showNotification('⚠️ Yêu khí ngút trời... Đại Boss sắp giáng thế (còn 5 yêu)!');
+          }
         }
+        this.updateKillBadge();
 
         const mpGain = m.config?.xpMpReward || 25;
         const hpHeal = m.config?.healReward || (m.isBoss ? 600 : (m.isLarge ? 180 : 65));
@@ -361,12 +380,75 @@ class Game {
         this.checkRealmBreakthrough();
       };
     }
+
+    // Đại Boss ngủ chờ, chỉ giáng thế khi trảm đủ yêu
+    this.bossActive = false;
+    this.bossProgress = 0;
+    for (const m of this.monsters) {
+      if (m.isBoss) m.setDormant();
+    }
+    this.updateKillBadge();
+  }
+
+  updateKillBadge() {
+    if (!this.killBadge) return;
+    const boss = this.bossActive
+      ? ' · 🐉 ĐẤU BOSS!'
+      : (this.gameMode === 'pve' ? ` · 🐉 ${this.bossProgress}/${this.bossKillsNeeded}` : '');
+    this.killBadge.textContent = `🎯 Trảm Yêu: ${this.monstersDefeated}${boss}`;
+  }
+
+  // Đại Boss giáng thế ngay trước mặt người chơi: mọi yêu ma khác tan biến & ngừng hồi sinh
+  summonBoss() {
+    if (this.gameMode !== 'pve' || this.bossActive) return;
+    const boss = this.monsters.find((m) => m.isBoss);
+    if (!boss) return;
+    this.bossActive = true;
+
+    for (const m of this.monsters) {
+      if (!m.isBoss) m.vanish();
+    }
+
+    // Xuất hiện cách người chơi ~16m theo hướng camera, trong giới hạn bản đồ
+    const fwd = this.controller.getAttackForward();
+    const p = this.character.position;
+    boss.spawnOrigin.set(
+      THREE.MathUtils.clamp(p.x + fwd.x * 16, -105, 105),
+      0,
+      THREE.MathUtils.clamp(p.z + fwd.z * 16, -105, 105)
+    );
+    boss.respawn();
+    boss.specialCooldown = 3.0;
+    boss.attackCooldown = 2.0;
+
+    this.triggerScreenFlash('fire');
+    this.controller.addTrauma(0.5);
+    this.showNotification(`🐉 ĐẠI BOSS [${boss.name}] GIÁNG THẾ! Yêu ma tan biến — chỉ còn ngươi và hắn!`);
+    this.updateKillBadge();
+  }
+
+  onBossDefeated(boss) {
+    this.bossActive = false;
+    this.bossProgress = 0;
+    boss.respawnTimer = Infinity; // không tự hồi sinh, chờ lần giáng thế sau
+    setTimeout(() => {
+      if (boss.isDead) boss.setDormant();
+    }, 2500);
+
+    // Yêu ma trở lại sau vài giây (lần lượt cho tự nhiên)
+    let i = 0;
+    for (const m of this.monsters) {
+      if (!m.isBoss) m.resumeRespawn(3 + (i++ % 8) * 0.4);
+    }
+    this.updateKillBadge();
   }
 
   clearMonsters() {
     for (const monster of this.monsters) {
       monster.destroy();
     }
+    this.bossActive = false;
+    this.bossProgress = 0;
     this.monsters = [];
     const bossHud = document.getElementById('boss-hud');
     if (bossHud) bossHud.classList.remove('show', 'enraged');

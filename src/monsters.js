@@ -191,6 +191,15 @@ export class Monster {
     // Giai đoạn Cuồng Nộ của Đại Boss
     this.isEnraged = false;
     this.bossSkillCycle = 0;
+    this.recentBossSkills = [];     // tránh lặp lại chiêu vừa dùng
+    this.guardTimer = 0;            // Hộ Thể Phản Chấn: thời gian còn giữ thế thủ
+    this.guardHits = 0;             // số đòn đã đỡ trong thế thủ -> phản chấn
+    this.bossShieldMesh = null;
+    this.blinkTarget = new THREE.Vector3();
+    this.beamDir = new THREE.Vector3();
+
+    // Tạm dừng hồi sinh (vd. khi Đại Boss giáng thế thì quái thường không sinh lại)
+    this.respawnPaused = false;
 
     // Danh sách đạn, vòng cảnh báo, vệt chém 3D, sóng xung kích & bẫy độc
     this.activeEffects = [];
@@ -228,6 +237,44 @@ export class Monster {
       }
     }
     this.activeEffects = [];
+  }
+
+  // Ẩn hoàn toàn & không tự hồi sinh cho tới khi được gọi respawn() (dùng cho Đại Boss chờ giáng thế)
+  setDormant() {
+    this.isDead = true;
+    this.respawnTimer = Infinity;
+    this.aiState = 'idle';
+    this.attackAnimType = null;
+    this.pendingStrikeCallback = null;
+    this.secondaryStrikeCallback = null;
+    this.clearActiveEffects();
+    this.removeBossShield();
+    this.group.visible = false;
+    if (this.healthBarGroup) this.healthBarGroup.visible = false;
+  }
+
+  // Quái thường tan biến (không tính là bị hạ, không thưởng) & tạm ngưng hồi sinh
+  vanish() {
+    if (!this.isDead && this.particles) {
+      this.particles.emitElementalParticles(
+        this.position.clone().add(new THREE.Vector3(0, 2, 0)), 14, [0x8e44ad, 0x2d0a3d, 0xffffff], [1, 3], 0.6, 3.0, 0.6
+      );
+    }
+    this.isDead = true;
+    this.respawnPaused = true;
+    this.aiState = 'idle';
+    this.attackAnimType = null;
+    this.pendingStrikeCallback = null;
+    this.secondaryStrikeCallback = null;
+    this.clearActiveEffects();
+    this.group.visible = false;
+    if (this.healthBarGroup) this.healthBarGroup.visible = false;
+  }
+
+  // Cho phép hồi sinh lại sau `delay` giây
+  resumeRespawn(delay = 1.0) {
+    this.respawnPaused = false;
+    if (this.isDead) this.respawnTimer = delay;
   }
 
   // Kích hoạt animation tấn công kèm callback đúng thời điểm ra đòn (impact frame) + hỗ trợ nhịp 2 liên hoàn
@@ -947,6 +994,8 @@ export class Monster {
 
   takeDamage(amount, hitPos) {
     if (this.isDead) return;
+    // Đang Thuấn Bộ (tàng hình giữa không gian) thì không trúng đòn
+    if (this.aiState === 'blinking') return;
 
     let finalAmount = amount;
 
@@ -955,6 +1004,15 @@ export class Monster {
       const forward = new THREE.Vector3(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
       if (forward.dot(toHit) > 0.35) {
         finalAmount = Math.max(1, Math.round(amount * 0.65));
+      }
+    }
+
+    // Đại Boss đang Hộ Thể Phản Chấn: chỉ nhận 15% sát thương và tích lực phản đòn
+    if (this.isBoss && this.guardTimer > 0) {
+      finalAmount = Math.max(1, Math.round(finalAmount * 0.15));
+      this.guardHits++;
+      if (this.particles && hitPos) {
+        this.particles.emitHitSparkles(hitPos.clone ? hitPos.clone() : this.position.clone(), 6);
       }
     }
 
@@ -1044,6 +1102,9 @@ export class Monster {
     this.secondaryStrikeCallback = null;
     this.respawnTimer = this.config.respawnTime;
     this.clearActiveEffects();
+    this.removeBossShield();
+    this.guardTimer = 0;
+    this.model.visible = true;
     sound.playMonsterDefeated();
     this.particles.emitMonsterDefeat(this.position.clone().add(new THREE.Vector3(0, 3, 0)));
 
@@ -1096,7 +1157,13 @@ export class Monster {
 
     this.model.scale.setScalar(this.baseModelScale);
     this.model.rotation.set(0, 0, 0);
+    this.model.visible = true;
+    this.group.visible = true;
     this.healthBarGroup.visible = true;
+    this.guardTimer = 0;
+    this.guardHits = 0;
+    this.removeBossShield();
+    this.recentBossSkills = [];
 
     sound.playMonsterRoar();
     this.particles.emitHitSparkles(this.position.clone().add(new THREE.Vector3(0, 2, 0)), 15);
@@ -1353,11 +1420,311 @@ export class Monster {
     }
   }
 
+  // =========================================================================
+  // ĐẠI BOSS: BỘ KỸ NĂNG MÔ PHỎNG NGƯỜI CHƠI
+  // 4 = Ảnh Sát Thuấn Bộ (Sát Thủ), 5 = Hộ Thể Phản Chấn (Hộ Vệ),
+  // 6 = Hắc Ảnh Phân Thân (phân thân như người chơi), 7 = Tụ Lực Long Tức (Xạ Thủ - tụ lực bắn xuyên)
+  // =========================================================================
+  pickBossSkill(distToPlayer) {
+    // Xa: ưu tiên chiêu áp sát / tầm xa. Gần: ưu tiên chiêu cận chiến / khống chế
+    const far = distToPlayer > 16;
+    const pool = far
+      ? [0, 1, 2, 4, 4, 6, 7, 7]
+      : [0, 1, 3, 3, 4, 5, 5, 6, 7];
+    if (this.isEnraged) pool.push(4, 6, 7); // Cuồng nộ: dồn dập chiêu mô phỏng người chơi hơn
+    const candidates = pool.filter((k) => !this.recentBossSkills.includes(k));
+    const list = candidates.length ? candidates : pool;
+    const pick = list[Math.floor(Math.random() * list.length)];
+    this.recentBossSkills.push(pick);
+    if (this.recentBossSkills.length > 2) this.recentBossSkills.shift();
+    return pick;
+  }
+
+  faceTowards(pos) {
+    this.rotationY = Math.atan2(pos.x - this.position.x, pos.z - this.position.z);
+    this.model.rotation.y = this.rotationY;
+  }
+
+  // 🗡️ ẢNH SÁT THUẤN BỘ: biến mất, hiện ra SAU LƯNG người chơi rồi chém 2 nhát liên hoàn
+  startBossBlink(player) {
+    this.currentSkillName = '🗡️ Ảnh Sát: Thuấn Bộ Đoạt Mệnh!';
+    this.aiState = 'blinking';
+    this.stateTimer = 0;
+    this.stateDuration = this.isEnraged ? 0.5 : 0.65; // thời gian để người chơi kịp né
+    const rotY = player.rotationY || 0;
+    const behind = new THREE.Vector3(
+      player.position.x - Math.sin(rotY) * 4.2,
+      0,
+      player.position.z - Math.cos(rotY) * 4.2
+    );
+    behind.x = THREE.MathUtils.clamp(behind.x, -115, 115);
+    behind.z = THREE.MathUtils.clamp(behind.z, -115, 115);
+    behind.y = getTerrainHeight(behind.x, behind.z);
+    this.blinkTarget.copy(behind);
+
+    if (this.particles) {
+      this.particles.emitElementalParticles(this.position.clone().add(new THREE.Vector3(0, 3, 0)), 30, [0x6c5ce7, 0x2d0a3d, 0xffffff], [2, 6], 0.8, 4.0, 0.7);
+    }
+    this.model.visible = false;
+    this.healthBarGroup.visible = false;
+    this.spawnTelegraphAOE(behind, 6.0, this.stateDuration + 0.42, 0x6c5ce7, null);
+    sound.playSwordSummon?.();
+  }
+
+  // 🛡️ HỘ THỂ PHẢN CHẤN: dựng khiên vàng 2s, chỉ nhận 15% sát thương; bị đánh thì phản chấn sóng xung kích
+  startBossGuard() {
+    this.currentSkillName = '🛡️ Hộ Thể: Kim Long Phản Chấn! (ĐỪNG ĐÁNH!)';
+    this.aiState = 'guarding';
+    this.stateTimer = 0;
+    this.stateDuration = 2.0;
+    this.guardTimer = this.stateDuration;
+    this.guardHits = 0;
+
+    this.removeBossShield();
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffd32a, transparent: true, opacity: 0.28, depthWrite: false, wireframe: true });
+    this.bossShieldMesh = new THREE.Mesh(new THREE.IcosahedronGeometry(this.hitRadius + 2.2, 1), mat);
+    this.bossShieldMesh.position.y = 4.5;
+    this.group.add(this.bossShieldMesh);
+  }
+
+  removeBossShield() {
+    if (this.bossShieldMesh) {
+      this.group.remove(this.bossShieldMesh);
+      this.bossShieldMesh.geometry.dispose();
+      this.bossShieldMesh.material.dispose();
+      this.bossShieldMesh = null;
+    }
+  }
+
+  // 👥 HẮC ẢNH PHÂN THÂN: 2 (cuồng nộ: 3) phân thân bóng tối hiện quanh người chơi, lần lượt lướt chém xuyên qua
+  castBossShadowClones(player) {
+    this.currentSkillName = '👥 Hắc Ảnh Phân Thân: Vạn Ảnh Quy Tông!';
+    this.startAttackAnimation('boss_summon_sky', 0.7, 0.4, null);
+    const count = this.isEnraged ? 3 : 2;
+    const baseAngle = Math.random() * Math.PI * 2;
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x2d0a3d, transparent: true, opacity: 0.6, depthWrite: false });
+
+    for (let i = 0; i < count; i++) {
+      const a = baseAngle + (i / count) * Math.PI * 2;
+      const start = new THREE.Vector3(player.position.x + Math.sin(a) * 11, 0, player.position.z + Math.cos(a) * 11);
+      start.y = getTerrainHeight(start.x, start.z);
+      const dir = new THREE.Vector3(player.position.x - start.x, 0, player.position.z - start.z).normalize();
+      const length = 22;
+      const delay = 1.0 + i * 0.35;
+
+      const clone = this.model.clone(true);
+      clone.traverse((o) => { if (o.isMesh) o.material = shadowMat; });
+      clone.visible = true;
+      clone.position.copy(start);
+      clone.rotation.set(0, Math.atan2(dir.x, dir.z), 0);
+      clone.scale.setScalar(this.baseModelScale * 0.85);
+      this.scene.add(clone);
+      this.activeEffects.push({
+        kind: 'shadow_clone',
+        mesh: clone,
+        mat: shadowMat,
+        start: start.clone(),
+        end: start.clone().addScaledVector(dir, length),
+        dashAt: delay,
+        elapsed: 0,
+        duration: delay + 0.75,
+      });
+
+      this.spawnTelegraphLine(start, dir, length, 3.0, delay, 0x8e44ad, (pl) => {
+        if (pl && !pl.isDead && this.isPointInLine(pl.position, start, dir, length, 3.0)) {
+          this.inflictDamageToPlayer(pl, 95, '-95 👥 HẮC ẢNH TRẢM!', '#a29bfe', null, 9);
+        }
+        sound.playSwordSlash?.();
+      });
+    }
+  }
+
+  // 🏹 TỤ LỰC LONG TỨC: đứng yên tụ lực rồi phun tia rồng xuyên thẳng một đường dài
+  startBossBeam(player) {
+    this.currentSkillName = '🏹 Tụ Lực: Long Tức Xuyên Vân!';
+    this.aiState = 'beam_charging';
+    this.stateTimer = 0;
+    this.stateDuration = this.isEnraged ? 1.1 : 1.35;
+    const pred = this.predictPlayerPosition(player, 0.3);
+    this.beamDir.set(pred.x - this.position.x, 0, pred.z - this.position.z);
+    if (this.beamDir.lengthSq() < 0.01) this.beamDir.set(Math.sin(this.rotationY), 0, Math.cos(this.rotationY));
+    this.beamDir.normalize();
+    this.faceTowards(this.position.clone().add(this.beamDir));
+
+    const origin = this.position.clone();
+    const dir = this.beamDir.clone();
+    const length = 42;
+    const width = this.isEnraged ? 4.2 : 3.4;
+    this.spawnTelegraphLine(origin, dir, length, width, this.stateDuration, 0xff3838, (pl) => {
+      this.spawnBeamFlash(origin, dir, length, width);
+      if (pl && !pl.isDead && this.isPointInLine(pl.position, origin, dir, length, width)) {
+        this.inflictDamageToPlayer(pl, 220, '-220 🏹 LONG TỨC XUYÊN VÂN!', '#ff3838', 'slow', 16);
+      }
+      sound.playExplosion?.();
+    });
+  }
+
+  updateBossPlayerLikeState(delta, player) {
+    this.stateTimer += delta;
+
+    if (this.aiState === 'blinking') {
+      if (this.stateTimer >= this.stateDuration) {
+        this.position.copy(this.blinkTarget);
+        this.group.position.copy(this.position);
+        this.model.visible = true;
+        this.healthBarGroup.visible = true;
+        this.aiState = 'idle';
+        if (player) this.faceTowards(player.position);
+        if (this.particles) {
+          this.particles.emitShockwave(this.position.clone().add(new THREE.Vector3(0, 0.5, 0)), 0x6c5ce7, 7.0, 0.4);
+        }
+        const strike = (dmg) => {
+          sound.playSwordSlash?.();
+          this.spawnSlashArc(5.8, 0x6c5ce7, 0.1, 3.0, 0.25);
+          if (player && Math.hypot(player.position.x - this.position.x, player.position.z - this.position.z) <= 6.2) {
+            this.inflictDamageToPlayer(player, dmg, `-${dmg} 🗡️ THUẤN BỘ ĐOẠT MỆNH!`, '#a29bfe', null, 8);
+          }
+        };
+        this.startAttackAnimation('boss_ cleave_lr', 0.7, 0.3, () => strike(85), 0.72, () => strike(105));
+        this.attackCooldown = 1.2;
+        this.currentSkillName = this.isEnraged ? '🔥 Cuồng Nộ Huyết Long' : '⚡ Sẵn sàng chiến đấu';
+      }
+      return;
+    }
+
+    if (this.aiState === 'guarding') {
+      this.guardTimer -= delta;
+      if (this.bossShieldMesh) {
+        this.bossShieldMesh.rotation.y += delta * 2.2;
+        this.bossShieldMesh.material.opacity = 0.22 + Math.min(0.45, this.guardHits * 0.06) + Math.sin(this.stateTimer * 12) * 0.05;
+      }
+      if (player) this.faceTowards(player.position);
+      if (this.stateTimer >= this.stateDuration) {
+        this.guardTimer = 0;
+        this.removeBossShield();
+        this.aiState = 'idle';
+        if (this.guardHits > 0) {
+          // Phản chấn: càng bị đánh nhiều, sóng càng mạnh
+          const dmg = Math.min(260, 120 + this.guardHits * 14);
+          this.currentSkillName = `⚡ PHẢN CHẤN! (đỡ ${this.guardHits} đòn)`;
+          this.spawnSlashArc(7.0, 0xffd32a, 0.0, 2.0, 0.4);
+          this.spawnExpandingShockwave(this.position, 18.0, 0.85, dmg, 0xffd32a);
+          if (this.particles) {
+            this.particles.emitShockwave(this.position.clone().add(new THREE.Vector3(0, 1, 0)), 0xffd32a, 14.0, 0.6);
+          }
+          sound.playExplosion?.();
+        } else {
+          this.currentSkillName = this.isEnraged ? '🔥 Cuồng Nộ Huyết Long' : '⚡ Sẵn sàng chiến đấu';
+        }
+        this.guardHits = 0;
+      }
+      return;
+    }
+
+    if (this.aiState === 'beam_charging') {
+      if (this.particles && Math.random() < 0.6) {
+        const mouth = this.position.clone().add(new THREE.Vector3(this.beamDir.x * 3, 5.5, this.beamDir.z * 3));
+        this.particles.emitElementalParticles(mouth, 2, [0xff3838, 0xffd32a, 0xffffff], [1, 3], 0.35, -2.0, 0.4);
+      }
+      if (this.stateTimer >= this.stateDuration) {
+        this.aiState = 'idle';
+        this.attackCooldown = Math.max(this.attackCooldown, 0.8);
+        this.currentSkillName = this.isEnraged ? '🔥 Cuồng Nộ Huyết Long' : '⚡ Sẵn sàng chiến đấu';
+      }
+    }
+  }
+
+  // Khoảng cách điểm tới đoạn thẳng (mặt phẳng XZ) để xét trúng chiêu dạng đường thẳng
+  isPointInLine(point, origin, dir, length, width) {
+    const px = point.x - origin.x;
+    const pz = point.z - origin.z;
+    const along = px * dir.x + pz * dir.z;
+    if (along < -1 || along > length + 1) return false;
+    const perp = Math.abs(px * dir.z - pz * dir.x);
+    return perp <= width / 2 + 0.6;
+  }
+
+  // Vòng cảnh báo dạng đường thẳng (nạp dần từ gốc tới ngọn) — cho người chơi thấy hướng chiêu để né
+  spawnTelegraphLine(origin, dir, length, width, delay, colorHex, onTrigger) {
+    const group = new THREE.Group();
+    const groundY = getTerrainHeight(origin.x, origin.z) + 0.1;
+    group.position.set(origin.x, groundY, origin.z);
+    group.rotation.y = Math.atan2(dir.x, dir.z);
+
+    const borderMat = new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.35, depthWrite: false });
+    const border = new THREE.Mesh(new THREE.PlaneGeometry(width, length), borderMat);
+    border.rotation.x = -Math.PI / 2;
+    border.position.z = length / 2;
+
+    const fillMat = new THREE.MeshBasicMaterial({ color: colorHex, side: THREE.DoubleSide, transparent: true, opacity: 0.55, depthWrite: false });
+    const fillGeo = new THREE.PlaneGeometry(width, length);
+    fillGeo.translate(0, length / 2, 0); // gốc ở đầu đường để nạp dần về phía trước
+    const fill = new THREE.Mesh(fillGeo, fillMat);
+    fill.rotation.x = -Math.PI / 2;
+    fill.scale.set(1, 0.02, 1);
+
+    group.add(border, fill);
+    this.scene.add(group);
+    this.activeEffects.push({ kind: 'telegraph_line', mesh: group, fill, elapsed: 0, duration: delay, onTrigger });
+  }
+
+  spawnBeamFlash(origin, dir, length, width) {
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.95, depthWrite: false });
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(width * 0.7, 1.6, length), mat);
+    beam.position.set(origin.x + dir.x * length / 2, getTerrainHeight(origin.x, origin.z) + 2.2, origin.z + dir.z * length / 2);
+    beam.rotation.y = Math.atan2(dir.x, dir.z);
+    this.scene.add(beam);
+    this.activeEffects.push({ kind: 'beam_flash', mesh: beam, mat, elapsed: 0, duration: 0.35 });
+    if (this.particles) {
+      for (let i = 0; i < 6; i++) {
+        const p = origin.clone().addScaledVector(dir, (i + 0.5) * length / 6);
+        p.y = getTerrainHeight(p.x, p.z) + 1.5;
+        this.particles.emitElementalParticles(p, 6, [0xff3838, 0xffd32a, 0xffffff], [1, 4], 0.5, 3.0, 0.5);
+      }
+    }
+  }
+
   updateActiveEffects(delta, player) {
     for (let i = this.activeEffects.length - 1; i >= 0; i--) {
       const ef = this.activeEffects[i];
       ef.elapsed += delta;
       const t = Math.min(1.0, ef.elapsed / ef.duration);
+
+      if (ef.kind === 'telegraph_line') {
+        ef.fill.scale.y = Math.max(0.02, t);
+        if (ef.elapsed >= ef.duration) {
+          if (ef.onTrigger) ef.onTrigger(player);
+          this.scene.remove(ef.mesh);
+          ef.mesh.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } });
+          this.activeEffects.splice(i, 1);
+        }
+        continue;
+      }
+      if (ef.kind === 'shadow_clone') {
+        if (ef.elapsed >= ef.dashAt) {
+          const dt = Math.min(1, (ef.elapsed - ef.dashAt) / 0.22);
+          ef.mesh.position.lerpVectors(ef.start, ef.end, dt);
+          ef.mat.opacity = Math.max(0, 0.6 * (1 - (ef.elapsed - ef.dashAt) / 0.75));
+        } else {
+          ef.mat.opacity = 0.2 + 0.4 * (ef.elapsed / ef.dashAt);
+        }
+        if (ef.elapsed >= ef.duration) {
+          this.scene.remove(ef.mesh);
+          this.activeEffects.splice(i, 1);
+        }
+        continue;
+      }
+      if (ef.kind === 'beam_flash') {
+        ef.mat.opacity = 0.95 * (1 - t);
+        ef.mesh.scale.x = 1 + t * 0.6;
+        if (ef.elapsed >= ef.duration) {
+          this.scene.remove(ef.mesh);
+          ef.mesh.geometry.dispose();
+          ef.mat.dispose();
+          this.activeEffects.splice(i, 1);
+        }
+        continue;
+      }
 
       if (ef.kind === 'slash_arc') {
         const s = THREE.MathUtils.lerp(0.65, 1.35, t);
@@ -1528,6 +1895,12 @@ export class Monster {
       return;
     }
 
+    // 3. Các thế võ mô phỏng người chơi (Thuấn Bộ / Hộ Thể / Tụ Lực Long Tức)
+    if (this.aiState === 'blinking' || this.aiState === 'guarding' || this.aiState === 'beam_charging') {
+      this.updateBossPlayerLikeState(delta, player);
+      return;
+    }
+
     if (distToPlayer > 58) {
       this.currentSkillName = '🐉 Trấn Thủ Đại Điện';
       return;
@@ -1542,8 +1915,8 @@ export class Monster {
 
     // 3. KỸ NĂNG ĐẶC BIỆT CỦA ĐẠI BOSS (luân phiên 4 tuyệt kỹ kèm animation riêng)
     if (this.specialCooldown <= 0 && !this.attackAnimType) {
-      this.specialCooldown = 5.2;
-      const skillIdx = this.bossSkillCycle % 4;
+      this.specialCooldown = 4.6;
+      const skillIdx = this.pickBossSkill(distToPlayer);
       this.bossSkillCycle++;
 
       if (skillIdx === 0) {
@@ -1594,7 +1967,7 @@ export class Monster {
         this.leapTarget.copy(this.predictPlayerPosition(player, 0.5));
         this.spawnTelegraphAOE(this.leapTarget, 6.5, 0.95, 0xffa502, null);
         return;
-      } else {
+      } else if (skillIdx === 3) {
         // TUYỆT KỸ 4: HẮC ĐỘNG THÔN PHỆ (Cắm ngược Họa Kích xuống đất hút mục tiêu)
         this.currentSkillName = '🌀 Tuyệt Kỹ: Hắc Động Thôn Phệ!';
         this.aiState = 'channeling';
@@ -1610,6 +1983,17 @@ export class Monster {
             this.inflictDamageToPlayer(pl, 210, '-210 💥 HUYẾT LONG ĐẠI BẠO!', '#ff1e1e', null, 22);
           }
         });
+        return;
+      } else if (skillIdx === 4) {
+        this.startBossBlink(player);
+        return;
+      } else if (skillIdx === 5) {
+        this.startBossGuard();
+        return;
+      } else if (skillIdx === 6) {
+        this.castBossShadowClones(player);
+      } else {
+        this.startBossBeam(player);
         return;
       }
     }
@@ -2536,7 +2920,7 @@ export class Monster {
       this.model.scale.multiplyScalar(0.96);
       this.healthBarGroup.visible = false;
 
-      if (this.respawnTimer <= 0) {
+      if (!this.respawnPaused && this.respawnTimer <= 0) {
         this.respawn();
       }
       return;
@@ -2658,6 +3042,18 @@ export class Monster {
         this.torso.rotation.x = 0.45;
         this.armR.rotation.x = -2.6;
         this.armL.rotation.x = -2.2;
+        return;
+      }
+      if (this.aiState === 'guarding') {
+        this.torso.rotation.x = -0.1;
+        this.armR.rotation.x = -1.6;
+        this.armL.rotation.x = -1.6;
+        return;
+      }
+      if (this.aiState === 'beam_charging') {
+        this.torso.rotation.x = -0.25 - Math.min(0.3, this.stateTimer * 0.25);
+        this.armR.rotation.x = -0.6;
+        this.armL.rotation.x = -0.6;
         return;
       }
       if (this.aiState === 'channeling') {
