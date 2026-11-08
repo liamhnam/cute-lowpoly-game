@@ -31,7 +31,9 @@ export class MobileControlsManager {
     this.joystickPos = { x: 0, y: 0 };
     this.joystickVector = new THREE.Vector2(0, 0);
     this.maxJoystickRadius = 52;
-    this.isSprinting = false;
+    this.isSprinting = false;      // trạng thái chạy nhanh thực tế = công tắc nút ⚡ HOẶC đẩy cần gạt hết cỡ
+    this.sprintToggle = false;     // công tắc nút ⚡ Súc Địa (giữ nguyên cho tới khi bấm lại)
+    this.stickSprint = false;      // tự chạy nhanh khi đẩy cần gạt > 78%
 
     // Trạng thái Camera Touch Look
     this.cameraTouchId = null;
@@ -228,12 +230,11 @@ export class MobileControlsManager {
 
           // Tự kích hoạt Súc Địa (Sprint) khi đẩy hết hành trình cần gạt (> 78%)
           const distRatio = clampedDist / this.maxJoystickRadius;
-          const shouldSprint = distRatio > 0.78;
-          if (shouldSprint !== this.isSprinting) {
-            this.isSprinting = shouldSprint;
-            this.joystickBase.classList.toggle('sprinting', shouldSprint);
-            if (shouldSprint) this.triggerHaptic(15);
-          }
+          const stickSprint = distRatio > 0.78;
+          if (stickSprint && !this.stickSprint && !this.sprintToggle) this.triggerHaptic(15);
+          this.stickSprint = stickSprint;
+          this.isSprinting = this.sprintToggle || this.stickSprint;
+          this.joystickBase.classList.toggle('sprinting', this.isSprinting);
 
           // Truyền vector sang ThirdPersonController
           this.controller.setJoystickInput(normX, normY, this.isSprinting);
@@ -263,7 +264,8 @@ export class MobileControlsManager {
   resetJoystick() {
     this.joystickActive = false;
     this.joystickTouchId = null;
-    this.isSprinting = false;
+    this.stickSprint = false;
+    this.isSprinting = this.sprintToggle; // buông cần gạt không tắt công tắc ⚡
     this.joystickVector.set(0, 0);
 
     if (this.joystickBase) {
@@ -274,7 +276,7 @@ export class MobileControlsManager {
     }
 
     if (this.controller) {
-      this.controller.setJoystickInput(0, 0, false);
+      this.controller.setJoystickInput(0, 0, this.isSprinting);
     }
   }
 
@@ -471,8 +473,10 @@ export class MobileControlsManager {
         e.preventDefault();
         e.stopPropagation();
         this.triggerHaptic(15);
-        this.isSprinting = !this.isSprinting;
-        sprintBtn.classList.toggle('active', this.isSprinting);
+        this.sprintToggle = !this.sprintToggle;
+        this.isSprinting = this.sprintToggle || this.stickSprint;
+        sprintBtn.classList.toggle('active', this.sprintToggle);
+        if (this.joystickBase) this.joystickBase.classList.toggle('sprinting', this.isSprinting);
 
         if (this.controller) {
           this.controller.setJoystickInput(
@@ -484,7 +488,9 @@ export class MobileControlsManager {
 
         if (this.game) {
           this.game.showNotification(
-            this.isSprinting ? '⚡ Đã kích hoạt [Súc Địa Thành Thốn]!' : '🚶 Trở về [Ngự Phong Hành]'
+            this.sprintToggle
+              ? '⚡ BẬT Súc Địa: luôn chạy nhanh (~1.8x) — bấm lần nữa để tắt'
+              : '🚶 TẮT Súc Địa: đi thường (đẩy cần gạt hết cỡ vẫn tự chạy nhanh)'
           );
         }
       };
